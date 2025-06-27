@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,13 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, Zap, Bot, Sparkles } from 'lucide-react';
+import { Search, Zap, Bot, Sparkles, Settings } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import RadarConfig from './RadarConfig';
 
 const RadarBrasis = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showConfig, setShowConfig] = useState(false);
   const itemsPerPage = 6;
   
   const { toast } = useToast();
@@ -87,6 +88,23 @@ const RadarBrasis = () => {
     return colors[status] || colors['A curar'];
   };
 
+  if (showConfig) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="p-6">
+          <Button
+            onClick={() => setShowConfig(false)}
+            variant="outline"
+            className="mb-6"
+          >
+            ← Voltar ao Radar
+          </Button>
+          <RadarConfig />
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -149,13 +167,24 @@ const RadarBrasis = () => {
               </Select>
             </div>
 
-            <Button 
-              onClick={executeAutomation}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              Executar Curadoria IA
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowConfig(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Configurar
+              </Button>
+              
+              <Button 
+                onClick={executeAutomation}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Executar Curadoria IA
+              </Button>
+            </div>
           </div>
         </div>
 
