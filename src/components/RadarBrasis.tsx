@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Search, Settings, Zap, Bot, TrendingUp, Users, Clock, Database, Loader2 } from 'lucide-react';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
+import RadarLiveStats from '@/components/radar/RadarLiveStats';
+import RadarRecentActions from '@/components/radar/RadarRecentActions';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -217,287 +218,256 @@ const RadarBrasis = () => {
             </p>
           </div>
 
-          {/* Info de Debug */}
-          {error && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    <strong>Debug Info:</strong> Erro no Supabase - {error.message}. Usando dados de exemplo.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Estatísticas ao Vivo */}
+          <RadarLiveStats />
 
-          {!error && supabaseData && supabaseData.length === 0 && (
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    <strong>Info:</strong> Nenhum dado encontrado no Supabase. Exibindo dados de exemplo.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!error && supabaseData && supabaseData.length > 0 && (
-            <div className="bg-green-50 border-l-4 border-green-400 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-green-700">
-                    <strong>Sucesso:</strong> Conectado ao Supabase com {supabaseData.length} itens carregados.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Filtros */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="flex flex-col md:flex-row gap-4 flex-1">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                  <Input
-                    placeholder="Buscar por título, fonte ou tags..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="Filtrar por status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os status</SelectItem>
-                    <SelectItem value="A curar">A curar</SelectItem>
-                    <SelectItem value="Em aprovação">Em aprovação</SelectItem>
-                    <SelectItem value="Publicado">Publicado</SelectItem>
-                    <SelectItem value="Ignorado">Ignorado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex items-center gap-2" onClick={handleConfigurar}>
-                  <Settings className="h-4 w-4" />
-                  Configurar
-                </Button>
-                
-                <Button 
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
-                  onClick={handleExecutarCuradoria}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Zap className="h-4 w-4 mr-2" />
-                  )}
-                  Executar Curadoria IA
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg p-4 shadow-sm border">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm text-slate-600">Total de Itens</p>
-                  <p className="text-2xl font-bold text-slate-800">{filteredItems.length}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg p-4 shadow-sm border">
-              <div className="flex items-center gap-3">
-                <Users className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-slate-600">Página Atual</p>
-                  <p className="text-2xl font-bold text-slate-800">{currentPage}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg p-4 shadow-sm border">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-orange-600" />
-                <div>
-                  <p className="text-sm text-slate-600">Total de Páginas</p>
-                  <p className="text-2xl font-bold text-slate-800">{totalPages}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg p-4 shadow-sm border">
-              <div className="flex items-center gap-3">
-                <Database className="h-5 w-5 text-purple-600" />
-                <div>
-                  <p className="text-sm text-slate-600">Fonte</p>
-                  <p className="text-lg font-semibold text-slate-800">
-                    {supabaseData && supabaseData.length > 0 ? 'Supabase' : 'Demo'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Grid de Conteúdos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedItems.map((item) => (
-              <Card key={item.id} className="bg-white shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-indigo-500">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-lg font-semibold text-slate-800 leading-tight">
-                      {item.title}
-                    </CardTitle>
-                    <div className="flex items-center gap-1">
-                      {item.relevancia && [...Array(item.relevancia)].map((_, i) => (
-                        <div key={i} className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                      ))}
+          {/* Layout em duas colunas para desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Coluna principal - Conteúdo */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Info de Debug */}
+              {error && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                  <div className="flex">
+                    <div className="ml-3">
+                      <p className="text-sm text-yellow-700">
+                        <strong>Debug Info:</strong> Erro no Supabase - {error.message}. Usando dados de exemplo.
+                      </p>
                     </div>
                   </div>
-                  
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {item.editoria && (
-                      <Badge className={getEditoriaColor(item.editoria)}>
-                        {item.editoria}
-                      </Badge>
-                    )}
-                    {item.status && (
-                      <Badge className={getStatusColor(item.status)}>
-                        {item.status}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
+                </div>
+              )}
 
-                <CardContent className="space-y-4">
-                  {item.resumo_curado && (
-                    <p className="text-sm text-slate-600 italic bg-slate-50 p-3 rounded-lg">
-                      "{item.resumo_curado}"
-                    </p>
-                  )}
-
-                  <div className="space-y-2">
-                    {item.source && (
-                      <p className="text-xs text-slate-500">
-                        <strong>Fonte:</strong> {item.source}
+              {!error && supabaseData && supabaseData.length === 0 && (
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+                  <div className="flex">
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-700">
+                        <strong>Info:</strong> Nenhum dado encontrado no Supabase. Exibindo dados de exemplo.
                       </p>
-                    )}
-                    {item.tags && item.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {item.tags.map((tag, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!error && supabaseData && supabaseData.length > 0 && (
+                <div className="bg-green-50 border-l-4 border-green-400 p-4">
+                  <div className="flex">
+                    <div className="ml-3">
+                      <p className="text-sm text-green-700">
+                        <strong>Sucesso:</strong> Conectado ao Supabase com {supabaseData.length} itens carregados.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Filtros */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border">
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                  <div className="flex flex-col md:flex-row gap-4 flex-1">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                      <Input
+                        placeholder="Buscar por título, fonte ou tags..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-full md:w-48">
+                        <SelectValue placeholder="Filtrar por status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos os status</SelectItem>
+                        <SelectItem value="A curar">A curar</SelectItem>
+                        <SelectItem value="Em aprovação">Em aprovação</SelectItem>
+                        <SelectItem value="Publicado">Publicado</SelectItem>
+                        <SelectItem value="Ignorado">Ignorado</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="flex gap-2 pt-3 border-t">
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex items-center gap-2" onClick={handleConfigurar}>
+                      <Settings className="h-4 w-4" />
+                      Configurar
+                    </Button>
+                    
                     <Button 
-                      size="sm" 
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      onClick={() => handleAprovar(item.id, item.title)}
-                      disabled={updateMutation.isPending}
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                      onClick={handleExecutarCuradoria}
+                      disabled={isLoading}
                     >
-                      {updateMutation.isPending ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
-                        "Aprovar"
+                        <Zap className="h-4 w-4 mr-2" />
                       )}
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => handleIgnorar(item.id, item.title)}
-                      disabled={updateMutation.isPending}
-                    >
-                      Ignorar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="flex-1"
-                      onClick={() => handleVerOriginal(item.link, item.title)}
-                    >
-                      Ver Original
+                      Executar Curadoria IA
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              </div>
+
+              {/* Grid de Conteúdos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {paginatedItems.map((item) => (
+                  <Card key={item.id} className="bg-white shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-indigo-500">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <CardTitle className="text-lg font-semibold text-slate-800 leading-tight">
+                          {item.title}
+                        </CardTitle>
+                        <div className="flex items-center gap-1">
+                          {item.relevancia && [...Array(item.relevancia)].map((_, i) => (
+                            <div key={i} className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {item.editoria && (
+                          <Badge className={getEditoriaColor(item.editoria)}>
+                            {item.editoria}
+                          </Badge>
+                        )}
+                        {item.status && (
+                          <Badge className={getStatusColor(item.status)}>
+                            {item.status}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      {item.resumo_curado && (
+                        <p className="text-sm text-slate-600 italic bg-slate-50 p-3 rounded-lg">
+                          "{item.resumo_curado}"
+                        </p>
+                      )}
+
+                      <div className="space-y-2">
+                        {item.source && (
+                          <p className="text-xs text-slate-500">
+                            <strong>Fonte:</strong> {item.source}
+                          </p>
+                        )}
+                        {item.tags && item.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {item.tags.map((tag, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 pt-3 border-t">
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                          onClick={() => handleAprovar(item.id, item.title)}
+                          disabled={updateMutation.isPending}
+                        >
+                          {updateMutation.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Aprovar"
+                          )}
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => handleIgnorar(item.id, item.title)}
+                          disabled={updateMutation.isPending}
+                        >
+                          Ignorar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="flex-1"
+                          onClick={() => handleVerOriginal(item.link, item.title)}
+                        >
+                          Ver Original
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Paginação */}
+              {totalPages > 1 && (
+                <div className="flex justify-center">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      
+                      {[...Array(totalPages)].map((_, index) => (
+                        <PaginationItem key={index}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(index + 1)}
+                            isActive={currentPage === index + 1}
+                            className="cursor-pointer"
+                          >
+                            {index + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+
+              {/* Estado vazio quando não há resultados filtrados */}
+              {filteredItems.length === 0 && (
+                <div className="text-center py-12">
+                  <Bot className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-600 mb-2">
+                    Nenhum conteúdo encontrado
+                  </h3>
+                  <p className="text-slate-500 mb-6">
+                    Tente ajustar os filtros ou execute a curadoria IA para mais conteúdos
+                  </p>
+                  <Button 
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    onClick={handleExecutarCuradoria}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Zap className="h-4 w-4 mr-2" />
+                    )}
+                    Iniciar Curadoria
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Sidebar direita - Ações recentes */}
+            <div className="lg:col-span-1">
+              <RadarRecentActions />
+            </div>
           </div>
-
-          {/* Paginação */}
-          {totalPages > 1 && (
-            <div className="flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  
-                  {[...Array(totalPages)].map((_, index) => (
-                    <PaginationItem key={index}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(index + 1)}
-                        isActive={currentPage === index + 1}
-                        className="cursor-pointer"
-                      >
-                        {index + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
-
-          {/* Estado vazio quando não há resultados filtrados */}
-          {filteredItems.length === 0 && (
-            <div className="text-center py-12">
-              <Bot className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-slate-600 mb-2">
-                Nenhum conteúdo encontrado
-              </h3>
-              <p className="text-slate-500 mb-6">
-                Tente ajustar os filtros ou execute a curadoria IA para mais conteúdos
-              </p>
-              <Button 
-                className="bg-indigo-600 hover:bg-indigo-700"
-                onClick={handleExecutarCuradoria}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4 mr-2" />
-                )}
-                Iniciar Curadoria
-              </Button>
-            </div>
-          )}
         </div>
       </div>
       <Toaster />
