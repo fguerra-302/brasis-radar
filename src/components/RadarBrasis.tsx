@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Bot, Sparkles, Settings, Zap } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 const RadarBrasis = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
+  const { toast } = useToast();
 
   // Dados mockados para demonstração
   const mockItems = [
@@ -36,6 +37,49 @@ const RadarBrasis = () => {
       link: '#'
     }
   ];
+
+  const handleAprovar = (itemId: string, title: string) => {
+    toast({
+      title: "✅ Conteúdo Aprovado",
+      description: `"${title}" foi aprovado para publicação.`,
+    });
+    console.log(`Aprovado item ${itemId}`);
+  };
+
+  const handleIgnorar = (itemId: string, title: string) => {
+    toast({
+      title: "❌ Conteúdo Ignorado",
+      description: `"${title}" foi marcado como ignorado.`,
+      variant: "destructive",
+    });
+    console.log(`Ignorado item ${itemId}`);
+  };
+
+  const handleVerOriginal = (link: string, title: string) => {
+    toast({
+      title: "🔗 Abrindo Original",
+      description: `Abrindo link original de "${title}".`,
+    });
+    console.log(`Ver original: ${link}`);
+    // Em um caso real, abriria o link
+    window.open(link, '_blank');
+  };
+
+  const handleConfigurar = () => {
+    toast({
+      title: "⚙️ Configurações",
+      description: "Abrindo painel de configurações...",
+    });
+    console.log('Abrindo configurações');
+  };
+
+  const handleExecutarCuradoria = () => {
+    toast({
+      title: "🚀 Curadoria IA Iniciada",
+      description: "Executando curadoria automática...",
+    });
+    console.log('Executando curadoria IA');
+  };
 
   const getEditoriaColor = (editoria: string) => {
     const colors = {
@@ -112,12 +156,15 @@ const RadarBrasis = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2" onClick={handleConfigurar}>
                 <Settings className="h-4 w-4" />
                 Configurar
               </Button>
               
-              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
+              <Button 
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                onClick={handleExecutarCuradoria}
+              >
                 <Zap className="h-4 w-4 mr-2" />
                 Executar Curadoria IA
               </Button>
@@ -174,13 +221,27 @@ const RadarBrasis = () => {
                 </div>
 
                 <div className="flex gap-2 pt-3 border-t">
-                  <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700">
+                  <Button 
+                    size="sm" 
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleAprovar(item.id, item.title)}
+                  >
                     Aprovar
                   </Button>
-                  <Button size="sm" variant="outline" className="flex-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => handleIgnorar(item.id, item.title)}
+                  >
                     Ignorar
                   </Button>
-                  <Button size="sm" variant="ghost" className="flex-1">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="flex-1"
+                    onClick={() => handleVerOriginal(item.link, item.title)}
+                  >
                     Ver Original
                   </Button>
                 </div>
@@ -199,7 +260,10 @@ const RadarBrasis = () => {
             <p className="text-slate-500 mb-6">
               Execute a curadoria IA para começar a capturar conteúdos relevantes
             </p>
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
+            <Button 
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={handleExecutarCuradoria}
+            >
               <Zap className="h-4 w-4 mr-2" />
               Iniciar Curadoria
             </Button>
