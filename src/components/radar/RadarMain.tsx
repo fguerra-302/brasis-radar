@@ -50,14 +50,14 @@ const RadarMain = () => {
       });
       
       toast({
-        title: "❌ Conteúdo Ignorado",
-        description: `"${title}" foi marcado como ignorado.`,
+        title: "❌ Conteúdo Rejeitado",
+        description: `"${title}" foi marcado como rejeitado.`,
       });
     } catch (error) {
-      console.error('Erro ao ignorar:', error);
+      console.error('Erro ao rejeitar:', error);
       toast({
         title: "Erro",
-        description: "Falha ao ignorar conteúdo.",
+        description: "Falha ao rejeitar conteúdo.",
         variant: "destructive",
       });
     }

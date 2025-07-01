@@ -48,7 +48,7 @@ const RadarRecentActions = () => {
         </CardHeader>
         <CardContent>
           <p className="text-slate-500 text-center py-4">
-            Nenhuma ação realizada ainda. Comece aprovando ou ignorando itens!
+            Nenhuma ação realizada ainda. Comece aprovando ou rejeitando itens!
           </p>
         </CardContent>
       </Card>

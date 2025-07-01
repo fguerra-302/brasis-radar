@@ -13,7 +13,7 @@ const RadarDebugInfo = ({ error, supabaseItemsCount }: RadarDebugInfoProps) => {
         <div className="flex">
           <div className="ml-3">
             <p className="text-sm text-yellow-700">
-              <strong>Debug Info:</strong> Erro no Supabase - {error.message}. Usando dados de exemplo.
+              <strong>Info de Debug:</strong> Erro no Supabase - {error.message}. Usando dados de exemplo.
             </p>
           </div>
         </div>
@@ -27,7 +27,7 @@ const RadarDebugInfo = ({ error, supabaseItemsCount }: RadarDebugInfoProps) => {
         <div className="flex">
           <div className="ml-3">
             <p className="text-sm text-blue-700">
-              <strong>Info:</strong> Nenhum dado encontrado no Supabase. Exibindo dados de exemplo.
+              <strong>Informação:</strong> Nenhum dado encontrado no Supabase. Exibindo dados de exemplo.
             </p>
           </div>
         </div>
@@ -41,7 +41,7 @@ const RadarDebugInfo = ({ error, supabaseItemsCount }: RadarDebugInfoProps) => {
         <div className="flex">
           <div className="ml-3">
             <p className="text-sm text-green-700">
-              <strong>Sucesso:</strong> Conectado ao Supabase com {supabaseItemsCount} itens carregados.
+              <strong>Sucesso:</strong> Conectado ao Supabase with {supabaseItemsCount} itens carregados.
             </p>
           </div>
         </div>

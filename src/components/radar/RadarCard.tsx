@@ -37,6 +37,16 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, isUpdating }: Ra
     return colors[status] || colors['A curar'];
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      'A curar': 'A curar',
+      'Em aprovação': 'Em aprovação',
+      'Publicado': 'Aprovado',
+      'Ignorado': 'Rejeitado'
+    };
+    return labels[status] || status;
+  };
+
   return (
     <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-indigo-500">
       <CardHeader className="pb-3">
@@ -59,7 +69,7 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, isUpdating }: Ra
           )}
           {item.status && (
             <Badge className={getStatusColor(item.status)}>
-              {item.status}
+              {getStatusLabel(item.status)}
             </Badge>
           )}
         </div>
@@ -105,7 +115,7 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, isUpdating }: Ra
             onClick={() => onIgnorar(item.id, item.title)}
             disabled={isUpdating}
           >
-            Ignorar
+            Rejeitar
           </Button>
           <Button 
             size="sm" 

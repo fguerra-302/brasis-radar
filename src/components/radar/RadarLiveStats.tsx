@@ -46,14 +46,14 @@ const RadarLiveStats = () => {
       bg: 'bg-purple-50'
     },
     {
-      title: 'Publicados',
+      title: 'Aprovados',
       value: stats.publicados,
       icon: CheckCircle,
       color: 'text-green-600',
       bg: 'bg-green-50'
     },
     {
-      title: 'Ignorados',
+      title: 'Rejeitados',
       value: stats.ignorados,
       icon: XCircle,
       color: 'text-red-600',
@@ -71,7 +71,7 @@ const RadarLiveStats = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-800">📊 Estatísticas ao Vivo</h3>
+        <h3 className="text-lg font-semibold text-slate-800">📊 Estatísticas em Tempo Real</h3>
         <Badge variant="outline" className="animate-pulse">
           <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
           Ao vivo

@@ -44,8 +44,8 @@ const RadarFilters = ({
               <SelectItem value="todos">Todos os status</SelectItem>
               <SelectItem value="A curar">A curar</SelectItem>
               <SelectItem value="Em aprovação">Em aprovação</SelectItem>
-              <SelectItem value="Publicado">Publicado</SelectItem>
-              <SelectItem value="Ignorado">Ignorado</SelectItem>
+              <SelectItem value="Publicado">Aprovado</SelectItem>
+              <SelectItem value="Ignorado">Rejeitado</SelectItem>
             </SelectContent>
           </Select>
         </div>

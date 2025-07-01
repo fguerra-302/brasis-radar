@@ -15,7 +15,7 @@ const RadarEmpty = ({ onExecutarCuradoria }: RadarEmptyProps) => {
         Nenhum conteúdo encontrado
       </h3>
       <p className="text-slate-500 mb-6">
-        Tente ajustar os filtros ou execute a curadoria IA para mais conteúdos
+        Tente ajustar os filtros ou execute a curadoria IA para coletar mais conteúdos
       </p>
       <Button 
         className="bg-indigo-600 hover:bg-indigo-700"
