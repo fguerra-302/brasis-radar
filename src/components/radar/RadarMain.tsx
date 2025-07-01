@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,6 +9,8 @@ import RadarContent from './RadarContent';
 import RadarHeader from './RadarHeader';
 
 const RadarMain = () => {
+  console.log('RadarMain component rendering');
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
@@ -19,7 +20,7 @@ const RadarMain = () => {
   const { data: supabaseData, isLoading, error, refetch } = useRadarBrasis();
   const updateMutation = useUpdateRadarBrasis();
 
-  console.log('Dados do Supabase:', { supabaseData, isLoading, error });
+  console.log('RadarMain - Dados do Supabase:', { supabaseData, isLoading, error });
 
   const handleAprovar = async (itemId: string, title: string) => {
     try {
@@ -103,6 +104,8 @@ const RadarMain = () => {
       });
     }
   };
+
+  console.log('RadarMain - Pronto para renderizar');
 
   return (
     <>
