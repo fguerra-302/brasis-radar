@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,14 +12,65 @@ import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 
 const ITEMS_PER_PAGE = 9;
 
+// Dados de exemplo para teste caso não haja dados no Supabase
+const mockData = [
+  {
+    id: '1',
+    title: 'Startup baiana desenvolve tecnologia sustentável',
+    link: 'https://example.com/1',
+    source: 'Portal Local BA',
+    pub_date: '2024-07-01T10:00:00Z',
+    editoria: 'Negócios',
+    tags: ['startup', 'sustentabilidade', 'bahia'],
+    relevancia: 3,
+    status: 'A curar',
+    resumo_curado: 'Empresa baiana inova no setor de energia limpa com solução revolucionária.',
+    created_at: '2024-07-01T10:00:00Z'
+  },
+  {
+    id: '2',
+    title: 'Festival de cultura nordestina acontece em Salvador',
+    link: 'https://example.com/2',
+    source: 'Cultura BA',
+    pub_date: '2024-07-01T14:00:00Z',
+    editoria: 'Cultura',
+    tags: ['festival', 'cultura', 'salvador'],
+    relevancia: 2,
+    status: 'Em aprovação',
+    resumo_curado: 'Evento celebra tradições nordestinas com shows e gastronomia típica.',
+    created_at: '2024-07-01T14:00:00Z'
+  },
+  {
+    id: '3',
+    title: 'Projeto social transforma comunidade no interior',
+    link: 'https://example.com/3',
+    source: 'Social Impact',
+    pub_date: '2024-07-01T16:00:00Z',
+    editoria: 'Social',
+    tags: ['projeto social', 'comunidade', 'interior'],
+    relevancia: 3,
+    status: 'Publicado',
+    resumo_curado: 'Iniciativa local promove educação e desenvolvimento econômico.',
+    created_at: '2024-07-01T16:00:00Z'
+  }
+];
+
 const RadarBrasis = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
-  const { data: items = [], isLoading, error } = useRadarBrasis();
+  const { data: supabaseItems = [], isLoading, error } = useRadarBrasis();
   const updateMutation = useUpdateRadarBrasis();
+
+  // Log para debug
+  console.log('Supabase items:', supabaseItems);
+  console.log('Loading:', isLoading);
+  console.log('Error:', error);
+
+  // Use dados do Supabase se disponíveis, senão use dados mock
+  const items = supabaseItems.length > 0 ? supabaseItems : mockData;
 
   const handleAprovar = async (itemId: string, title: string) => {
     try {
@@ -50,7 +100,6 @@ const RadarBrasis = () => {
       toast({
         title: "❌ Conteúdo Ignorado",
         description: `"${title}" foi marcado como ignorado.`,
-        variant: "destructive",
       });
     } catch (error) {
       toast({
@@ -151,26 +200,6 @@ const RadarBrasis = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mt-20">
-            <h1 className="text-3xl font-bold text-red-600 mb-4">Erro ao carregar dados</h1>
-            <p className="text-slate-600">Tente executar a curadoria IA para popular o banco de dados.</p>
-            <Button 
-              className="mt-4 bg-indigo-600 hover:bg-indigo-700"
-              onClick={handleExecutarCuradoria}
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              Executar Curadoria IA
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -188,6 +217,31 @@ const RadarBrasis = () => {
               Newsletter inteligente que acessa múltiplas fontes e faz curadoria automática do Brasil real
             </p>
           </div>
+
+          {/* Debug Info */}
+          {error && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    <strong>Debug Info:</strong> Erro no Supabase - {error.message}. Usando dados de exemplo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {supabaseItems.length === 0 && !error && (
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    <strong>Info:</strong> Nenhum dado encontrado no Supabase. Exibindo dados de exemplo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Controles */}
           <div className="bg-white rounded-xl shadow-sm p-6 border">
@@ -237,6 +291,7 @@ const RadarBrasis = () => {
             <div className="mt-4 flex gap-4 text-sm text-slate-600">
               <span>Total: {filteredItems.length} itens</span>
               <span>Página {currentPage} de {totalPages}</span>
+              <span>Fonte: {supabaseItems.length > 0 ? 'Supabase' : 'Dados de exemplo'}</span>
             </div>
           </div>
 
@@ -361,7 +416,7 @@ const RadarBrasis = () => {
             </div>
           )}
 
-          {/* Empty State quando não há resultados */}
+          {/* Empty State quando não há resultados filtrados */}
           {filteredItems.length === 0 && (
             <div className="text-center py-12">
               <Bot className="h-16 w-16 text-slate-300 mx-auto mb-4" />
@@ -369,7 +424,7 @@ const RadarBrasis = () => {
                 Nenhum conteúdo encontrado
               </h3>
               <p className="text-slate-500 mb-6">
-                Execute a curadoria IA para começar a capturar conteúdos relevantes
+                Tente ajustar os filtros ou execute a curadoria IA para mais conteúdos
               </p>
               <Button 
                 className="bg-indigo-600 hover:bg-indigo-700"
