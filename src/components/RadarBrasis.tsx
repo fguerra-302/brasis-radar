@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { Search, Settings, Zap, Bot, TrendingUp, Users, Clock, Database } from 'lucide-react';
+import { Search, Settings, Zap, Bot, TrendingUp, Users, Clock, Database, Loader2 } from 'lucide-react';
+import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 
 const ITEMS_PER_PAGE = 9;
 
-// Dados de exemplo
+// Dados de exemplo para fallback
 const mockData = [
   {
     id: '1',
@@ -61,20 +62,55 @@ const RadarBrasis = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
-  const items = mockData;
+  // Hooks do Supabase
+  const { data: supabaseData, isLoading, error, refetch } = useRadarBrasis();
+  const updateMutation = useUpdateRadarBrasis();
 
-  const handleAprovar = (itemId: string, title: string) => {
-    toast({
-      title: "✅ Conteúdo Aprovado",
-      description: `"${title}" foi aprovado para publicação.`,
-    });
+  console.log('Dados do Supabase:', { supabaseData, isLoading, error });
+
+  // Usa dados do Supabase se disponíveis, senão usa mock data
+  const items = supabaseData && supabaseData.length > 0 ? supabaseData : mockData;
+
+  const handleAprovar = async (itemId: string, title: string) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: itemId,
+        payload: { status: 'Publicado' }
+      });
+      
+      toast({
+        title: "✅ Conteúdo Aprovado",
+        description: `"${title}" foi aprovado para publicação.`,
+      });
+    } catch (error) {
+      console.error('Erro ao aprovar:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao aprovar conteúdo.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleIgnorar = (itemId: string, title: string) => {
-    toast({
-      title: "❌ Conteúdo Ignorado",
-      description: `"${title}" foi marcado como ignorado.`,
-    });
+  const handleIgnorar = async (itemId: string, title: string) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: itemId,
+        payload: { status: 'Ignorado' }
+      });
+      
+      toast({
+        title: "❌ Conteúdo Ignorado",
+        description: `"${title}" foi marcado como ignorado.`,
+      });
+    } catch (error) {
+      console.error('Erro ao ignorar:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao ignorar conteúdo.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleVerOriginal = (link: string, title: string) => {
@@ -94,18 +130,28 @@ const RadarBrasis = () => {
     });
   };
 
-  const handleExecutarCuradoria = () => {
+  const handleExecutarCuradoria = async () => {
     toast({
       title: "🚀 Curadoria IA Iniciada",
       description: "Executando curadoria automática...",
     });
     
-    setTimeout(() => {
+    try {
+      // Simula delay da curadoria
+      setTimeout(async () => {
+        await refetch();
+        toast({
+          title: "✅ Curadoria Concluída",
+          description: "Novos conteúdos foram coletados e analisados!",
+        });
+      }, 2000);
+    } catch (error) {
       toast({
-        title: "✅ Curadoria Concluída",
-        description: "Novos conteúdos foram coletados e analisados!",
+        title: "Erro",
+        description: "Falha ao executar curadoria.",
+        variant: "destructive",
       });
-    }, 2000);
+    }
   };
 
   // Filtros
@@ -143,6 +189,19 @@ const RadarBrasis = () => {
     return colors[status] || colors['A curar'];
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center gap-3 py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+            <h1 className="text-3xl font-bold text-slate-800">Carregando Radar Brasis...</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -159,15 +218,41 @@ const RadarBrasis = () => {
           </div>
 
           {/* Info de Debug */}
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="text-sm text-blue-700">
-                  <strong>Info:</strong> Exibindo dados de demonstração ({items.length} itens).
-                </p>
+          {error && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    <strong>Debug Info:</strong> Erro no Supabase - {error.message}. Usando dados de exemplo.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {!error && supabaseData && supabaseData.length === 0 && (
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    <strong>Info:</strong> Nenhum dado encontrado no Supabase. Exibindo dados de exemplo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!error && supabaseData && supabaseData.length > 0 && (
+            <div className="bg-green-50 border-l-4 border-green-400 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">
+                    <strong>Sucesso:</strong> Conectado ao Supabase com {supabaseData.length} itens carregados.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Filtros */}
           <div className="bg-white rounded-xl shadow-sm p-6 border">
@@ -206,8 +291,13 @@ const RadarBrasis = () => {
                 <Button 
                   className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
                   onClick={handleExecutarCuradoria}
+                  disabled={isLoading}
                 >
-                  <Zap className="h-4 w-4 mr-2" />
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4 mr-2" />
+                  )}
                   Executar Curadoria IA
                 </Button>
               </div>
@@ -251,7 +341,9 @@ const RadarBrasis = () => {
                 <Database className="h-5 w-5 text-purple-600" />
                 <div>
                   <p className="text-sm text-slate-600">Fonte</p>
-                  <p className="text-lg font-semibold text-slate-800">Demo</p>
+                  <p className="text-lg font-semibold text-slate-800">
+                    {supabaseData && supabaseData.length > 0 ? 'Supabase' : 'Demo'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -316,14 +408,20 @@ const RadarBrasis = () => {
                       size="sm" 
                       className="flex-1 bg-blue-600 hover:bg-blue-700"
                       onClick={() => handleAprovar(item.id, item.title)}
+                      disabled={updateMutation.isPending}
                     >
-                      Aprovar
+                      {updateMutation.isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        "Aprovar"
+                      )}
                     </Button>
                     <Button 
                       size="sm" 
                       variant="outline" 
                       className="flex-1"
                       onClick={() => handleIgnorar(item.id, item.title)}
+                      disabled={updateMutation.isPending}
                     >
                       Ignorar
                     </Button>
@@ -389,8 +487,13 @@ const RadarBrasis = () => {
               <Button 
                 className="bg-indigo-600 hover:bg-indigo-700"
                 onClick={handleExecutarCuradoria}
+                disabled={isLoading}
               >
-                <Zap className="h-4 w-4 mr-2" />
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4 mr-2" />
+                )}
                 Iniciar Curadoria
               </Button>
             </div>
