@@ -2,7 +2,11 @@
 import RadarBrasis from '@/components/RadarBrasis';
 
 const Index = () => {
-  return <RadarBrasis />;
+  return (
+    <div className="min-h-screen">
+      <RadarBrasis />
+    </div>
+  );
 };
 
 export default Index;
