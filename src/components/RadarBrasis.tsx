@@ -1,70 +1,41 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, Zap, Bot, Sparkles, Settings } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
-import RadarConfig from './RadarConfig';
+import { Search, Bot, Sparkles, Settings, Zap } from 'lucide-react';
 
 const RadarBrasis = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showConfig, setShowConfig] = useState(false);
-  const itemsPerPage = 6;
-  
-  const { toast } = useToast();
-  const { data: items = [], isLoading, refetch } = useRadarBrasis();
-  const updateMutation = useUpdateRadarBrasis();
 
-  // Filtros
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.source.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (item.tags || []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === 'todos' || item.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  // Paginação
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedItems = filteredItems.slice(startIndex, startIndex + itemsPerPage);
-
-  const executeAutomation = async () => {
-    try {
-      const response = await fetch('/api/radar-automation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        toast({
-          title: "🤖 Automação IA Executada",
-          description: `Processadas ${result.processedSources} fontes. ${result.curatedItems} itens curados pela IA.`,
-        });
-        refetch();
-      }
-    } catch (error) {
-      toast({
-        title: "Erro na Automação",
-        description: "Falha ao executar a curadoria automática.",
-        variant: "destructive",
-      });
+  // Dados mockados para demonstração
+  const mockItems = [
+    {
+      id: '1',
+      title: 'Nova tecnologia revoluciona setor energético brasileiro',
+      source: 'TechBrasil',
+      editoria: 'Negócios',
+      status: 'A curar',
+      relevancia: 4,
+      tags: ['energia', 'tecnologia', 'inovação'],
+      resumo_curado: 'Startup brasileira desenvolve solução inovadora para energia solar.',
+      link: '#'
+    },
+    {
+      id: '2',
+      title: 'Festival de música brasileira atrai milhares de visitantes',
+      source: 'Cultura Online',
+      editoria: 'Cultura',
+      status: 'Em aprovação',
+      relevancia: 3,
+      tags: ['música', 'festival', 'cultura'],
+      resumo_curado: 'Evento celebra a diversidade musical do Brasil.',
+      link: '#'
     }
-  };
-
-  const updateStatus = (id: string, newStatus: string) => {
-    updateMutation.mutate({ 
-      id, 
-      payload: { status: newStatus } 
-    });
-  };
+  ];
 
   const getEditoriaColor = (editoria: string) => {
     const colors = {
@@ -88,39 +59,12 @@ const RadarBrasis = () => {
     return colors[status] || colors['A curar'];
   };
 
-  if (showConfig) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <div className="p-6">
-          <Button
-            onClick={() => setShowConfig(false)}
-            variant="outline"
-            className="mb-6"
-          >
-            ← Voltar ao Radar
-          </Button>
-          <RadarConfig />
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-slate-200 rounded w-1/3"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-64 bg-slate-200 rounded-lg"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const filteredItems = mockItems.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.source.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'todos' || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -168,19 +112,12 @@ const RadarBrasis = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button
-                onClick={() => setShowConfig(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
+              <Button variant="outline" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 Configurar
               </Button>
               
-              <Button 
-                onClick={executeAutomation}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
-              >
+              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white">
                 <Zap className="h-4 w-4 mr-2" />
                 Executar Curadoria IA
               </Button>
@@ -190,11 +127,11 @@ const RadarBrasis = () => {
 
         {/* Grid de Conteúdos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginatedItems.map((item) => (
+          {filteredItems.map((item) => (
             <Card key={item.id} className="bg-white shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-indigo-500">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
-                  <CardTitle className="text-lg font-semibold text-slate-800 leading-tight line-clamp-2">
+                  <CardTitle className="text-lg font-semibold text-slate-800 leading-tight">
                     {item.title}
                   </CardTitle>
                   <div className="flex items-center gap-1">
@@ -237,45 +174,14 @@ const RadarBrasis = () => {
                 </div>
 
                 <div className="flex gap-2 pt-3 border-t">
-                  {item.status === 'A curar' && (
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => updateStatus(item.id, 'Em aprovação')}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      >
-                        Aprovar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateStatus(item.id, 'Ignorado')}
-                        className="flex-1"
-                      >
-                        Ignorar
-                      </Button>
-                    </>
-                  )}
-                  
-                  {item.status === 'Em aprovação' && (
-                    <Button
-                      size="sm"
-                      onClick={() => updateStatus(item.id, 'Publicado')}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                    >
-                      Publicar
-                    </Button>
-                  )}
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    asChild
-                    className="flex-1"
-                  >
-                    <a href={item.link} target="_blank" rel="noopener noreferrer">
-                      Ver Original
-                    </a>
+                  <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700">
+                    Aprovar
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1">
+                    Ignorar
+                  </Button>
+                  <Button size="sm" variant="ghost" className="flex-1">
+                    Ver Original
                   </Button>
                 </div>
               </CardContent>
@@ -283,45 +189,7 @@ const RadarBrasis = () => {
           ))}
         </div>
 
-        {/* Paginação */}
-        {totalPages > 1 && (
-          <div className="flex justify-center">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                  />
-                </PaginationItem>
-                
-                {[...Array(totalPages)].map((_, index) => {
-                  const page = index + 1;
-                  return (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(page)}
-                        isActive={currentPage === page}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                })}
-                
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
-
-        {/* Empty State */}
+        {/* Empty State quando não há resultados */}
         {filteredItems.length === 0 && (
           <div className="text-center py-12">
             <Bot className="h-16 w-16 text-slate-300 mx-auto mb-4" />
@@ -331,7 +199,7 @@ const RadarBrasis = () => {
             <p className="text-slate-500 mb-6">
               Execute a curadoria IA para começar a capturar conteúdos relevantes
             </p>
-            <Button onClick={executeAutomation} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button className="bg-indigo-600 hover:bg-indigo-700">
               <Zap className="h-4 w-4 mr-2" />
               Iniciar Curadoria
             </Button>
