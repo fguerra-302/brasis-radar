@@ -77,29 +77,50 @@ const RadarMain = () => {
   const handleConfigurar = () => {
     toast({
       title: "⚙️ Configurações",
-      description: "Abrindo painel de configurações...",
+      description: "Abrindo painel de configurações da curadoria...",
     });
+    // Aqui você pode abrir um modal de configurações
   };
 
   const handleExecutarCuradoria = async () => {
     toast({
       title: "🚀 Curadoria IA Iniciada",
-      description: "Executando curadoria automática...",
+      description: "Coletando e analisando notícias do Brasil...",
     });
     
     try {
-      // Simula delay da curadoria
-      setTimeout(async () => {
-        await refetch();
+      console.log('Executando curadoria real...');
+      
+      // Chama a edge function do Supabase
+      const response = await fetch('/api/curadoria-radar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        await refetch(); // Atualiza os dados na tela
+        
         toast({
           title: "✅ Curadoria Concluída",
-          description: "Novos conteúdos foram coletados e analisados!",
+          description: `${result.processed} novos conteúdos coletados e analisados! Total encontrado: ${result.total_found}`,
         });
-      }, 2000);
+      } else {
+        throw new Error(result.error || 'Erro desconhecido');
+      }
+      
     } catch (error) {
+      console.error('Erro na curadoria:', error);
       toast({
-        title: "Erro",
-        description: "Falha ao executar curadoria.",
+        title: "❌ Erro na Curadoria",
+        description: error instanceof Error ? error.message : "Falha ao executar curadoria. Verifique as configurações.",
         variant: "destructive",
       });
     }
