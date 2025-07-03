@@ -50,7 +50,7 @@ serve(async (req) => {
 
     console.log(`Multi-source collector request from authenticated user: ${user.email}`);
 
-  try {
+    try {
     const { sourceId, sourceType, config } = await req.json();
     
     console.log(`🚀 Coletando dados de ${sourceType}...`);
@@ -75,15 +75,24 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    console.error('Erro na coleta:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      items_collected: 0,
-      errors: [error.message]
+    } catch (error) {
+      console.error('Erro na coleta:', error);
+      return new Response(JSON.stringify({
+        success: false,
+        items_collected: 0,
+        errors: [error.message]
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  } catch (authError) {
+    console.error('Authentication error:', authError);
+    return new Response(JSON.stringify({ 
+      error: 'Authentication failed' 
     }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
