@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { NewsSource } from '@/hooks/useRadarConfig';
 
 interface CollectionResult {
@@ -37,6 +37,8 @@ export const useDataCollector = () => {
         throw new Error('Nenhuma fonte ativa encontrada');
       }
 
+      const typedSources = sources as NewsSource[];
+
       const results: CollectionResult[] = [];
       const summary: CollectionSummary = {
         total_sources: sources.length,
@@ -46,7 +48,7 @@ export const useDataCollector = () => {
       };
 
       // Processar cada fonte
-      for (const source of sources) {
+      for (const source of typedSources) {
         try {
           console.log(`📡 Coletando de: ${source.name} (${source.type})`);
           
