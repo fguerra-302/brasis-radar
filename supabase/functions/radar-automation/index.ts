@@ -124,17 +124,66 @@ function parseRSSFeed(xml: string, sourceName: string): NewsItem[] {
     const descMatch = descPattern.exec(itemXml);
     
     if (titleMatch && linkMatch) {
+      const rawDescription = descMatch ? (descMatch[1] || descMatch[2] || '') : '';
+      const cleanDescription = cleanHtmlText(rawDescription);
+      
       items.push({
-        title: (titleMatch[1] || titleMatch[2] || '').trim(),
+        title: cleanHtmlText(titleMatch[1] || titleMatch[2] || '').trim(),
         link: linkMatch[1].trim(),
         source: sourceName,
         pub_date: dateMatch ? dateMatch[1] : new Date().toISOString(),
-        description: (descMatch ? (descMatch[1] || descMatch[2] || '') : '').trim()
+        description: cleanDescription.trim()
       });
     }
   }
   
   return items.slice(0, 10); // Limita a 10 itens por fonte
+}
+
+function cleanHtmlText(htmlText: string): string {
+  if (!htmlText) return '';
+  
+  // Remove tags HTML
+  let cleanText = htmlText.replace(/<[^>]*>/g, '');
+  
+  // Decodifica entidades HTML comuns
+  const htmlEntities: { [key: string]: string } = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#039;': "'",
+    '&apos;': "'",
+    '&nbsp;': ' ',
+    '&hellip;': '...',
+    '&mdash;': '—',
+    '&ndash;': '–',
+    '&ldquo;': '"',
+    '&rdquo;': '"',
+    '&lsquo;': "'",
+    '&rsquo;': "'",
+    '&reg;': '®',
+    '&copy;': '©',
+    '&trade;': '™'
+  };
+  
+  // Substitui entidades HTML
+  for (const [entity, replacement] of Object.entries(htmlEntities)) {
+    cleanText = cleanText.replace(new RegExp(entity, 'gi'), replacement);
+  }
+  
+  // Remove entidades numéricas (&#123; ou &#xAB;)
+  cleanText = cleanText.replace(/&#x?[0-9a-fA-F]+;/g, '');
+  
+  // Remove espaços em excesso e quebras de linha
+  cleanText = cleanText.replace(/\s+/g, ' ').trim();
+  
+  // Limita o tamanho do texto para evitar descrições muito longas
+  if (cleanText.length > 300) {
+    cleanText = cleanText.substring(0, 297) + '...';
+  }
+  
+  return cleanText;
 }
 
 async function curateWithAI(items: NewsItem[]) {
