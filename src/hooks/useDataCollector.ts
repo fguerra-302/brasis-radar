@@ -22,12 +22,19 @@ export const useDataCollector = () => {
 
   return useMutation({
     mutationFn: async (): Promise<CollectionSummary> => {
-      console.log('🚀 Iniciando coleta de dados via edge function...');
+      console.log('🚀 Iniciando coleta de dados via radar-automation...');
       
-      const data = await secureApi.invokeFunction('multi-source-collector');
+      const data = await secureApi.invokeFunction('radar-automation');
       
       console.log('✅ Coleta concluída:', data);
-      return data;
+      
+      // Converter o formato de resposta do radar-automation para o formato esperado
+      return {
+        total_sources: data.processedSources || 0,
+        successful_sources: data.processedSources || 0,
+        total_items: data.savedItems || 0,
+        errors: []
+      };
     },
     onSuccess: () => {
       // Invalidar dados para recarregar
