@@ -9,7 +9,117 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      radar_brasis: {
+        Row: {
+          created_at: string | null
+          editoria: string
+          id: string
+          input_bruto: string | null
+          link: string
+          pub_date: string
+          relevancia: number | null
+          resumo_curado: string | null
+          source: string
+          status: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          editoria?: string
+          id?: string
+          input_bruto?: string | null
+          link: string
+          pub_date: string
+          relevancia?: number | null
+          resumo_curado?: string | null
+          source: string
+          status?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          editoria?: string
+          id?: string
+          input_bruto?: string | null
+          link?: string
+          pub_date?: string
+          relevancia?: number | null
+          resumo_curado?: string | null
+          source?: string
+          status?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      radar_keywords: {
+        Row: {
+          category_name: string
+          created_at: string | null
+          id: string
+          keywords: string[] | null
+          updated_at: string | null
+          weight: number | null
+        }
+        Insert: {
+          category_name: string
+          created_at?: string | null
+          id?: string
+          keywords?: string[] | null
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Update: {
+          category_name?: string
+          created_at?: string | null
+          id?: string
+          keywords?: string[] | null
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      radar_sources: {
+        Row: {
+          active: boolean | null
+          config: Json | null
+          created_at: string | null
+          credentials: Json | null
+          id: string
+          name: string
+          type: string | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          active?: boolean | null
+          config?: Json | null
+          created_at?: string | null
+          credentials?: Json | null
+          id?: string
+          name: string
+          type?: string | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          active?: boolean | null
+          config?: Json | null
+          created_at?: string | null
+          credentials?: Json | null
+          id?: string
+          name?: string
+          type?: string | null
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
