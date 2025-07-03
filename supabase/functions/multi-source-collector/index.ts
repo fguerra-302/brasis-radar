@@ -55,55 +55,105 @@ serve(async (req) => {
 });
 
 async function collectInstagramData(config: any) {
-  const accessToken = Deno.env.get('INSTAGRAM_ACCESS_TOKEN');
+  const accessToken = Deno.env.get('META_CONTENT_LIBRARY_TOKEN');
   
   if (!accessToken) {
     return {
       success: false,
       items_collected: 0,
-      errors: ['Instagram Access Token não configurado']
+      errors: ['Meta Content Library Token não configurado']
     };
   }
 
   try {
-    const userId = config.instagram_user_id || 'me';
+    // Usar Meta Content Library API para buscar contas relacionadas ao Brasil
+    const searchQuery = config.search_terms || 'brasil OR brazil OR brazilian';
+    
     const response = await fetch(
-      `https://graph.instagram.com/${userId}/media?fields=id,caption,media_type,media_url,permalink,timestamp&access_token=${accessToken}`
+      `https://graph.facebook.com/v18.0/content_library/search/instagram_accounts`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          q: searchQuery,
+          limit: 20
+        })
+      }
     );
 
     if (!response.ok) {
-      throw new Error(`Instagram API error: ${response.status}`);
+      throw new Error(`Meta Content Library API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const posts = data.data || [];
+    const accounts = data.data || [];
 
     const processedItems = [];
-    for (const post of posts.slice(0, 10)) {
-      if (post.caption) {
-        const item = {
-          title: post.caption.substring(0, 100) + '...',
-          link: post.permalink,
-          source: 'Instagram',
-          pub_date: post.timestamp,
-          editoria: 'Social',
-          tags: ['instagram', 'social', 'brasil'],
-          relevancia: 3,
-          status: 'A curar',
-          resumo_curado: post.caption,
-          input_bruto: JSON.stringify(post)
-        };
+    
+    // Para cada conta encontrada, buscar posts recentes
+    for (const account of accounts.slice(0, 5)) {
+      try {
+        const postsResponse = await fetch(
+          `https://graph.facebook.com/v18.0/content_library/search/instagram_posts`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              instagram_account_id: account.id,
+              limit: 5,
+              since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // Última semana
+            })
+          }
+        );
 
-        // Verificar se já existe
-        const { data: existing } = await supabase
-          .from('radar_brasis')
-          .select('id')
-          .eq('link', post.permalink)
-          .single();
+        if (postsResponse.ok) {
+          const postsData = await postsResponse.json();
+          const posts = postsData.data || [];
 
-        if (!existing) {
-          processedItems.push(item);
+          for (const post of posts) {
+            if (post.text && post.text.length > 10) {
+              const item = {
+                title: post.text.substring(0, 100) + '...',
+                link: post.permalink || `https://instagram.com/p/${post.shortcode}`,
+                source: `Instagram - ${account.username || account.name}`,
+                pub_date: post.timestamp,
+                editoria: 'Social',
+                tags: ['instagram', 'social', 'brasil', 'meta-content-library'],
+                relevancia: post.like_count > 1000 ? 4 : 3,
+                status: 'A curar',
+                resumo_curado: post.text,
+                input_bruto: JSON.stringify({
+                  post: post,
+                  account: account,
+                  metrics: {
+                    likes: post.like_count,
+                    comments: post.comments_count,
+                    followers: account.follower_count
+                  }
+                })
+              };
+
+              // Verificar se já existe
+              const { data: existing } = await supabase
+                .from('radar_brasis')
+                .select('id')
+                .eq('link', item.link)
+                .single();
+
+              if (!existing) {
+                processedItems.push(item);
+              }
+            }
+          }
         }
+      } catch (postError) {
+        console.error(`Erro ao buscar posts da conta ${account.id}:`, postError);
       }
     }
 

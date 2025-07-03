@@ -14,13 +14,13 @@ export const APIsConfig = () => {
 
   const apiConfigs = [
     {
-      id: 'instagram',
-      name: 'Instagram Basic Display API',
-      description: 'Para coletar posts e stories públicos',
+      id: 'meta-content-library',
+      name: 'Meta Content Library API',
+      description: 'Análise avançada de conteúdo Instagram para pesquisa',
       status: 'not_configured',
-      secrets: ['INSTAGRAM_ACCESS_TOKEN'],
-      docs: 'https://developers.facebook.com/docs/instagram-basic-display-api',
-      testEndpoint: 'https://graph.instagram.com/me?fields=id,username&access_token='
+      secrets: ['META_CONTENT_LIBRARY_TOKEN'],
+      docs: 'https://developers.facebook.com/docs/content-library-api',
+      testEndpoint: 'https://graph.facebook.com/v18.0/content_library'
     },
     {
       id: 'spotify',
