@@ -18,6 +18,7 @@ import {
   KeywordCategory
 } from '@/hooks/useRadarConfig';
 import SourceManager from './sources/SourceManager';
+import { WebScrapingManager } from './sources/WebScrapingManager';
 
 const RadarConfig = () => {
   const { toast } = useToast();
@@ -168,13 +169,18 @@ const RadarConfig = () => {
       </div>
 
       <Tabs defaultValue="sources" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="sources">Fontes de Dados</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="sources">Fontes RSS</TabsTrigger>
+          <TabsTrigger value="scraping">Web Scraping</TabsTrigger>
           <TabsTrigger value="keywords">Palavras-chave</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sources">
           <SourceManager />
+        </TabsContent>
+
+        <TabsContent value="scraping">
+          <WebScrapingManager />
         </TabsContent>
 
         <TabsContent value="keywords">
