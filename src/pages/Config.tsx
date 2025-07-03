@@ -2,15 +2,8 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigLayout } from '@/components/config/ConfigLayout';
 import { SourcesConfig } from '@/components/config/SourcesConfig';
+import { KeywordsConfig } from '@/components/config/KeywordsConfig';
 import { EditoriaWeights } from '@/components/config/EditoriaWeights';
-
-// Placeholder components para as outras páginas
-const KeywordsConfig = () => (
-  <div className="space-y-6">
-    <h1 className="text-2xl font-bold text-slate-800">Palavras-chave</h1>
-    <p className="text-slate-600">Configure categorias de palavras-chave (Em desenvolvimento)</p>
-  </div>
-);
 
 const APIsConfig = () => (
   <div className="space-y-6">
