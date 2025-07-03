@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, RotateCcw } from "lucide-react";
+import { TrendingUp, RotateCcw, Plus, Trash2 } from "lucide-react";
 
 interface EditoriaWeight {
   name: string;
@@ -55,6 +56,7 @@ const defaultWeights: EditoriaWeight[] = [
 export const EditoriaWeights = () => {
   const [weights, setWeights] = useState<EditoriaWeight[]>(defaultWeights);
   const [hasChanges, setHasChanges] = useState(false);
+  const [newEditoria, setNewEditoria] = useState({ name: '', description: '' });
   const { toast } = useToast();
 
   const updateWeight = (index: number, newWeight: number) => {
@@ -62,6 +64,51 @@ export const EditoriaWeights = () => {
     updatedWeights[index].weight = newWeight;
     setWeights(updatedWeights);
     setHasChanges(true);
+  };
+
+  const addEditoria = () => {
+    if (newEditoria.name.trim() && newEditoria.description.trim()) {
+      const colors = [
+        'bg-purple-100 text-purple-800',
+        'bg-blue-100 text-blue-800', 
+        'bg-green-100 text-green-800',
+        'bg-emerald-100 text-emerald-800',
+        'bg-orange-100 text-orange-800',
+        'bg-red-100 text-red-800',
+        'bg-yellow-100 text-yellow-800',
+        'bg-indigo-100 text-indigo-800'
+      ];
+      
+      const newColor = colors[weights.length % colors.length];
+      
+      const newEditoriaObj: EditoriaWeight = {
+        name: newEditoria.name.trim(),
+        description: newEditoria.description.trim(),
+        weight: 70,
+        color: newColor
+      };
+      
+      setWeights([...weights, newEditoriaObj]);
+      setNewEditoria({ name: '', description: '' });
+      setHasChanges(true);
+      
+      toast({
+        title: "✅ Editoria adicionada",
+        description: `${newEditoria.name} foi adicionada com sucesso.`,
+      });
+    }
+  };
+
+  const removeEditoria = (index: number) => {
+    const editoriaName = weights[index].name;
+    const updatedWeights = weights.filter((_, i) => i !== index);
+    setWeights(updatedWeights);
+    setHasChanges(true);
+    
+    toast({
+      title: "Editoria removida",
+      description: `${editoriaName} foi removida.`,
+    });
   };
 
   const resetToDefaults = () => {
@@ -136,9 +183,19 @@ export const EditoriaWeights = () => {
                     {editoria.weight}%
                   </span>
                 </CardTitle>
-                <Badge className={getWeightColor(editoria.weight)}>
-                  {getWeightLabel(editoria.weight)}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={getWeightColor(editoria.weight)}>
+                    {getWeightLabel(editoria.weight)}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeEditoria(index)}
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <p className="text-sm text-slate-600">
                 {editoria.description}
@@ -170,6 +227,48 @@ export const EditoriaWeights = () => {
           </Card>
         ))}
       </div>
+
+      {/* Adicionar Nova Editoria */}
+      <Card className="bg-green-50 border-green-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <Plus className="h-5 w-5" />
+            Adicionar Nova Editoria
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-green-700 mb-2 block">
+                Nome da Editoria
+              </label>
+              <Input
+                placeholder="Ex: Tecnologia"
+                value={newEditoria.name}
+                onChange={(e) => setNewEditoria(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-green-700 mb-2 block">
+                Descrição
+              </label>
+              <Input
+                placeholder="Ex: Inovação, startups, gadgets"
+                value={newEditoria.description}
+                onChange={(e) => setNewEditoria(prev => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+          </div>
+          <Button 
+            onClick={addEditoria}
+            disabled={!newEditoria.name.trim() || !newEditoria.description.trim()}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar Editoria
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-6">
