@@ -3,6 +3,7 @@ import React from 'react';
 import { Bot, Sparkles, Edit3 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
+import { UserMenu } from '@/components/UserMenu';
 
 const RadarHeader = () => {
   const navigate = useNavigate();
@@ -32,6 +33,9 @@ const RadarHeader = () => {
         >
           Configurações
         </Button>
+        <div className="ml-4">
+          <UserMenu />
+        </div>
       </div>
     </div>
   );

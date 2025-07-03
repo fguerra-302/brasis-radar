@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { secureApi } from '@/lib/api';
 import { NewsSource } from '@/hooks/useRadarConfig';
 
 interface CollectionResult {
@@ -21,58 +22,12 @@ export const useDataCollector = () => {
 
   return useMutation({
     mutationFn: async (): Promise<CollectionSummary> => {
-      console.log('🚀 Iniciando coleta de dados...');
+      console.log('🚀 Iniciando coleta de dados via edge function...');
       
-      // Buscar fontes ativas
-      const { data: sources, error: sourcesError } = await supabase
-        .from('radar_sources')
-        .select('*')
-        .eq('active', true);
-
-      if (sourcesError) {
-        throw new Error(`Erro ao buscar fontes: ${sourcesError.message}`);
-      }
-
-      if (!sources || sources.length === 0) {
-        throw new Error('Nenhuma fonte ativa encontrada');
-      }
-
-      const typedSources = sources as NewsSource[];
-
-      const results: CollectionResult[] = [];
-      const summary: CollectionSummary = {
-        total_sources: sources.length,
-        successful_sources: 0,
-        total_items: 0,
-        errors: []
-      };
-
-      // Processar cada fonte
-      for (const source of typedSources) {
-        try {
-          console.log(`📡 Coletando de: ${source.name} (${source.type})`);
-          
-          const result = await collectFromSource(source);
-          results.push(result);
-          
-          if (result.success) {
-            summary.successful_sources++;
-            summary.total_items += result.items_collected;
-          } else {
-            summary.errors.push(`${source.name}: ${result.errors?.join(', ') || 'Erro desconhecido'}`);
-          }
-          
-          // Delay entre coletas para não sobrecarregar
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-        } catch (error) {
-          console.error(`Erro ao coletar de ${source.name}:`, error);
-          summary.errors.push(`${source.name}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-        }
-      }
-
-      console.log('✅ Coleta concluída:', summary);
-      return summary;
+      const data = await secureApi.invokeFunction('multi-source-collector');
+      
+      console.log('✅ Coleta concluída:', data);
+      return data;
     },
     onSuccess: () => {
       // Invalidar dados para recarregar

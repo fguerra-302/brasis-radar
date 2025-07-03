@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Globe, Loader2, Plus, Trash2, Play } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { secureApi } from "@/lib/api";
 
 interface WebScrapingSource {
   id?: string;
@@ -57,15 +57,11 @@ export const WebScrapingManager = () => {
     setTestingUrl(source.url);
     
     try {
-      const { data, error } = await supabase.functions.invoke('web-scraper', {
-        body: {
-          url: source.url,
-          sourceName: source.name,
-          editoria: source.editoria
-        }
+      const data = await secureApi.invokeFunction('web-scraper', {
+        url: source.url,
+        sourceName: source.name,
+        editoria: source.editoria
       });
-
-      if (error) throw error;
 
       if (data.success) {
         toast({
@@ -93,15 +89,13 @@ export const WebScrapingManager = () => {
     
     for (const source of sources.filter(s => s.active)) {
       try {
-        const { data, error } = await supabase.functions.invoke('web-scraper', {
-          body: {
-            url: source.url,
-            sourceName: source.name,
-            editoria: source.editoria
-          }
+        const data = await secureApi.invokeFunction('web-scraper', {
+          url: source.url,
+          sourceName: source.name,
+          editoria: source.editoria
         });
 
-        if (!error && data.success) {
+        if (data.success) {
           totalProcessed += data.items_processed;
           totalSaved += data.items_saved;
         }
