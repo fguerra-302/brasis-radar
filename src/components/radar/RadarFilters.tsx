@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Settings, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface RadarFiltersProps {
   searchTerm: string;
@@ -22,6 +23,7 @@ const RadarFilters = ({
   onConfigurar, 
   onExecutarCuradoria 
 }: RadarFiltersProps) => {
+  const navigate = useNavigate();
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 border">
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -51,7 +53,11 @@ const RadarFilters = ({
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" className="flex items-center gap-2" onClick={onConfigurar}>
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2" 
+            onClick={() => navigate('/config')}
+          >
             <Settings className="h-4 w-4" />
             Configurar
           </Button>
