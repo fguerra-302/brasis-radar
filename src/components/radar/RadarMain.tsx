@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Bot } from 'lucide-react';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
+import { useDataCollector } from '@/hooks/useDataCollector';
 import RadarLiveStats from './RadarLiveStats';
 import RadarRecentActions from './RadarRecentActions';
 import RadarContent from './RadarContent';
@@ -19,6 +20,7 @@ const RadarMain = () => {
   // Hooks do Supabase
   const { data: supabaseData, isLoading, error, refetch } = useRadarBrasis();
   const updateMutation = useUpdateRadarBrasis();
+  const dataCollectorMutation = useDataCollector();
 
   console.log('RadarMain - Dados do Supabase:', { supabaseData, isLoading, error });
 
@@ -84,43 +86,26 @@ const RadarMain = () => {
 
   const handleExecutarCuradoria = async () => {
     toast({
-      title: "🚀 Curadoria IA Iniciada",
-      description: "Coletando e analisando notícias do Brasil...",
+      title: "🚀 Coleta de Dados Iniciada",
+      description: "Coletando de todas as fontes ativas...",
     });
     
     try {
-      console.log('Executando curadoria real...');
+      console.log('Executando coleta de dados...');
       
-      // Chama a edge function do Supabase
-      const response = await fetch('/api/curadoria-radar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Usar o hook de coleta
+      const result = await dataCollectorMutation.mutateAsync();
+      
+      toast({
+        title: "✅ Coleta Concluída",
+        description: `${result.total_items} itens coletados de ${result.successful_sources}/${result.total_sources} fontes.`,
       });
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        await refetch(); // Atualiza os dados na tela
-        
-        toast({
-          title: "✅ Curadoria Concluída",
-          description: `${result.processed} novos conteúdos coletados e analisados! Total encontrado: ${result.total_found}`,
-        });
-      } else {
-        throw new Error(result.error || 'Erro desconhecido');
-      }
       
     } catch (error) {
-      console.error('Erro na curadoria:', error);
+      console.error('Erro na coleta:', error);
       toast({
-        title: "❌ Erro na Curadoria",
-        description: error instanceof Error ? error.message : "Falha ao executar curadoria. Verifique as configurações.",
+        title: "❌ Erro na Coleta",
+        description: error instanceof Error ? error.message : "Falha ao coletar dados.",
         variant: "destructive",
       });
     }
