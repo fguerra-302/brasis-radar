@@ -46,7 +46,7 @@ serve(async (req) => {
 
     console.log(`Web scraper request from authenticated user: ${user.email}`);
 
-  try {
+    try {
     const { url, sourceName, editoria = 'Geral' } = await req.json();
     
     if (!firecrawlApiKey) {
@@ -121,14 +121,23 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    console.error('Erro no web scraping:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
+    } catch (error) {
+      console.error('Erro no web scraping:', error);
+      return new Response(JSON.stringify({
+        success: false,
+        error: error.message
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  } catch (authError) {
+    console.error('Authentication error:', authError);
+    return new Response(JSON.stringify({ 
+      error: 'Authentication failed' 
     }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
