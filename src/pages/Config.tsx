@@ -4,13 +4,8 @@ import { ConfigLayout } from '@/components/config/ConfigLayout';
 import { SourcesConfig } from '@/components/config/SourcesConfig';
 import { KeywordsConfig } from '@/components/config/KeywordsConfig';
 import { EditoriaWeights } from '@/components/config/EditoriaWeights';
+import { APIsConfig } from '@/components/config/APIsConfig';
 
-const APIsConfig = () => (
-  <div className="space-y-6">
-    <h1 className="text-2xl font-bold text-slate-800">APIs Externas</h1>
-    <p className="text-slate-600">Configure chaves de APIs externas (Em desenvolvimento)</p>
-  </div>
-);
 
 const AutomationConfig = () => (
   <div className="space-y-6">
