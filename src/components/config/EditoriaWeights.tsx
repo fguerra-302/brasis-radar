@@ -5,7 +5,8 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, RotateCcw, Plus, Trash2 } from "lucide-react";
+import { TrendingUp, RotateCcw, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface EditoriaWeight {
   name: string;
@@ -54,6 +55,7 @@ const defaultWeights: EditoriaWeight[] = [
 ];
 
 export const EditoriaWeights = () => {
+  const navigate = useNavigate();
   const [weights, setWeights] = useState<EditoriaWeight[]>(defaultWeights);
   const [hasChanges, setHasChanges] = useState(false);
   const [newEditoria, setNewEditoria] = useState({ name: '', description: '' });
@@ -158,11 +160,21 @@ export const EditoriaWeights = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Pesos por Editoria</h1>
-          <p className="text-slate-600 mt-1">
-            Configure a prioridade que cada editoria terá na curadoria automática
-          </p>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Pesos por Editoria</h1>
+            <p className="text-slate-600 mt-1">
+              Configure a prioridade que cada editoria terá na curadoria automática
+            </p>
+          </div>
         </div>
         <Button variant="outline" onClick={resetToDefaults} className="flex items-center gap-2">
           <RotateCcw className="h-4 w-4" />
