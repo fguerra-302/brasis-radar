@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Bot } from 'lucide-react';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { useDataCollector } from '@/hooks/useDataCollector';
+import { supabase } from '@/integrations/supabase/client';
 import RadarLiveStats from './RadarLiveStats';
 import RadarRecentActions from './RadarRecentActions';
 import RadarContent from './RadarContent';
 import RadarHeader from './RadarHeader';
+import { RadarAutomationStatus } from './RadarAutomationStatus';
 
 const RadarMain = () => {
   console.log('RadarMain component rendering');
@@ -23,6 +25,45 @@ const RadarMain = () => {
   const dataCollectorMutation = useDataCollector();
 
   console.log('RadarMain - Dados do Supabase:', { supabaseData, isLoading, error });
+
+  // Real-time updates para coleta automatizada
+  useEffect(() => {
+    const channel = supabase
+      .channel('radar-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'radar_brasis'
+        },
+        (payload) => {
+          console.log('Novo item coletado automaticamente:', payload);
+          toast({
+            title: "🚀 Novo Item Coletado",
+            description: `"${payload.new.title}" foi adicionado automaticamente.`,
+          });
+          refetch(); // Atualiza a lista
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'radar_brasis'
+        },
+        (payload) => {
+          console.log('Item atualizado:', payload);
+          refetch(); // Atualiza a lista
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast, refetch]);
 
   const handleAprovar = async (itemId: string, title: string) => {
     try {
@@ -142,7 +183,10 @@ const RadarMain = () => {
             </div>
 
             <div className="lg:col-span-1">
-              <RadarRecentActions />
+              <div className="space-y-6">
+                <RadarAutomationStatus />
+                <RadarRecentActions />
+              </div>
             </div>
           </div>
         </div>
