@@ -24,7 +24,7 @@ export const useRadarStats = () => {
 
     return {
       total: items.length,
-      aCurar: items.filter(item => item.status === 'A curar').length,
+      aCurar: 0, // Removido - não existe mais
       emAprovacao: items.filter(item => item.status === 'Em aprovação').length,
       publicados: items.filter(item => item.status === 'Publicado').length,
       ignorados: items.filter(item => item.status === 'Ignorado').length,

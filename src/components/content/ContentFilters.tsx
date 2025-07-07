@@ -44,7 +44,6 @@ const RadarFilters = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
-              <SelectItem value="A curar">A curar</SelectItem>
               <SelectItem value="Em aprovação">Em aprovação</SelectItem>
               <SelectItem value="Publicado">Aprovado</SelectItem>
               <SelectItem value="Ignorado">Rejeitado</SelectItem>

@@ -72,14 +72,17 @@ export const useCreateRadarSource = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (payload: Omit<NewsSource, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (payload: Omit<NewsSource, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
       // Como removemos a autenticação temporariamente, usar um user_id padrão
       const defaultUserId = '00000000-0000-0000-0000-000000000000';
       
       const { data, error } = await supabase
         .from('radar_sources')
         .insert({
-          ...payload,
+          name: payload.name,
+          url: payload.url,
+          type: payload.type,
+          active: payload.active,
           user_id: defaultUserId,
           created_at: new Date().toISOString()
         })

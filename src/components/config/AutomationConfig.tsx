@@ -150,8 +150,8 @@ export const AutomationConfig = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600">A Curar</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats?.statusCounts?.['A curar'] || 0}</p>
+                <p className="text-sm text-slate-600">Em Aprovação</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats?.statusCounts?.['Em aprovação'] || 0}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
             </div>

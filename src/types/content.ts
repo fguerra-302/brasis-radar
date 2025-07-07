@@ -1,5 +1,5 @@
 export enum ContentStatus {
-  IMPORTED = "A curar",
+  IMPORTED = "Em aprovação",
   REVIEWING = "Em aprovação", 
   FOR_NEWSLETTER = "Para Newsletter",
   FOR_SOCIAL = "Para Redes Sociais",
