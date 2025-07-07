@@ -5,6 +5,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
 };
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -49,11 +53,43 @@ serve(async (req) => {
     try {
     const { url, sourceName, editoria = 'Geral' } = await req.json();
     
+    // Input validation
+    if (!url || !sourceName) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'URL e nome da fonte são obrigatórios'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate URL format
+    try {
+      const urlObj = new URL(url);
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        throw new Error('Protocolo inválido');
+      }
+    } catch {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'URL inválida. Use apenas URLs HTTP/HTTPS válidas.'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Sanitize inputs
+    const sanitizedUrl = url.trim().substring(0, 500);
+    const sanitizedSourceName = sourceName.trim().substring(0, 100);
+    const sanitizedEditoria = ['Cultura', 'Social', 'Negócios', 'Sustentabilidade', 'Regional', 'Geral'].includes(editoria) ? editoria : 'Geral';
+    
     if (!firecrawlApiKey) {
       throw new Error('FIRECRAWL_API_KEY não configurada');
     }
 
-    console.log(`🔍 Fazendo scraping de: ${url}`);
+    console.log(`🔍 Fazendo scraping de: ${sanitizedUrl}`);
 
     // Usar Firecrawl para extrair conteúdo
     const scrapeResponse = await fetch('https://api.firecrawl.dev/v0/scrape', {
@@ -63,7 +99,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: url,
+        url: sanitizedUrl,
         formats: ['markdown', 'html'],
         includeTags: ['title', 'meta', 'h1', 'h2', 'h3', 'p', 'article'],
         excludeTags: ['script', 'style', 'nav', 'footer', 'header'],
@@ -83,7 +119,7 @@ serve(async (req) => {
 
     // Processar dados extraídos
     const content = scrapeData.data;
-    const processedItems = await processScrapedContent(content, url, sourceName, editoria);
+    const processedItems = await processScrapedContent(content, sanitizedUrl, sanitizedSourceName, sanitizedEditoria, user.id);
 
     // Salvar itens no banco
     const savedItems = [];
@@ -116,7 +152,7 @@ serve(async (req) => {
       success: true,
       items_processed: processedItems.length,
       items_saved: savedItems.length,
-      url: url
+      url: sanitizedUrl
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -142,7 +178,7 @@ serve(async (req) => {
   }
 });
 
-async function processScrapedContent(content: any, url: string, sourceName: string, editoria: string) {
+async function processScrapedContent(content: any, url: string, sourceName: string, editoria: string, userId: string) {
   const items = [];
   
   // Extrair título principal
@@ -163,16 +199,17 @@ async function processScrapedContent(content: any, url: string, sourceName: stri
       
       if (analysis.relevancia >= 2) {
         const item = {
-          title: section.title,
-          link: sections.length > 1 ? `${url}#section-${i + 1}` : url,
-          source: sourceName,
+          title: section.title.substring(0, 500),
+          link: (sections.length > 1 ? `${url}#section-${i + 1}` : url).substring(0, 500),
+          source: sourceName.substring(0, 100),
           pub_date: new Date().toISOString(),
           editoria: analysis.editoria || editoria,
-          tags: analysis.tags,
-          relevancia: analysis.relevancia,
+          tags: Array.isArray(analysis.tags) ? analysis.tags.slice(0, 10) : [],
+          relevancia: Math.max(1, Math.min(5, analysis.relevancia || 1)),
           status: analysis.relevancia >= 4 ? 'Em aprovação' : 'A curar',
-          input_bruto: section.content,
-          resumo_curado: generateCuratedSummary(section.title, section.content, analysis)
+          input_bruto: section.content.substring(0, 2000),
+          resumo_curado: generateCuratedSummary(section.title, section.content, analysis),
+          user_id: userId
         };
         
         items.push(item);
@@ -185,16 +222,17 @@ async function processScrapedContent(content: any, url: string, sourceName: stri
     const analysis = analyzeContentRelevance(mainTitle, cleanText);
     
     items.push({
-      title: mainTitle,
-      link: url,
-      source: sourceName,
+      title: mainTitle.substring(0, 500),
+      link: url.substring(0, 500),
+      source: sourceName.substring(0, 100),
       pub_date: new Date().toISOString(),
       editoria: analysis.editoria || editoria,
-      tags: analysis.tags,
-      relevancia: analysis.relevancia,
+      tags: Array.isArray(analysis.tags) ? analysis.tags.slice(0, 10) : [],
+      relevancia: Math.max(1, Math.min(5, analysis.relevancia || 1)),
       status: analysis.relevancia >= 4 ? 'Em aprovação' : 'A curar',
-      input_bruto: cleanText.substring(0, 1000), // Limitar tamanho
-      resumo_curado: generateCuratedSummary(mainTitle, cleanText, analysis)
+      input_bruto: cleanText.substring(0, 2000),
+      resumo_curado: generateCuratedSummary(mainTitle, cleanText, analysis),
+      user_id: userId
     });
   }
   

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Globe, Loader2, Plus, Trash2, Play } from "lucide-react";
 import { secureApi } from "@/lib/api";
+import { validateUrl, sanitizeString } from "@/lib/inputValidation";
 
 interface WebScrapingSource {
   id?: string;
@@ -34,13 +35,40 @@ export const WebScrapingManager = () => {
   ];
 
   const addSource = () => {
-    if (newSource.name && newSource.url) {
-      setSources([...sources, { ...newSource, id: Date.now().toString() }]);
+    // Validate URL
+    const urlValidation = validateUrl(newSource.url);
+    if (!urlValidation.isValid) {
+      toast({
+        title: "URL inválida",
+        description: urlValidation.error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Sanitize inputs
+    const sanitizedName = sanitizeString(newSource.name, 100);
+    if (!sanitizedName) {
+      toast({
+        title: "Nome inválido",
+        description: "Digite um nome válido para o site.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (sanitizedName && newSource.url) {
+      setSources([...sources, { 
+        ...newSource, 
+        name: sanitizedName,
+        url: newSource.url.trim(),
+        id: Date.now().toString() 
+      }]);
       setNewSource({ name: '', url: '', editoria: 'Geral', active: true });
       
       toast({
         title: "✅ Site adicionado",
-        description: `${newSource.name} foi adicionado para web scraping.`,
+        description: `${sanitizedName} foi adicionado para web scraping.`,
       });
     }
   };

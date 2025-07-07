@@ -5,6 +5,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
 }
 
 interface NewsItem {
@@ -21,17 +25,44 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Verify authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Authentication required' }),
+      { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Buscar fontes configuradas pelo usuário do banco de dados
+    // Verify the JWT token
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(jwt);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Buscar fontes configuradas pelo usuário autenticado
     const { data: userSources, error: sourcesError } = await supabaseClient
       .from('radar_sources')
       .select('*')
-      .eq('active', true);
+      .eq('active', true)
+      .eq('user_id', user.id);
 
     if (sourcesError) {
       console.error('Erro ao buscar fontes:', sourcesError);
@@ -77,32 +108,30 @@ serve(async (req) => {
     // IA para curadoria e análise de relevância
     const curatedItems = await curateWithAI(allItems);
 
-    // Salva apenas os itens mais relevantes com user_id
+    // Salva apenas os itens mais relevantes para o usuário autenticado
     const savedItems = [];
     for (const item of curatedItems) {
       try {
-        // Buscar o primeiro usuário admin como fallback
-        const { data: adminUser } = await supabaseClient
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'admin')
-          .limit(1)
-          .single();
+        // Validar dados de entrada
+        if (!item.title || !item.link || !item.source) {
+          console.log('Item inválido ignorado:', item);
+          continue;
+        }
 
         const { data, error } = await supabaseClient
           .from('radar_brasis')
           .upsert({
-            title: item.title,
-            link: item.link,
-            source: item.source,
+            title: item.title.substring(0, 500), // Limitar tamanho
+            link: item.link.substring(0, 500),
+            source: item.source.substring(0, 100),
             pub_date: item.pub_date,
-            editoria: item.editoria,
-            tags: item.tags,
-            relevancia: item.relevancia,
-            status: item.status,
-            input_bruto: item.input_bruto,
-            resumo_curado: item.resumo_curado,
-            user_id: adminUser?.user_id || null
+            editoria: item.editoria || 'Geral',
+            tags: Array.isArray(item.tags) ? item.tags.slice(0, 10) : [],
+            relevancia: Math.max(1, Math.min(5, item.relevancia || 1)),
+            status: item.status || 'A curar',
+            input_bruto: item.input_bruto ? item.input_bruto.substring(0, 2000) : null,
+            resumo_curado: item.resumo_curado ? item.resumo_curado.substring(0, 1000) : null,
+            user_id: user.id
           }, { 
             onConflict: 'link',
             ignoreDuplicates: true 
