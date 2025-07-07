@@ -4,11 +4,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Bot } from 'lucide-react';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { useDataCollector } from '@/hooks/useDataCollector';
+import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
 import RadarLiveStats from './RadarLiveStats';
 import RadarRecentActions from './RadarRecentActions';
-import RadarContent from './RadarContent';
-import RadarHeader from './RadarHeader';
+import ContentList from '../content/ContentList';
+import AppHeader from '../layout/AppHeader';
 import { RadarAutomationStatus } from './RadarAutomationStatus';
 import { OnboardingTour } from '@/components/tour/OnboardingTour';
 
@@ -79,7 +80,7 @@ const RadarMain = () => {
     try {
       await updateMutation.mutateAsync({
         id: itemId,
-        payload: { status: 'Publicado' }
+        payload: { status: ContentStatus.APPROVED }
       });
       
       toast({
@@ -100,7 +101,7 @@ const RadarMain = () => {
     try {
       await updateMutation.mutateAsync({
         id: itemId,
-        payload: { status: 'Ignorado' }
+        payload: { status: ContentStatus.REJECTED }
       });
       
       toast({
@@ -171,12 +172,12 @@ const RadarMain = () => {
     <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
         <div className="max-w-7xl mx-auto space-y-8">
-          <RadarHeader />
+          <AppHeader />
           <RadarLiveStats />
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3">
-              <RadarContent
+              <ContentList
                 supabaseData={supabaseData}
                 isLoading={isLoading}
                 error={error}

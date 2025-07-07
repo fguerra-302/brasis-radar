@@ -55,7 +55,7 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, isUpdating }: Ra
             {item.title}
           </CardTitle>
           <div className="flex items-center gap-1">
-            {item.relevancia && [...Array(item.relevancia)].map((_, i) => (
+            {item.score && [...Array(item.score)].map((_, i) => (
               <div key={i} className="w-2 h-2 bg-yellow-400 rounded-full"></div>
             ))}
           </div>
@@ -121,7 +121,7 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, isUpdating }: Ra
             size="sm" 
             variant="ghost" 
             className="flex-1"
-            onClick={() => onVerOriginal(item.link, item.title)}
+            onClick={() => onVerOriginal(item.source_url, item.title)}
           >
             Ver Original
           </Button>

@@ -3,10 +3,10 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
-import RadarFilters from './RadarFilters';
-import RadarDebugInfo from './RadarDebugInfo';
-import RadarEmpty from './RadarEmpty';
-import RadarCard from './RadarCard';
+import ContentFilters from './ContentFilters';
+import RadarDebugInfo from '../radar/RadarDebugInfo';
+import RadarEmpty from '../radar/RadarEmpty';
+import ContentCard from './ContentCard';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -62,7 +62,7 @@ const mockData: RadarBrasisItem[] = [
   }
 ];
 
-interface RadarContentProps {
+interface ContentListProps {
   supabaseData: RadarBrasisItem[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -80,7 +80,7 @@ interface RadarContentProps {
   updateMutation: any;
 }
 
-const RadarContent = ({
+const ContentList = ({
   supabaseData,
   isLoading,
   error,
@@ -96,7 +96,7 @@ const RadarContent = ({
   onConfigurar,
   onExecutarCuradoria,
   updateMutation
-}: RadarContentProps) => {
+}: ContentListProps) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-3 py-20">
@@ -129,7 +129,7 @@ const RadarContent = ({
         supabaseItemsCount={supabaseData?.length || 0}
       />
 
-      <RadarFilters
+      <ContentFilters
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         statusFilter={statusFilter}
@@ -144,7 +144,7 @@ const RadarContent = ({
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {paginatedItems.map((item) => (
-              <RadarCard
+              <ContentCard
                 key={item.id}
                 item={item}
                 onAprovar={onAprovar}
@@ -194,4 +194,4 @@ const RadarContent = ({
   );
 };
 
-export default RadarContent;
+export default ContentList;

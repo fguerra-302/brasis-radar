@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import { CuratedContent, ContentStatus } from '@/types/content';
 
-export type RadarBrasisItem = Tables<'radar_brasis'>;
+export type RadarBrasisItem = CuratedContent; // Compatibilidade com código existente
 
 export const useRadarBrasis = () => {
   return useQuery({
     queryKey: ['radar-brasis'],
-    queryFn: async (): Promise<RadarBrasisItem[]> => {
+    queryFn: async (): Promise<CuratedContent[]> => {
       console.log('Hook useRadarBrasis - Buscando dados do Supabase');
       
       try {
@@ -22,7 +22,7 @@ export const useRadarBrasis = () => {
         }
         
         console.log(`Dados carregados: ${data?.length || 0} itens`);
-        return data || [];
+        return data ? mapToContent(data) : [];
       } catch (error) {
         console.error('Erro de conexão com Supabase:', error);
         // Em caso de erro, retorna dados de exemplo
@@ -30,18 +30,16 @@ export const useRadarBrasis = () => {
           {
             id: 'exemplo-1',
             title: 'Conecte o Supabase para ver dados reais',
-            link: 'https://supabase.com',
+            source_url: 'https://supabase.com',
             source: 'Sistema',
             pub_date: new Date().toISOString(),
             editoria: 'Sistema',
             tags: ['configuração', 'supabase'],
-            relevancia: 5,
-            status: 'A curar',
+            score: 5,
+            status: ContentStatus.IMPORTED,
             resumo_curado: 'Configure sua conexão com Supabase para começar a usar a curadoria real.',
             created_at: new Date().toISOString(),
-            user_id: 'exemplo',
-            updated_at: null,
-            input_bruto: null
+            user_id: 'exemplo'
           }
         ];
       }
@@ -51,15 +49,41 @@ export const useRadarBrasis = () => {
   });
 };
 
+// Função helper para mapear dados do Supabase para CuratedContent
+const mapToContent = (data: any[]): CuratedContent[] => {
+  return data.map(item => ({
+    id: item.id,
+    title: item.title,
+    excerpt: item.resumo_curado,
+    source_url: item.link,
+    source: item.source,
+    pub_date: item.pub_date,
+    editoria: item.editoria,
+    tags: item.tags || [],
+    score: item.relevancia || 1,
+    status: item.status as ContentStatus,
+    resumo_curado: item.resumo_curado,
+    input_bruto: item.input_bruto,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    user_id: item.user_id
+  }));
+};
+
 export const useUpdateRadarBrasis = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: Partial<RadarBrasisItem> }) => {
+    mutationFn: async ({ id, payload }: { id: string; payload: Partial<CuratedContent> }) => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .update({
-          ...payload,
+          title: payload.title,
+          editoria: payload.editoria,
+          tags: payload.tags,
+          relevancia: payload.score,
+          status: payload.status,
+          resumo_curado: payload.resumo_curado,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -71,7 +95,7 @@ export const useUpdateRadarBrasis = () => {
         throw error;
       }
       
-      return data;
+      return mapToContent([data])[0];
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
@@ -83,10 +107,22 @@ export const useCreateRadarBrasis = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (payload: Omit<RadarBrasisItem, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (payload: Omit<CuratedContent, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
         .from('radar_brasis')
-        .insert(payload)
+        .insert({
+          title: payload.title,
+          link: payload.source_url,
+          source: payload.source,
+          pub_date: payload.pub_date,
+          editoria: payload.editoria,
+          tags: payload.tags,
+          relevancia: payload.score,
+          status: payload.status,
+          resumo_curado: payload.resumo_curado,
+          input_bruto: payload.input_bruto,
+          user_id: payload.user_id
+        })
         .select()
         .single();
       
@@ -95,7 +131,7 @@ export const useCreateRadarBrasis = () => {
         throw error;
       }
       
-      return data;
+      return mapToContent([data])[0];
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
