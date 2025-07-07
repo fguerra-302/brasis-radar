@@ -11,7 +11,7 @@ import RadarCard from './RadarCard';
 const ITEMS_PER_PAGE = 9;
 
 // Dados de exemplo para fallback
-const mockData = [
+const mockData: RadarBrasisItem[] = [
   {
     id: '1',
     title: 'Startup baiana desenvolve tecnologia sustentável',
@@ -23,7 +23,10 @@ const mockData = [
     relevancia: 3,
     status: 'A curar',
     resumo_curado: 'Empresa baiana inova no setor de energia limpa com solução revolucionária.',
-    created_at: '2024-07-01T10:00:00Z'
+    created_at: '2024-07-01T10:00:00Z',
+    updated_at: null,
+    user_id: 'mock-user',
+    input_bruto: null
   },
   {
     id: '2',
@@ -36,7 +39,10 @@ const mockData = [
     relevancia: 2,
     status: 'Em aprovação',
     resumo_curado: 'Evento celebra tradições nordestinas com shows e gastronomia típica.',
-    created_at: '2024-07-01T14:00:00Z'
+    created_at: '2024-07-01T14:00:00Z',
+    updated_at: null,
+    user_id: 'mock-user',
+    input_bruto: null
   },
   {
     id: '3',
@@ -49,7 +55,10 @@ const mockData = [
     relevancia: 3,
     status: 'Publicado',
     resumo_curado: 'Iniciativa local promove educação e desenvolvimento econômico.',
-    created_at: '2024-07-01T16:00:00Z'
+    created_at: '2024-07-01T16:00:00Z',
+    updated_at: null,
+    user_id: 'mock-user',
+    input_bruto: null
   }
 ];
 

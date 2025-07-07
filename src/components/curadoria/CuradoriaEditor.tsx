@@ -27,7 +27,7 @@ export const CuradoriaEditor = () => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .select('*')
-        .eq('status', 'Em edição')
+        .eq('status', 'Para Redes Sociais')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -49,6 +49,7 @@ export const CuradoriaEditor = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['editor-items'] });
+      queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
     },
   });
 
@@ -162,9 +163,9 @@ Informação da ${item.source}`;
                     <Badge variant="outline" className="text-xs">
                       {item.editoria}
                     </Badge>
-                    <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
-                      Em Edição
-                    </Badge>
+                     <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                       Para Redes Sociais
+                     </Badge>
                   </div>
 
                   <h3 className="font-semibold text-lg text-slate-800 leading-tight">

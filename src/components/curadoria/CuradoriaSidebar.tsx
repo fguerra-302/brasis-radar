@@ -35,7 +35,7 @@ export function CuradoriaSidebar() {
     <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Fluxo de Curadoria</SidebarGroupLabel>
+          <SidebarGroupLabel>Fluxo de Edição & Distribuição</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {curadoriaItems.map((item) => (

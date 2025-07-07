@@ -1,9 +1,8 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { RadarBrasisRow } from '@/types/supabase';
+import { Tables } from '@/integrations/supabase/types';
 
-export interface RadarBrasisItem extends RadarBrasisRow {}
+export type RadarBrasisItem = Tables<'radar_brasis'>;
 
 export const useRadarBrasis = () => {
   return useQuery({
@@ -39,7 +38,10 @@ export const useRadarBrasis = () => {
             relevancia: 5,
             status: 'A curar',
             resumo_curado: 'Configure sua conexão com Supabase para começar a usar a curadoria real.',
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            user_id: 'exemplo',
+            updated_at: null,
+            input_bruto: null
           }
         ];
       }
@@ -84,10 +86,7 @@ export const useCreateRadarBrasis = () => {
     mutationFn: async (payload: Omit<RadarBrasisItem, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
         .from('radar_brasis')
-        .insert({
-          ...payload,
-          created_at: new Date().toISOString()
-        })
+        .insert(payload)
         .select()
         .single();
       

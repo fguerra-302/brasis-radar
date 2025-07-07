@@ -131,7 +131,7 @@ export const CuradoriaApproval = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Aprovação Final</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Aprovação & Distribuição</h1>
           <p className="text-slate-600 mt-1">
             Decida o destino final dos conteúdos revisados
           </p>

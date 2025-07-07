@@ -109,7 +109,7 @@ export const CuradoriaReview = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Curadoria - Revisão</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Revisão de Conteúdo</h1>
           <p className="text-slate-600 mt-1">
             Revise e aprove conteúdos coletados automaticamente
           </p>

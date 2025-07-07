@@ -11,7 +11,7 @@ export const CuradoriaLayout = ({ children }: CuradoriaLayoutProps) => {
     <SidebarProvider>
       <header className="h-12 flex items-center border-b bg-background px-4">
         <SidebarTrigger className="mr-4" />
-        <h1 className="text-lg font-semibold">Brasis.IA - Curadoria</h1>
+        <h1 className="text-lg font-semibold">Brasis.IA - Edição & Distribuição</h1>
       </header>
 
       <div className="flex min-h-screen w-full">
