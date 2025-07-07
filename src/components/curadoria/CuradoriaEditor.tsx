@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeString } from '@/lib/inputValidation';
 
 export const CuradoriaEditor = () => {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -54,33 +55,36 @@ export const CuradoriaEditor = () => {
   });
 
   const handleGenerateContent = (item: any) => {
-    // Generate social media content based on the curated summary
-    const summary = item.resumo_curado || item.title;
+    // Sanitize all input data before generating content
+    const sanitizedTitle = sanitizeString(item.title, 200);
+    const sanitizedSummary = sanitizeString(item.resumo_curado || item.title, 2000);
+    const sanitizedSource = sanitizeString(item.source, 100);
+    const sanitizedEditoria = sanitizeString(item.editoria, 50);
     
-    const linkedinPost = `🎯 ${item.title}
+    const linkedinPost = `🎯 ${sanitizedTitle}
 
-${summary}
+${sanitizedSummary}
 
-#BrasilReal #Inovação #${item.editoria}
-Fonte: ${item.source}`;
+#BrasilReal #Inovação #${sanitizedEditoria}
+Fonte: ${sanitizedSource}`;
 
-    const instagramPost = `✨ ${item.title.substring(0, 80)}...
+    const instagramPost = `✨ ${sanitizedTitle.substring(0, 80)}${sanitizedTitle.length > 80 ? '...' : ''}
 
-${summary}
+${sanitizedSummary}
 
-#brasil #inovacao #${item.editoria.toLowerCase()}`;
+#brasil #inovacao #${sanitizedEditoria.toLowerCase().replace(/\s+/g, '')}`;
 
     const videoScript = `[INTRO]
 Olá! Hoje vamos falar sobre uma descoberta importante.
 
 [DESENVOLVIMENTO]
-${summary}
+${sanitizedSummary}
 
 [CALL TO ACTION]
 O que você achou dessa informação? Comenta aqui embaixo!
 
 [FONTE]
-Informação da ${item.source}`;
+Informação da ${sanitizedSource}`;
 
     setSocialContent({
       linkedin: linkedinPost,
@@ -90,7 +94,19 @@ Informação da ${item.source}`;
   };
 
   const handleCopyContent = (content: string, platform: string) => {
-    navigator.clipboard.writeText(content);
+    // Sanitize content before copying
+    const sanitizedContent = sanitizeString(content, 5000);
+    
+    if (sanitizedContent.trim().length === 0) {
+      toast({
+        title: "Erro",
+        description: "Conteúdo inválido ou vazio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigator.clipboard.writeText(sanitizedContent);
     toast({
       title: "✅ Copiado!",
       description: `Conteúdo para ${platform} copiado para a área de transferência.`,
@@ -102,7 +118,7 @@ Informação da ${item.source}`;
       await updateItemMutation.mutateAsync({
         id: item.id,
         payload: { 
-          status: 'Pronto para distribuição',
+          status: 'Redes Sociais Publicado',
           updated_at: new Date().toISOString()
         }
       });

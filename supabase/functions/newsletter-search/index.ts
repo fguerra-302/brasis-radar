@@ -12,6 +12,69 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Rate limiting setup
+const rateLimiter = createRateLimiter(10, 60000); // 10 requests per minute
+
+// Input validation
+const validateSearchTerms = (searchTerms: string): { isValid: boolean; sanitized: string; error?: string } => {
+  if (!searchTerms || typeof searchTerms !== 'string') {
+    return { isValid: false, sanitized: '', error: 'Termo de busca é obrigatório' };
+  }
+
+  if (searchTerms.length < 2) {
+    return { isValid: false, sanitized: '', error: 'Termo de busca deve ter pelo menos 2 caracteres' };
+  }
+
+  if (searchTerms.length > 100) {
+    return { isValid: false, sanitized: '', error: 'Termo de busca muito longo (máximo 100 caracteres)' };
+  }
+
+  // Check for SQL injection attempts
+  const sqlPatterns = [
+    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
+    /(;|--|\/\*|\*\/|xp_|sp_)/i,
+    /('|('')|"|(\+)|(\|\|))/i
+  ];
+  
+  if (sqlPatterns.some(pattern => pattern.test(searchTerms))) {
+    return { isValid: false, sanitized: '', error: 'Termo de busca contém caracteres inválidos' };
+  }
+
+  // Sanitize the search terms
+  const sanitized = searchTerms
+    .trim()
+    .replace(/[<>'"]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .substring(0, 100);
+
+  return { isValid: true, sanitized };
+};
+
+const createRateLimiter = (maxRequests: number, windowMs: number) => {
+  const requests = new Map<string, number[]>();
+  
+  return (identifier: string): boolean => {
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    
+    if (!requests.has(identifier)) {
+      requests.set(identifier, []);
+    }
+    
+    const userRequests = requests.get(identifier)!;
+    const recentRequests = userRequests.filter(time => time > windowStart);
+    
+    if (recentRequests.length >= maxRequests) {
+      return false;
+    }
+    
+    recentRequests.push(now);
+    requests.set(identifier, recentRequests);
+    return true;
+  };
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -20,6 +83,7 @@ serve(async (req) => {
   // Verify authentication
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
+    console.warn('Newsletter search attempt without authentication');
     return new Response(
       JSON.stringify({ error: 'Unauthorized: Authentication required' }),
       { 
@@ -40,10 +104,23 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
     
     if (authError || !user) {
+      console.warn('Newsletter search attempt with invalid token');
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Invalid token' }),
         { 
           status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Rate limiting check
+    if (!rateLimiter(user.id)) {
+      console.warn(`Rate limit exceeded for user: ${user.email}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { 
+          status: 429, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -63,12 +140,25 @@ serve(async (req) => {
       );
     }
 
-    const { searchTerms } = await req.json();
+    const requestBody = await req.json();
+    const { searchTerms } = requestBody;
     
-    console.log(`🔍 Pesquisando newsletters com termos: ${searchTerms}`);
+    // Validate and sanitize search terms
+    const validation = validateSearchTerms(searchTerms);
+    if (!validation.isValid) {
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    console.log(`🔍 Pesquisando newsletters com termos: ${validation.sanitized}`);
 
     try {
-      const result = await searchNewsletters(searchTerms, user.id);
+      const result = await searchNewsletters(validation.sanitized, user.id);
       
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -174,7 +264,7 @@ async function searchNewsletters(searchTerms: string, userId: string) {
         editoria: 'Newsletter',
         tags: ['newsletter', 'curadoria', 'brasil', ...searchTerms.split(' ').filter(term => term.length > 2)],
         relevancia: newsletter.relevance || 3,
-        status: 'A curar',
+        status: 'Em aprovação',
         resumo_curado: newsletter.summary || content.substring(0, 500),
         user_id: userId, // Associar ao usuário logado
         input_bruto: JSON.stringify({

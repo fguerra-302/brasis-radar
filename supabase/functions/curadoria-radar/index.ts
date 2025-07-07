@@ -81,7 +81,7 @@ Responda APENAS com um JSON válido (sem markdown):
   "editoria": "[Tecnologia|Economia|Política|Cultura|Social|Saúde|Educação|Esportes]",
   "tags": ["tag1", "tag2", "tag3"],
   "resumo_curado": "[resumo em 1-2 frases destacando o impacto para o Brasil]",
-  "status": "[A curar|Em aprovação]"
+  "status": "Em aprovação"
 }`;
 
   try {
@@ -116,7 +116,7 @@ Responda APENAS com um JSON válido (sem markdown):
     const analysis = JSON.parse(data.choices[0].message.content);
 
     // Determina status baseado na relevância
-    const status = analysis.relevancia >= 4 ? 'Em aprovação' : 'A curar';
+    const status = analysis.relevancia >= 4 ? 'Em aprovação' : 'Em aprovação';
 
     return {
       title: noticia.title,
@@ -141,7 +141,7 @@ Responda APENAS com um JSON válido (sem markdown):
       editoria: 'Geral',
       tags: ['brasil', 'notícia'],
       relevancia: 2,
-      status: 'A curar',
+      status: 'Em aprovação',
       resumo_curado: noticia.description || noticia.title,
     };
   }
