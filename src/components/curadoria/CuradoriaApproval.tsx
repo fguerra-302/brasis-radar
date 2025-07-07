@@ -18,7 +18,7 @@ export const CuradoriaApproval = () => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .select('*')
-        .eq('status', 'Em aprovação')
+        .eq('status', 'A curar')
         .order('created_at', { ascending: false });
       
       if (error) throw error;

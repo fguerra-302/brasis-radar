@@ -13,9 +13,8 @@ import {
 } from "@/components/ui/sidebar";
 
 const curadoriaItems = [
-  { title: "Revisão", url: "/curadoria/review", icon: Eye, description: "Revisar conteúdos coletados" },
-  { title: "Aprovação", url: "/curadoria/approval", icon: CheckCircle, description: "Aprovar para radar ou redes sociais" },
-  { title: "Newsletter", url: "/curadoria/newsletter", icon: FileText, description: "Editor da Newsletter Brasis" },
+  { title: "Aprovação", url: "/curadoria/approval", icon: CheckCircle, description: "Revisar e aprovar conteúdos" },
+  { title: "Newsletter", url: "/curadoria/newsletter", icon: FileText, description: "Exportar Newsletter Brasis" },
   { title: "Editor Social", url: "/curadoria/editor", icon: Edit3, description: "Criar conteúdo para redes sociais" },
   { title: "Persona & Estilo", url: "/curadoria/persona", icon: User, description: "Treinar estilo de escrita" },
   { title: "Voltar ao Radar", url: "/", icon: BarChart3, description: "Ver radar principal" },
