@@ -1,1 +1,4 @@
 project_id = "vlsirftmzvmilugalbpr"
+
+[functions.newsletter-search]
+verify_jwt = true
