@@ -8,28 +8,32 @@ import { UserMenu } from '@/components/UserMenu';
 const RadarHeader = () => {
   const navigate = useNavigate();
   return (
-    <div className="text-center space-y-4">
-      <div className="flex items-center justify-center gap-3">
-        <Bot className="h-8 w-8 text-indigo-600" />
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          Radar Brasis
+    <div className="text-center space-y-6 py-8">
+      <div className="flex items-center justify-center gap-4">
+        <Bot className="h-10 w-10 text-primary" />
+        <h1 className="text-5xl font-bold brasis-text-gradient font-brasis">
+          RADAR BRASIS
         </h1>
-        <Sparkles className="h-8 w-8 text-purple-600" />
+        <Sparkles className="h-10 w-10 text-secondary" />
       </div>
-      <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-        Newsletter inteligente que acessa múltiplas fontes e faz curadoria automática do Brasil real
-      </p>
-      <div className="flex justify-center gap-4 pt-4">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-warm opacity-10 rounded-2xl"></div>
+        <p className="text-xl text-foreground max-w-4xl mx-auto relative z-10 py-6 px-8 font-medium">
+          Newsletter inteligente que acessa múltiplas fontes e faz curadoria automática do Brasil real
+        </p>
+      </div>
+      <div className="flex justify-center items-center gap-6 pt-6">
         <Button 
           onClick={() => navigate('/curadoria')}
-          className="bg-purple-600 hover:bg-purple-700"
+          className="brasis-button-primary text-white font-semibold px-6 py-3 rounded-lg"
         >
-          <Edit3 className="h-4 w-4 mr-2" />
+          <Edit3 className="h-5 w-5 mr-2" />
           Área de Curadoria
         </Button>
         <Button 
           onClick={() => navigate('/config')}
           variant="outline"
+          className="border-primary text-primary hover:bg-primary hover:text-white font-semibold px-6 py-3"
         >
           Configurações
         </Button>

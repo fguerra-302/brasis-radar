@@ -98,19 +98,19 @@ export const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-warm p-4">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Radar className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Radar Brasis</h1>
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <Radar className="h-10 w-10 text-white" />
+            <h1 className="text-3xl font-bold text-white font-brasis">RADAR BRASIS</h1>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-white/90 text-lg font-medium">
             Sistema de curadoria de conteúdo para o DNA Brasis
           </p>
         </div>
 
-        <Card>
+        <Card className="brasis-card backdrop-blur-sm border-white/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {showForgotPassword && (

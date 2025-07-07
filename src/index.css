@@ -6,6 +6,7 @@
 
 @layer base {
   :root {
+    /* Brasis Color Palette */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -15,26 +16,54 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Brasis Blue */
+    --primary: 221 75% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Brasis Orange */
+    --secondary: 22 90% 55%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
+    /* Accent: Brasis Green */
+    --accent: 146 67% 32%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Brasis Yellow */
+    --brasis-yellow: 51 100% 60%;
+    --brasis-yellow-foreground: 222.2 84% 4.9%;
+
+    /* Brasis Pink */
+    --brasis-pink: 328 76% 79%;
+    --brasis-pink-foreground: 222.2 84% 4.9%;
+
+    /* Brasis Red */
+    --brasis-red: 352 77% 49%;
+    --brasis-red-foreground: 0 0% 100%;
+
+    /* Brasis Beige */
+    --brasis-beige: 47 46% 91%;
+    --brasis-beige-foreground: 222.2 84% 4.9%;
+
+    --muted: 47 46% 91%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 352 77% 49%;
+    --destructive-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --border: 47 46% 91%;
+    --input: 47 46% 91%;
+    --ring: 221 75% 45%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --radius: 0.75rem;
 
-    --radius: 0.5rem;
+    /* Gradients */
+    --gradient-brasis: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    --gradient-warm: linear-gradient(135deg, hsl(var(--brasis-yellow)), hsl(var(--secondary)));
+    --gradient-tropical: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--brasis-yellow)));
+    
+    /* Shadows */
+    --shadow-brasis: 0 10px 30px -10px hsl(var(--primary) / 0.3);
+    --shadow-warm: 0 4px 20px hsl(var(--secondary) / 0.3);
 
     --sidebar-background: 0 0% 98%;
 
@@ -99,5 +128,42 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* Brasis Design Components */
+  .brasis-pattern {
+    background: linear-gradient(45deg, 
+      hsl(var(--brasis-yellow)) 0%, 
+      hsl(var(--secondary)) 25%, 
+      hsl(var(--brasis-pink)) 50%, 
+      hsl(var(--primary)) 75%, 
+      hsl(var(--accent)) 100%);
+  }
+
+  .brasis-text-gradient {
+    background: var(--gradient-brasis);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .brasis-card {
+    background: linear-gradient(135deg, 
+      hsl(var(--background)) 0%, 
+      hsl(var(--brasis-beige)) 100%);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-warm);
+  }
+
+  .brasis-button-primary {
+    background: var(--gradient-brasis);
+    box-shadow: var(--shadow-brasis);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .brasis-button-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px -10px hsl(var(--primary) / 0.4);
   }
 }

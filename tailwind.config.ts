@@ -18,6 +18,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'brasis': ['Nunito', 'sans-serif'],
+				'sans': ['Nunito', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -52,6 +56,16 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				brasis: {
+					yellow: 'hsl(var(--brasis-yellow))',
+					'yellow-foreground': 'hsl(var(--brasis-yellow-foreground))',
+					pink: 'hsl(var(--brasis-pink))',
+					'pink-foreground': 'hsl(var(--brasis-pink-foreground))',
+					red: 'hsl(var(--brasis-red))',
+					'red-foreground': 'hsl(var(--brasis-red-foreground))',
+					beige: 'hsl(var(--brasis-beige))',
+					'beige-foreground': 'hsl(var(--brasis-beige-foreground))',
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -62,6 +76,15 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				}
+			},
+			backgroundImage: {
+				'gradient-brasis': 'var(--gradient-brasis)',
+				'gradient-warm': 'var(--gradient-warm)',
+				'gradient-tropical': 'var(--gradient-tropical)',
+			},
+			boxShadow: {
+				'brasis': 'var(--shadow-brasis)',
+				'warm': 'var(--shadow-warm)',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
