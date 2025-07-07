@@ -52,7 +52,10 @@ const SourceManager = () => {
   };
 
   const addSource = async () => {
+    console.log('Tentando adicionar fonte:', newSource);
+    
     if (!newSource.name || !newSource.url) {
+      console.log('Campos obrigatórios faltando');
       toast({
         title: "Campos obrigatórios",
         description: "Nome e URL são obrigatórios.",
@@ -62,7 +65,8 @@ const SourceManager = () => {
     }
 
     try {
-      await createSourceMutation.mutateAsync({
+      console.log('Chamando createSourceMutation.mutateAsync');
+      const result = await createSourceMutation.mutateAsync({
         name: newSource.name,
         url: newSource.url,
         type: newSource.type,
@@ -71,15 +75,17 @@ const SourceManager = () => {
         config: newSource.config
       } as any);
       
+      console.log('Fonte criada com sucesso:', result);
       resetForm();
       toast({
         title: "✅ Fonte Adicionada",
         description: `${newSource.name} foi adicionada às suas fontes.`,
       });
     } catch (error) {
+      console.error('Erro ao adicionar fonte:', error);
       toast({
         title: "Erro",
-        description: "Falha ao adicionar fonte.",
+        description: `Falha ao adicionar fonte: ${error.message}`,
         variant: "destructive",
       });
     }
