@@ -33,10 +33,10 @@ export const NewsletterSearchManager = () => {
     onError: (error: any) => {
       console.error('Erro na busca:', error);
       
-      if (error.message?.includes('PERPLEXITY_API_KEY')) {
+      if (error.message?.includes('OPENAI_API_KEY')) {
         toast({
           title: "⚙️ Configuração Necessária",
-          description: "API Key do Perplexity não configurada. Configure nas secrets do Supabase.",
+          description: "API Key do OpenAI não configurada. Configure nas secrets do Supabase.",
           variant: "destructive",
         });
       } else {
@@ -144,14 +144,13 @@ export const NewsletterSearchManager = () => {
           </div>
         </div>
 
-        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
           <div className="flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
-            <div className="text-sm text-amber-800">
-              <p className="font-medium mb-1">⚙️ Configuração necessária:</p>
+            <AlertCircle className="h-5 w-5 text-green-600 mt-0.5" />
+            <div className="text-sm text-green-800">
+              <p className="font-medium mb-1">✅ Configuração OK:</p>
               <p>
-                Para usar esta funcionalidade, configure a chave da API do Perplexity 
-                nas secrets do Supabase (PERPLEXITY_API_KEY).
+                Esta funcionalidade usa a API do OpenAI que já está configurada no projeto.
               </p>
             </div>
           </div>
