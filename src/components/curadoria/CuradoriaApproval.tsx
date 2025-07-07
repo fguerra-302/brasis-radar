@@ -43,23 +43,23 @@ export const CuradoriaApproval = () => {
     },
   });
 
-  const handlePublishToRadar = async (item: any) => {
+  const handleSendToNewsletter = async (item: any) => {
     try {
       await updateItemMutation.mutateAsync({
         id: item.id,
         payload: { 
-          status: 'Publicado',
+          status: 'Para Newsletter',
           updated_at: new Date().toISOString()
         }
       });
       toast({
-        title: "✅ Publicado no Radar",
-        description: "Item foi publicado no Radar Brasis.",
+        title: "✅ Enviado para Newsletter",
+        description: "Item foi enviado para montagem da Newsletter Radar Brasis.",
       });
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Falha ao publicar no radar.",
+        description: "Falha ao enviar para newsletter.",
         variant: "destructive",
       });
     }
@@ -190,12 +190,12 @@ export const CuradoriaApproval = () => {
 
                 <div className="flex flex-col gap-2 ml-4">
                   <Button 
-                    onClick={() => handlePublishToRadar(item)}
+                    onClick={() => handleSendToNewsletter(item)}
                     className="bg-blue-600 hover:bg-blue-700 text-sm"
                     size="sm"
                   >
                     <TrendingUp className="h-4 w-4 mr-1" />
-                    Publicar no Radar
+                    Enviar p/ Newsletter
                   </Button>
                   
                   <Button 
@@ -205,7 +205,7 @@ export const CuradoriaApproval = () => {
                     size="sm"
                   >
                     <Share2 className="h-4 w-4 mr-1" />
-                    Enviar para Edição
+                    Enviar p/ Redes Sociais
                   </Button>
                   
                   <Button 

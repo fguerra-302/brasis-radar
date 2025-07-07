@@ -12,7 +12,7 @@ const RadarHeader = () => {
       <div className="flex items-center justify-center gap-4">
         <Bot className="h-10 w-10 text-primary" />
         <h1 className="text-5xl font-bold brasis-text-gradient font-brasis">
-          RADAR BRASIS
+          BRASIS.IA
         </h1>
         <Sparkles className="h-10 w-10 text-secondary" />
       </div>
