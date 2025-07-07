@@ -25,23 +25,7 @@ export const useRadarBrasis = () => {
         return data ? mapToContent(data) : [];
       } catch (error) {
         console.error('Erro de conexão com Supabase:', error);
-        // Em caso de erro, retorna dados de exemplo
-        return [
-          {
-            id: 'exemplo-1',
-            title: 'Conecte o Supabase para ver dados reais',
-            source_url: 'https://supabase.com',
-            source: 'Sistema',
-            pub_date: new Date().toISOString(),
-            editoria: 'Sistema',
-            tags: ['configuração', 'supabase'],
-            score: 5,
-            status: ContentStatus.IMPORTED,
-            resumo_curado: 'Configure sua conexão com Supabase para começar a usar a curadoria real.',
-            created_at: new Date().toISOString(),
-            user_id: 'exemplo'
-          }
-        ];
+        throw error; // Propagar o erro em vez de retornar dados fake
       }
     },
     retry: false,
