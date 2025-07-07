@@ -80,12 +80,12 @@ const RadarMain = () => {
     try {
       await updateMutation.mutateAsync({
         id: itemId,
-        payload: { status: ContentStatus.APPROVED }
+        payload: { status: ContentStatus.REVIEWING }
       });
       
       toast({
         title: "✅ Conteúdo Aprovado",
-        description: `"${title}" foi aprovado para publicação.`,
+        description: `"${title}" foi enviado para aprovação final. Acesse a área de Curadoria para definir se vai para Newsletter ou Redes Sociais.`,
       });
     } catch (error) {
       console.error('Erro ao aprovar:', error);
