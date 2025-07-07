@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigLayout } from '@/components/config/ConfigLayout';
 import { SourcesConfig } from '@/components/config/SourcesConfig';
+import { SourcesStatus } from '@/components/sources/SourcesStatus';
 import { KeywordsConfig } from '@/components/config/KeywordsConfig';
 import { EditoriaWeights } from '@/components/config/EditoriaWeights';
 import { APIsConfig } from '@/components/config/APIsConfig';
@@ -12,7 +13,8 @@ const Config = () => {
   return (
     <ConfigLayout>
       <Routes>
-        <Route path="" element={<Navigate to="/config/sources" replace />} />
+        <Route path="" element={<Navigate to="/config/status" replace />} />
+        <Route path="status" element={<SourcesStatus />} />
         <Route path="sources" element={<SourcesConfig />} />
         <Route path="keywords" element={<KeywordsConfig />} />
         <Route path="weights" element={<EditoriaWeights />} />

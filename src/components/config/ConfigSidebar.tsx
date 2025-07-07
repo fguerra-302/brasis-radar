@@ -1,4 +1,4 @@
-import { Settings, Database, Tag, TrendingUp, Globe, Sliders } from "lucide-react";
+import { Settings, Database, Tag, TrendingUp, Globe, Sliders, Activity } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const configItems = [
+  { title: "Status das Fontes", url: "/config/status", icon: Activity },
   { title: "Fontes de Dados", url: "/config/sources", icon: Database },
   { title: "Palavras-chave", url: "/config/keywords", icon: Tag },
   { title: "Pesos por Editoria", url: "/config/weights", icon: TrendingUp },
