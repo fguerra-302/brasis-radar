@@ -20,7 +20,7 @@ export const NewsletterExport = () => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .select('*')
-        .eq('status', 'Para Newsletter')
+        .eq('status', 'Na Newsletter')
         .order('relevancia', { ascending: false });
       
       if (error) throw error;
