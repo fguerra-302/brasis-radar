@@ -67,6 +67,9 @@ serve(async (req) => {
       case 'IBGE':
         result = await collectIBGEData(config);
         break;
+      case 'NEWSLETTER':
+        result = await collectNewsletterData(config);
+        break;
       default:
         throw new Error(`Tipo de fonte não suportado: ${sourceType}`);
     }
@@ -372,6 +375,44 @@ async function collectIBGEData(config: any) {
     };
 
   } catch (error) {
+    return {
+      success: false,
+      items_collected: 0,
+      errors: [error.message]
+    };
+  }
+}
+
+async function collectNewsletterData(config: any) {
+  try {
+    console.log('Coletando dados de newsletters...');
+    
+    // Chamar a função de busca de newsletters
+    const newsletterResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/newsletter-search`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        searchTerms: config.search_terms || config.url || 'brasil newsletter'
+      }),
+    });
+
+    if (!newsletterResponse.ok) {
+      throw new Error(`Newsletter search API error: ${newsletterResponse.status}`);
+    }
+
+    const result = await newsletterResponse.json();
+    
+    return {
+      success: result.success,
+      items_collected: result.items_collected || 0,
+      errors: result.errors || []
+    };
+
+  } catch (error) {
+    console.error('Erro na coleta de newsletters:', error);
     return {
       success: false,
       items_collected: 0,
