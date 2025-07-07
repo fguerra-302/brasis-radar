@@ -29,7 +29,7 @@ export type Database = {
           tags: string[] | null
           title: string
           updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
@@ -45,7 +45,7 @@ export type Database = {
           tags?: string[] | null
           title: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
@@ -61,7 +61,7 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -72,7 +72,7 @@ export type Database = {
           id: string
           keywords: string[] | null
           updated_at: string | null
-          user_id: string | null
+          user_id: string
           weight: number | null
         }
         Insert: {
@@ -81,7 +81,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
           weight?: number | null
         }
         Update: {
@@ -90,7 +90,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
           weight?: number | null
         }
         Relationships: []
@@ -106,7 +106,7 @@ export type Database = {
           type: string | null
           updated_at: string | null
           url: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           active?: boolean | null
@@ -118,7 +118,7 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
           url: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           active?: boolean | null
@@ -130,7 +130,7 @@ export type Database = {
           type?: string | null
           updated_at?: string | null
           url?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
