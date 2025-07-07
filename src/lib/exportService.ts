@@ -78,7 +78,7 @@ export class ExportService {
   }
 
   private static exportToNewsletter(contents: CuratedContent[]): string {
-    const approvedContents = contents.filter(c => c.status === ContentStatus.APPROVED);
+    const approvedContents = contents.filter(c => c.status === ContentStatus.FOR_NEWSLETTER);
     const groupedByEditoria = this.groupByEditoria(approvedContents);
 
     let newsletter = '# Newsletter Brasis\n\n';
@@ -98,7 +98,7 @@ export class ExportService {
   }
 
   private static exportToSocial(contents: CuratedContent[]): string {
-    const socialContents = contents.filter(c => c.status === ContentStatus.APPROVED);
+    const socialContents = contents.filter(c => c.status === ContentStatus.FOR_SOCIAL);
     
     return socialContents.map(content => {
       const hashtags = content.tags.map(tag => `#${tag.replace(/\s+/g, '')}`).join(' ');

@@ -54,7 +54,7 @@ const mockData: RadarBrasisItem[] = [
     editoria: 'Social',
     tags: ['projeto social', 'comunidade', 'interior'],
     score: 3,
-    status: ContentStatus.APPROVED,
+    status: ContentStatus.FOR_NEWSLETTER,
     resumo_curado: 'Iniciativa local promove educação e desenvolvimento econômico.',
     created_at: '2024-07-01T16:00:00Z',
     updated_at: null,

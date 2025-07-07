@@ -29,7 +29,7 @@ export const useContentStats = () => {
         total: allContent.length,
         imported: allContent.filter(c => c.status === ContentStatus.IMPORTED).length,
         reviewing: allContent.filter(c => c.status === ContentStatus.REVIEWING).length,
-        approved: allContent.filter(c => c.status === ContentStatus.APPROVED).length,
+        approved: allContent.filter(c => c.status === ContentStatus.FOR_NEWSLETTER || c.status === ContentStatus.FOR_SOCIAL).length,
         rejected: allContent.filter(c => c.status === ContentStatus.REJECTED).length,
       };
     },

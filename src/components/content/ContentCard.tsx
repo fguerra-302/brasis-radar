@@ -32,7 +32,8 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, isUpdating }: Ra
     const colors = {
       [ContentStatus.IMPORTED]: 'bg-yellow-100 text-yellow-800',
       [ContentStatus.REVIEWING]: 'bg-blue-100 text-blue-800',
-      [ContentStatus.APPROVED]: 'bg-green-100 text-green-800',
+      [ContentStatus.FOR_NEWSLETTER]: 'bg-green-100 text-green-800',
+      [ContentStatus.FOR_SOCIAL]: 'bg-purple-100 text-purple-800',
       [ContentStatus.REJECTED]: 'bg-red-100 text-red-800'
     };
     return colors[status] || colors[ContentStatus.IMPORTED];
@@ -42,7 +43,8 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, isUpdating }: Ra
     const labels = {
       [ContentStatus.IMPORTED]: 'A curar',
       [ContentStatus.REVIEWING]: 'Em aprovação',
-      [ContentStatus.APPROVED]: 'Aprovado',
+      [ContentStatus.FOR_NEWSLETTER]: 'Para Newsletter',
+      [ContentStatus.FOR_SOCIAL]: 'Para Redes Sociais',
       [ContentStatus.REJECTED]: 'Rejeitado'
     };
     return labels[status] || status;
