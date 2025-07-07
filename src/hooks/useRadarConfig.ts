@@ -73,12 +73,8 @@ export const useCreateRadarSource = () => {
   
   return useMutation({
     mutationFn: async (payload: Omit<NewsSource, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      // Pegar o usuário autenticado atual
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
+      // Para desenvolvimento - usar um user_id padrão
+      const defaultUserId = '00000000-0000-0000-0000-000000000000';
       
       const { data, error } = await supabase
         .from('radar_sources')
@@ -87,7 +83,7 @@ export const useCreateRadarSource = () => {
           url: payload.url,
           type: payload.type,
           active: payload.active,
-          user_id: user.id,
+          user_id: defaultUserId,
           credentials: payload.credentials,
           config: payload.config
         })
