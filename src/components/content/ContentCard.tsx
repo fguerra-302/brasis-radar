@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from 'lucide-react';
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
+import { ContentStatus } from '@/types/content';
 
 interface RadarCardProps {
   item: RadarBrasisItem;
   onAprovar: (id: string, title: string) => Promise<void>;
   onIgnorar: (id: string, title: string) => Promise<void>;
-  onVerOriginal: (link: string, title: string) => void;
+  onVerOriginal: (sourceUrl: string, title: string) => void;
   isUpdating: boolean;
 }
 
@@ -29,20 +30,20 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, isUpdating }: Ra
 
   const getStatusColor = (status: string) => {
     const colors = {
-      'A curar': 'bg-yellow-100 text-yellow-800',
-      'Em aprovação': 'bg-blue-100 text-blue-800',
-      'Publicado': 'bg-green-100 text-green-800',
-      'Ignorado': 'bg-red-100 text-red-800'
+      [ContentStatus.IMPORTED]: 'bg-yellow-100 text-yellow-800',
+      [ContentStatus.REVIEWING]: 'bg-blue-100 text-blue-800',
+      [ContentStatus.APPROVED]: 'bg-green-100 text-green-800',
+      [ContentStatus.REJECTED]: 'bg-red-100 text-red-800'
     };
-    return colors[status] || colors['A curar'];
+    return colors[status] || colors[ContentStatus.IMPORTED];
   };
 
   const getStatusLabel = (status: string) => {
     const labels = {
-      'A curar': 'A curar',
-      'Em aprovação': 'Em aprovação',
-      'Publicado': 'Aprovado',
-      'Ignorado': 'Rejeitado'
+      [ContentStatus.IMPORTED]: 'A curar',
+      [ContentStatus.REVIEWING]: 'Em aprovação',
+      [ContentStatus.APPROVED]: 'Aprovado',
+      [ContentStatus.REJECTED]: 'Rejeitado'
     };
     return labels[status] || status;
   };

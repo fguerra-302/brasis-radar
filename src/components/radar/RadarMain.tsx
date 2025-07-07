@@ -118,13 +118,13 @@ const RadarMain = () => {
     }
   };
 
-  const handleVerOriginal = (link: string, title: string) => {
+  const handleVerOriginal = (sourceUrl: string, title: string) => {
     toast({
       title: "🔗 Abrindo Original",
       description: `Abrindo link original de "${title}".`,
     });
-    if (link && link !== '#') {
-      window.open(link, '_blank');
+    if (sourceUrl && sourceUrl !== '#') {
+      window.open(sourceUrl, '_blank');
     }
   };
 

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { secureApi } from '@/lib/api';
 import { NewsSource } from '@/hooks/useRadarConfig';
+import { ContentStatus } from '@/types/content';
 
 interface CollectionResult {
   success: boolean;
@@ -122,7 +123,7 @@ async function collectFromRSS(source: NewsSource): Promise<CollectionResult> {
           editoria: 'RSS',
           tags: ['brasil', 'rss'],
           relevancia: 3,
-          status: 'A curar',
+          status: ContentStatus.IMPORTED,
           resumo_curado: item.description || item.title,
           input_bruto: JSON.stringify(item)
         };

@@ -3,6 +3,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
+import { ContentStatus } from '@/types/content';
 import ContentFilters from './ContentFilters';
 import RadarDebugInfo from '../radar/RadarDebugInfo';
 import RadarEmpty from '../radar/RadarEmpty';
@@ -15,13 +16,13 @@ const mockData: RadarBrasisItem[] = [
   {
     id: '1',
     title: 'Startup baiana desenvolve tecnologia sustentável',
-    link: 'https://example.com/1',
+    source_url: 'https://example.com/1',
     source: 'Portal Local BA',
     pub_date: '2024-07-01T10:00:00Z',
     editoria: 'Negócios',
     tags: ['startup', 'sustentabilidade', 'bahia'],
-    relevancia: 3,
-    status: 'A curar',
+    score: 3,
+    status: ContentStatus.IMPORTED,
     resumo_curado: 'Empresa baiana inova no setor de energia limpa com solução revolucionária.',
     created_at: '2024-07-01T10:00:00Z',
     updated_at: null,
@@ -31,13 +32,13 @@ const mockData: RadarBrasisItem[] = [
   {
     id: '2',
     title: 'Festival de cultura nordestina acontece em Salvador',
-    link: 'https://example.com/2',
+    source_url: 'https://example.com/2',
     source: 'Cultura BA',
     pub_date: '2024-07-01T14:00:00Z',
     editoria: 'Cultura',
     tags: ['festival', 'cultura', 'salvador'],
-    relevancia: 2,
-    status: 'Em aprovação',
+    score: 2,
+    status: ContentStatus.REVIEWING,
     resumo_curado: 'Evento celebra tradições nordestinas com shows e gastronomia típica.',
     created_at: '2024-07-01T14:00:00Z',
     updated_at: null,
@@ -47,13 +48,13 @@ const mockData: RadarBrasisItem[] = [
   {
     id: '3',
     title: 'Projeto social transforma comunidade no interior',
-    link: 'https://example.com/3',
+    source_url: 'https://example.com/3',
     source: 'Social Impact',
     pub_date: '2024-07-01T16:00:00Z',
     editoria: 'Social',
     tags: ['projeto social', 'comunidade', 'interior'],
-    relevancia: 3,
-    status: 'Publicado',
+    score: 3,
+    status: ContentStatus.APPROVED,
     resumo_curado: 'Iniciativa local promove educação e desenvolvimento econômico.',
     created_at: '2024-07-01T16:00:00Z',
     updated_at: null,
@@ -74,7 +75,7 @@ interface ContentListProps {
   setCurrentPage: (page: number) => void;
   onAprovar: (id: string, title: string) => Promise<void>;
   onIgnorar: (id: string, title: string) => Promise<void>;
-  onVerOriginal: (link: string, title: string) => void;
+  onVerOriginal: (sourceUrl: string, title: string) => void;
   onConfigurar: () => void;
   onExecutarCuradoria: () => Promise<void>;
   updateMutation: any;
