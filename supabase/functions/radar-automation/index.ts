@@ -27,26 +27,48 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Múltiplas fontes de notícias brasileiras
-    const sources = [
-      { name: 'G1 Nordeste', url: 'https://g1.globo.com/rss/g1/nordeste/' },
-      { name: 'UOL Universa', url: 'https://rss.uol.com.br/feed/universa.xml' },
-      { name: 'Folha Cotidiano', url: 'https://feeds.folha.uol.com.br/cotidiano/rss091.xml' },
-      { name: 'O Globo Cultura', url: 'https://oglobo.globo.com/rss/cultura/' },
-      { name: 'Nexo', url: 'https://www.nexojornal.com.br/rss/ultimo' }
-    ];
+    // Buscar fontes configuradas pelo usuário do banco de dados
+    const { data: userSources, error: sourcesError } = await supabaseClient
+      .from('radar_sources')
+      .select('*')
+      .eq('active', true);
+
+    if (sourcesError) {
+      console.error('Erro ao buscar fontes:', sourcesError);
+      return new Response(
+        JSON.stringify({ error: 'Erro ao buscar fontes configuradas' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    const sources = userSources || [];
 
     let allItems: NewsItem[] = [];
 
-    // Captura de todas as fontes
+    // Limpeza semanal de dados antigos
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    try {
+      await supabaseClient
+        .from('radar_brasis')
+        .delete()
+        .lt('created_at', oneWeekAgo.toISOString());
+    } catch (error) {
+      console.log('Erro na limpeza de dados antigos:', error);
+    }
+
+    // Captura de todas as fontes configuradas
     for (const source of sources) {
       try {
-        const response = await fetch(source.url);
-        const xml = await response.text();
-        
-        // Parse básico do RSS
-        const items = parseRSSFeed(xml, source.name);
-        allItems = [...allItems, ...items];
+        if (source.type === 'RSS') {
+          const response = await fetch(source.url);
+          const xml = await response.text();
+          
+          // Parse básico do RSS
+          const items = parseRSSFeed(xml, source.name);
+          allItems = [...allItems, ...items];
+        }
       } catch (error) {
         console.log(`Erro ao capturar ${source.name}:`, error);
       }
@@ -55,10 +77,18 @@ serve(async (req) => {
     // IA para curadoria e análise de relevância
     const curatedItems = await curateWithAI(allItems);
 
-    // Salva apenas os itens mais relevantes
+    // Salva apenas os itens mais relevantes com user_id
     const savedItems = [];
     for (const item of curatedItems) {
       try {
+        // Buscar o primeiro usuário admin como fallback
+        const { data: adminUser } = await supabaseClient
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'admin')
+          .limit(1)
+          .single();
+
         const { data, error } = await supabaseClient
           .from('radar_brasis')
           .upsert({
@@ -71,7 +101,8 @@ serve(async (req) => {
             relevancia: item.relevancia,
             status: item.status,
             input_bruto: item.input_bruto,
-            resumo_curado: item.resumo_curado
+            resumo_curado: item.resumo_curado,
+            user_id: adminUser?.user_id || null
           }, { 
             onConflict: 'link',
             ignoreDuplicates: true 

@@ -10,6 +10,7 @@ import RadarRecentActions from './RadarRecentActions';
 import RadarContent from './RadarContent';
 import RadarHeader from './RadarHeader';
 import { RadarAutomationStatus } from './RadarAutomationStatus';
+import { OnboardingTour } from '@/components/tour/OnboardingTour';
 
 const RadarMain = () => {
   console.log('RadarMain component rendering');
@@ -17,7 +18,16 @@ const RadarMain = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showTour, setShowTour] = useState(false);
   const { toast } = useToast();
+
+  // Verificar se deve mostrar o tour na primeira visita
+  useEffect(() => {
+    const tourCompleted = localStorage.getItem('brasis-tour-completed');
+    if (!tourCompleted) {
+      setShowTour(true);
+    }
+  }, []);
 
   // Hooks do Supabase
   const { data: supabaseData, isLoading, error, refetch } = useRadarBrasis();
@@ -134,6 +144,9 @@ const RadarMain = () => {
     try {
       console.log('Executando coleta de dados...');
       
+      // Resetar lista para nova curadoria
+      await refetch();
+      
       // Usar o hook de coleta
       const result = await dataCollectorMutation.mutateAsync();
       
@@ -191,6 +204,11 @@ const RadarMain = () => {
           </div>
         </div>
       </div>
+      
+      {showTour && (
+        <OnboardingTour onClose={() => setShowTour(false)} />
+      )}
+      
       <Toaster />
     </>
   );

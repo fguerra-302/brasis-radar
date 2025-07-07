@@ -59,15 +59,15 @@ const RadarFilters = ({
             onClick={() => navigate('/config')}
           >
             <Settings className="h-4 w-4" />
-            Configurar
+            Configurar Fontes
           </Button>
           
           <Button 
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground"
             onClick={onExecutarCuradoria}
           >
             <Zap className="h-4 w-4 mr-2" />
-            Executar Curadoria IA
+            Nova Curadoria
           </Button>
         </div>
       </div>

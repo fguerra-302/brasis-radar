@@ -17,7 +17,7 @@ const RadarHeader = () => {
         <Sparkles className="h-10 w-10 text-secondary" />
       </div>
       <div className="relative">
-        <div className="absolute inset-0 bg-muted opacity-50 rounded-2xl"></div>
+        <div className="absolute inset-0 bg-brasis-beige rounded-2xl"></div>
         <p className="text-xl text-foreground max-w-4xl mx-auto relative z-10 py-6 px-8 font-medium">
           Newsletter inteligente que acessa múltiplas fontes e faz curadoria automática do Brasil real
         </p>
@@ -25,7 +25,7 @@ const RadarHeader = () => {
       <div className="flex justify-center items-center gap-6 pt-6">
         <Button 
           onClick={() => navigate('/curadoria')}
-          className="bg-primary text-white font-semibold px-6 py-3 rounded-lg hover:bg-primary/90"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3 rounded-lg"
         >
           <Edit3 className="h-5 w-5 mr-2" />
           Área de Curadoria
@@ -33,7 +33,7 @@ const RadarHeader = () => {
         <Button 
           onClick={() => navigate('/config')}
           variant="outline"
-          className="border-primary text-primary hover:bg-primary hover:text-white font-semibold px-6 py-3"
+          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold px-6 py-3"
         >
           Configurações
         </Button>
