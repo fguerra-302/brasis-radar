@@ -68,7 +68,7 @@ serve(async (req) => {
     console.log(`🔍 Pesquisando newsletters com termos: ${searchTerms}`);
 
     try {
-      const result = await searchNewsletters(searchTerms);
+      const result = await searchNewsletters(searchTerms, user.id);
       
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -96,7 +96,7 @@ serve(async (req) => {
   }
 });
 
-async function searchNewsletters(searchTerms: string) {
+async function searchNewsletters(searchTerms: string, userId: string) {
   try {
     // Usar Perplexity AI para buscar newsletters recentes
     const searchQuery = `encontre newsletters brasileiras recentes sobre ${searchTerms}. 
@@ -176,6 +176,7 @@ async function searchNewsletters(searchTerms: string) {
         relevancia: newsletter.relevance || 3,
         status: 'A curar',
         resumo_curado: newsletter.summary || content.substring(0, 500),
+        user_id: userId, // Associar ao usuário logado
         input_bruto: JSON.stringify({
           search_terms: searchTerms,
           perplexity_response: content,
@@ -189,7 +190,7 @@ async function searchNewsletters(searchTerms: string) {
         .from('radar_brasis')
         .select('id')
         .eq('title', item.title)
-        .eq('source', item.source)
+        .eq('user_id', userId)
         .single();
 
       if (!existing) {
