@@ -1,15 +1,14 @@
 export enum ContentStatus {
-  IMPORTED = "Em aprovação",
-  REVIEWING = "Em aprovação", 
+  // Fluxo simplificado: Coletado → A curar → Editor escolhe destino
+  COLLECTED = "Coletado",
+  REVIEWING = "A curar", 
   FOR_NEWSLETTER = "Para Newsletter",
   FOR_SOCIAL = "Para Redes Sociais",
-  NEWSLETTER_SENT = "Newsletter Enviada",
-  SOCIAL_PUBLISHED = "Redes Sociais Publicado",
+  FOR_BOTH = "Para Newsletter e Redes",
   REJECTED = "Ignorado",
-  // Legacy statuses to handle existing data
-  PUBLISHED = "Publicado",
-  IN_NEWSLETTER = "Na Newsletter",
-  EDITING = "Em edição"
+  // Legacy para compatibilidade
+  IMPORTED = "Coletado",
+  PUBLISHED = "Publicado"
 }
 
 export type CuratedContent = {

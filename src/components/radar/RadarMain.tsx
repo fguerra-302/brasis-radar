@@ -3,7 +3,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Bot } from 'lucide-react';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
-import { useDataCollector } from '@/hooks/useDataCollector';
 import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
 import RadarLiveStats from './RadarLiveStats';
@@ -30,10 +29,9 @@ const RadarMain = () => {
     }
   }, []);
 
-  // Hooks do Supabase
+  // Hooks do Supabase simplificados
   const { data: supabaseData, isLoading, error, refetch } = useRadarBrasis();
   const updateMutation = useUpdateRadarBrasis();
-  const dataCollectorMutation = useDataCollector();
 
   console.log('RadarMain - Dados do Supabase:', { supabaseData, isLoading, error });
 
@@ -139,21 +137,20 @@ const RadarMain = () => {
   const handleExecutarCuradoria = async () => {
     toast({
       title: "🚀 Coleta de Dados Iniciada",
-      description: "Coletando de todas as fontes ativas...",
+      description: "Coletando dados das fontes ativas...",
     });
     
     try {
-      console.log('Executando coleta de dados...');
+      // Simplificado - usar radar-automation edge function
+      const { data, error } = await supabase.functions.invoke('radar-automation');
       
-      // Resetar lista para nova curadoria
+      if (error) throw error;
+      
       await refetch();
-      
-      // Usar o hook de coleta
-      const result = await dataCollectorMutation.mutateAsync();
       
       toast({
         title: "✅ Coleta Concluída",
-        description: `${result.total_items} itens coletados de ${result.successful_sources}/${result.total_sources} fontes.`,
+        description: `Coleta de dados executada com sucesso.`,
       });
       
     } catch (error) {

@@ -13,7 +13,7 @@ const RadarRecentActions = () => {
     if (!items) return [];
     
     return items
-      .filter(item => item.status !== 'Em aprovação') // Apenas itens que foram processados
+      .filter(item => item.status !== 'A curar') // Apenas itens que foram processados
       .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
       .slice(0, 10);
   }, [items]);

@@ -3,10 +3,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
-import { useRadarStats } from '@/hooks/useRadarStats';
+import { useRadarBrasisStats } from '@/hooks/useRadarBrasis';
 
 const RadarLiveStats = () => {
-  const { stats, isLoading } = useRadarStats();
+  const { stats, isLoading } = useRadarBrasisStats();
 
   if (isLoading) {
     return (
@@ -32,29 +32,29 @@ const RadarLiveStats = () => {
       bg: 'bg-blue-50'
     },
     {
-      title: 'Aguardando',
-      value: stats.aCurar,
+      title: 'Importados',
+      value: stats.imported,
       icon: AlertCircle,
       color: 'text-yellow-600',
       bg: 'bg-yellow-50'
     },
     {
       title: 'Em Análise',
-      value: stats.emAprovacao,
+      value: stats.reviewing,
       icon: Eye,
       color: 'text-purple-600',
       bg: 'bg-purple-50'
     },
     {
       title: 'Aprovados',
-      value: stats.publicados,
+      value: stats.approved,
       icon: CheckCircle,
       color: 'text-green-600',
       bg: 'bg-green-50'
     },
     {
       title: 'Rejeitados',
-      value: stats.ignorados,
+      value: stats.rejected,
       icon: XCircle,
       color: 'text-red-600',
       bg: 'bg-red-50'

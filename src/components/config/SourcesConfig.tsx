@@ -112,10 +112,9 @@ export const SourcesConfig = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="sources" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="sources">Fontes Tradicionais</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="sources">Gerenciar Fontes</TabsTrigger>
           <TabsTrigger value="newsletters">Busca de Newsletters</TabsTrigger>
-          <TabsTrigger value="auth">Autenticação</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sources">
@@ -124,10 +123,6 @@ export const SourcesConfig = () => {
 
         <TabsContent value="newsletters">
           <NewsletterSearchManager />
-        </TabsContent>
-
-        <TabsContent value="auth">
-          <SimpleLogin />
         </TabsContent>
       </Tabs>
     </div>

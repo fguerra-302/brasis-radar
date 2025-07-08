@@ -1,4 +1,10 @@
 project_id = "vlsirftmzvmilugalbpr"
 
 [functions.newsletter-search]
-verify_jwt = true
+verify_jwt = false
+
+[functions.radar-automation]
+verify_jwt = false
+
+[functions.web-scraper]
+verify_jwt = false

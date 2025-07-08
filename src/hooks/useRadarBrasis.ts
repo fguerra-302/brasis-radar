@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { CuratedContent, ContentStatus } from '@/types/content';
+import { CuratedContent, ContentStatus, ContentFilters, ContentStats } from '@/types/content';
 
 export type RadarBrasisItem = CuratedContent; // Compatibilidade com código existente
 
@@ -87,11 +88,93 @@ export const useUpdateRadarBrasis = () => {
   });
 };
 
+// Consolidação com funcionalidades do useContentFetcher
+export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
+  return useQuery({
+    queryKey: ['radar-brasis', filters],
+    queryFn: async (): Promise<CuratedContent[]> => {
+      console.log('Hook useRadarBrasis - Buscando dados com filtros:', filters);
+      
+      let query = supabase
+        .from('radar_brasis')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      if (filters?.editoria) {
+        query = query.eq('editoria', filters.editoria);
+      }
+
+      if (filters?.searchTerm) {
+        query = query.or(`title.ilike.%${filters.searchTerm}%,source.ilike.%${filters.searchTerm}%`);
+      }
+
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Erro ao buscar dados:', error);
+        throw error;
+      }
+      
+      console.log(`Dados carregados: ${data?.length || 0} itens`);
+      return data ? mapToContent(data) : [];
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useRadarBrasisStats = () => {
+  const { data: items, isLoading } = useRadarBrasis();
+  
+  const stats = useMemo(() => {
+    if (!items || items.length === 0) {
+      return {
+        total: 0,
+        imported: 0,
+        reviewing: 0,
+        approved: 0,
+        rejected: 0,
+        hoje: 0,
+        ultimaHora: 0
+      };
+    }
+
+    const agora = new Date();
+    const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    const umaHoraAtras = new Date(agora.getTime() - 60 * 60 * 1000);
+
+    return {
+      total: items.length,
+      imported: items.filter(item => 
+        item.status === 'Coletado' || item.status === 'A curar'
+      ).length,
+      reviewing: items.filter(item => item.status === ContentStatus.REVIEWING).length,
+      approved: items.filter(item => 
+        item.status === ContentStatus.FOR_NEWSLETTER || 
+        item.status === ContentStatus.FOR_SOCIAL ||
+        item.status === ContentStatus.FOR_BOTH
+      ).length,
+      rejected: items.filter(item => item.status === ContentStatus.REJECTED).length,
+      hoje: items.filter(item => new Date(item.created_at) >= hoje).length,
+      ultimaHora: items.filter(item => new Date(item.created_at) >= umaHoraAtras).length
+    };
+  }, [items]);
+
+  return { stats, isLoading };
+};
+
 export const useCreateRadarBrasis = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (payload: Omit<CuratedContent, 'id' | 'created_at' | 'updated_at'>) => {
+      // Usar user_id padrão para MVP sem autenticação
+      const defaultUserId = '00000000-0000-0000-0000-000000000000';
+      
       const { data, error } = await supabase
         .from('radar_brasis')
         .insert({
@@ -105,7 +188,7 @@ export const useCreateRadarBrasis = () => {
           status: payload.status,
           resumo_curado: payload.resumo_curado,
           input_bruto: payload.input_bruto,
-          user_id: payload.user_id
+          user_id: payload.user_id || defaultUserId
         })
         .select()
         .single();
