@@ -141,8 +141,11 @@ const RadarMain = () => {
     });
     
     try {
+      console.log('Iniciando coleta de dados...');
       // Simplificado - usar radar-automation edge function
       const { data, error } = await supabase.functions.invoke('radar-automation');
+      
+      console.log('Resposta da coleta:', { data, error });
       
       if (error) throw error;
       
@@ -150,7 +153,7 @@ const RadarMain = () => {
       
       toast({
         title: "✅ Coleta Concluída",
-        description: `Coleta de dados executada com sucesso.`,
+        description: `Processadas ${data?.processedSources || 0} fontes, ${data?.savedItems || 0} itens salvos.`,
       });
       
     } catch (error) {
