@@ -135,88 +135,30 @@ const RadarMain = () => {
   };
 
   const handleExecutarCuradoria = async () => {
-    console.log('🚀 INICIANDO DIAGNÓSTICO COMPLETO...');
-    
     toast({
-      title: "🔍 Diagnóstico Iniciado",
-      description: "Testando todas as conexões e fontes...",
+      title: "🚀 Coleta Iniciada",
+      description: "Coletando dados das fontes RSS...",
     });
     
     try {
-      // 1. Verificar fontes ativas
-      console.log('1. Verificando fontes ativas...');
-      const { data: sources, error: sourcesError } = await supabase
-        .from('radar_sources')
-        .select('*')
-        .eq('active', true);
-      
-      console.log('Fontes ativas encontradas:', sources);
-      if (sourcesError) {
-        console.error('Erro ao buscar fontes:', sourcesError);
-        throw new Error(`Erro ao buscar fontes: ${sourcesError.message}`);
-      }
-
-      if (!sources || sources.length === 0) {
-        throw new Error('Nenhuma fonte ativa encontrada! Configure fontes primeiro.');
-      }
-
-      // 2. Testar conectividade com cada fonte
-      console.log('2. Testando conectividade das fontes...');
-      for (const source of sources) {
-        try {
-          console.log(`Testando fonte: ${source.name} (${source.type}) - ${source.url}`);
-          
-          if (source.type === 'RSS') {
-            const response = await fetch(source.url);
-            console.log(`✅ ${source.name}: HTTP ${response.status}`);
-            
-            if (!response.ok) {
-              console.warn(`⚠️ ${source.name}: Status ${response.status}`);
-            }
-          } else if (source.type === 'SPOTIFY') {
-            console.log(`🎵 ${source.name}: Configurada (credenciais necessárias)`);
-          } else if (source.type === 'IBGE') {
-            console.log(`📊 ${source.name}: Configurada`);
-          }
-        } catch (err) {
-          console.error(`❌ Erro testando ${source.name}:`, err);
-        }
-      }
-
-      // 3. Executar edge function
-      console.log('3. Executando radar-automation...');
       const { data, error } = await supabase.functions.invoke('radar-automation');
       
-      console.log('Resposta da edge function:', { data, error });
-      
       if (error) {
-        console.error('❌ Erro na edge function:', error);
         throw error;
       }
       
-      // 4. Atualizar dados
-      console.log('4. Atualizando interface...');
       await refetch();
       
-      // 5. Verificar novos dados
-      const { data: newData } = await supabase
-        .from('radar_brasis')
-        .select('source, created_at')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      console.log('Últimos dados coletados:', newData);
-      
       toast({
-        title: "✅ Diagnóstico Completo",
-        description: `✅ ${sources.length} fontes testadas\n✅ ${data?.processedSources || 0} fontes processadas\n✅ ${data?.savedItems || 0} itens salvos`,
+        title: "✅ Coleta Concluída",
+        description: `${data?.processedSources || 0} fontes processadas, ${data?.savedItems || 0} itens coletados.`,
       });
       
     } catch (error) {
-      console.error('❌ ERRO NO DIAGNÓSTICO:', error);
+      console.error('Erro na coleta:', error);
       toast({
-        title: "❌ Erro no Diagnóstico",
-        description: error instanceof Error ? error.message : "Falha no teste do sistema.",
+        title: "❌ Erro na Coleta",
+        description: error instanceof Error ? error.message : "Falha ao coletar dados.",
         variant: "destructive",
       });
     }
