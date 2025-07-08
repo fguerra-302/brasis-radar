@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRadarSources, useCreateRadarSource, useUpdateRadarSource, useDeleteRadarSource } from '@/hooks/useRadarBrasis';
+import { useRadarSources, useCreateRadarSource, useUpdateRadarSource, useDeleteRadarSource } from '@/hooks/useRadarSources';
 import { NewsletterSearchManager } from '@/components/sources/NewsletterSearchManager';
 import SourceManager from '@/components/sources/SourceManager';
 import { SimpleLogin } from '@/components/auth/SimpleLogin';

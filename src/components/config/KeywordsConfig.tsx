@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, X, Target, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRadarKeywords, useUpdateRadarKeyword } from '@/hooks/useRadarBrasis';
+import { useRadarKeywords, useUpdateRadarKeyword } from '@/hooks/useRadarKeywords';
 
 export const KeywordsConfig = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

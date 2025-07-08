@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Clock, RefreshCw, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useRadarSources } from '@/hooks/useRadarBrasis';
+import { useRadarSources } from '@/hooks/useRadarSources';
 
 export const SourcesStatus = () => {
   const { toast } = useToast();

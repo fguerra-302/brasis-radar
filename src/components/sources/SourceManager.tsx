@@ -11,7 +11,7 @@ import {
   useCreateRadarSource,
   useUpdateRadarSource,
   useDeleteRadarSource
-} from '@/hooks/useRadarBrasis';
+} from '@/hooks/useRadarSources';
 
 interface NewsSource {
   id: string;
