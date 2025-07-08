@@ -7,12 +7,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, Search, Loader2, Plus, AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export const NewsletterSearchManager = () => {
   const [searchTerms, setSearchTerms] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, loading } = useAuth();
 
   const searchNewslettersMutation = useMutation({
     mutationFn: async (terms: string) => {
@@ -50,6 +52,15 @@ export const NewsletterSearchManager = () => {
   });
 
   const handleSearch = async () => {
+    if (!user) {
+      toast({
+        title: "Acesso Negado",
+        description: "Você precisa estar logado para usar esta funcionalidade.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!searchTerms.trim()) {
       toast({
         title: "Campo obrigatório",
@@ -86,7 +97,30 @@ export const NewsletterSearchManager = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        {loading && (
+          <div className="text-center text-muted-foreground">
+            Carregando autenticação...
+          </div>
+        )}
+        
+        {!loading && !user && (
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <div className="text-sm text-yellow-800">
+                <p className="font-medium mb-1">⚠️ Autenticação Necessária:</p>
+                <p>
+                  Você precisa estar logado para usar a busca de newsletters.
+                  Implemente o sistema de login primeiro.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {!loading && user && (
+          <>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
           <div className="flex items-start gap-2">
             <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
             <div className="text-sm text-blue-800">
@@ -156,14 +190,16 @@ export const NewsletterSearchManager = () => {
           </div>
         </div>
 
-        {searchNewslettersMutation.data && (
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <div className="text-sm text-green-800">
-              <p className="font-medium">✅ Última busca realizada:</p>
-              <p>Termos: "{searchNewslettersMutation.data.search_terms}"</p>
-              <p>Newsletters encontradas: {searchNewslettersMutation.data.items_collected}</p>
-            </div>
-          </div>
+            {searchNewslettersMutation.data && (
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="text-sm text-green-800">
+                  <p className="font-medium">✅ Última busca realizada:</p>
+                  <p>Termos: "{searchNewslettersMutation.data.search_terms}"</p>
+                  <p>Newsletters encontradas: {searchNewslettersMutation.data.items_collected}</p>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
