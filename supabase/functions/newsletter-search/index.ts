@@ -80,53 +80,15 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify authentication
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    console.warn('Newsletter search attempt without authentication');
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized: Authentication required' }),
-      { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-  }
+  console.log('Newsletter search request received');
 
   try {
-    // Verify the JWT token
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
-    
-    if (authError || !user) {
-      console.warn('Newsletter search attempt with invalid token');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Rate limiting check
-    if (!rateLimiter(user.id)) {
-      console.warn(`Rate limit exceeded for user: ${user.email}`);
-      return new Response(
-        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    console.log(`Newsletter search request from authenticated user: ${user.email}`);
+    const defaultUserId = '00000000-0000-0000-0000-000000000000';
 
     if (!openaiApiKey) {
       return new Response(
@@ -158,7 +120,7 @@ serve(async (req) => {
     console.log(`🔍 Pesquisando newsletters com termos: ${validation.sanitized}`);
 
     try {
-      const result = await searchNewsletters(validation.sanitized, user.id);
+      const result = await searchNewsletters(validation.sanitized, defaultUserId);
       
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

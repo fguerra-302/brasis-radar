@@ -13,7 +13,6 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
@@ -21,36 +20,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify authentication
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized: Authentication required' }),
-      { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-  }
+  console.log('Web scraper request received');
 
   try {
-    // Verify the JWT token
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    console.log(`Web scraper request from authenticated user: ${user.email}`);
-
-    try {
     const { url, sourceName, editoria = 'Geral' } = await req.json();
     
     // Input validation
@@ -85,41 +57,29 @@ serve(async (req) => {
     const sanitizedSourceName = sourceName.trim().substring(0, 100);
     const sanitizedEditoria = ['Cultura', 'Social', 'Negócios', 'Sustentabilidade', 'Regional', 'Geral'].includes(editoria) ? editoria : 'Geral';
     
-    if (!firecrawlApiKey) {
-      throw new Error('FIRECRAWL_API_KEY não configurada');
-    }
-
     console.log(`🔍 Fazendo scraping de: ${sanitizedUrl}`);
 
-    // Usar Firecrawl para extrair conteúdo
-    const scrapeResponse = await fetch('https://api.firecrawl.dev/v0/scrape', {
-      method: 'POST',
+    // Scraping simples com fetch nativo
+    const response = await fetch(sanitizedUrl, {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
       },
-      body: JSON.stringify({
-        url: sanitizedUrl,
-        formats: ['markdown', 'html'],
-        includeTags: ['title', 'meta', 'h1', 'h2', 'h3', 'p', 'article'],
-        excludeTags: ['script', 'style', 'nav', 'footer', 'header'],
-        waitFor: 2000
-      }),
     });
 
-    if (!scrapeResponse.ok) {
-      throw new Error(`Firecrawl API error: ${scrapeResponse.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const scrapeData = await scrapeResponse.json();
-    
-    if (!scrapeData.success) {
-      throw new Error(`Scraping failed: ${scrapeData.error}`);
-    }
-
-    // Processar dados extraídos
-    const content = scrapeData.data;
-    const processedItems = await processScrapedContent(content, sanitizedUrl, sanitizedSourceName, sanitizedEditoria, user.id);
+    const html = await response.text();
+    const defaultUserId = '00000000-0000-0000-0000-000000000000';
+    const processedItems = await processScrapedContent(html, sanitizedUrl, sanitizedSourceName, sanitizedEditoria, defaultUserId);
 
     // Salvar itens no banco
     const savedItems = [];
@@ -157,44 +117,64 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-    } catch (error) {
-      console.error('Erro no web scraping:', error);
-      return new Response(JSON.stringify({
-        success: false,
-        error: error.message
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-  } catch (authError) {
-    console.error('Authentication error:', authError);
-    return new Response(JSON.stringify({ 
-      error: 'Authentication failed' 
+  } catch (error) {
+    console.error('Erro no web scraping:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
     }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
 
-async function processScrapedContent(content: any, url: string, sourceName: string, editoria: string, userId: string) {
+async function processScrapedContent(html: string, url: string, sourceName: string, editoria: string, userId: string) {
   const items = [];
   
   // Extrair título principal
-  const mainTitle = content.title || content.metadata?.title || 'Conteúdo extraído';
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  const mainTitle = titleMatch ? titleMatch[1].trim() : 'Conteúdo extraído';
   
-  // Extrair texto limpo
-  const markdownContent = content.markdown || '';
-  const cleanText = markdownContent.replace(/#{1,6}\s*/g, '').replace(/\*\*/g, '').trim();
+  // Extrair parágrafos de conteúdo
+  const paragraphMatches = html.match(/<p[^>]*>([^<]+)<\/p>/gi) || [];
+  const headingMatches = html.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/gi) || [];
+  
+  // Combinar conteúdo
+  const contentPieces = [...headingMatches, ...paragraphMatches]
+    .map(piece => piece.replace(/<[^>]*>/g, '').trim())
+    .filter(piece => piece.length > 50);
+  
+  const fullContent = contentPieces.join('\n\n');
+  
+  // Se não há conteúdo substancial, usar o título como base
+  if (contentPieces.length === 0) {
+    const analysis = analyzeContentRelevance(mainTitle, '');
+    
+    items.push({
+      title: mainTitle.substring(0, 500),
+      link: url.substring(0, 500),
+      source: sourceName.substring(0, 100),
+      pub_date: new Date().toISOString(),
+      editoria: analysis.editoria || editoria,
+      tags: Array.isArray(analysis.tags) ? analysis.tags.slice(0, 10) : [],
+      relevancia: Math.max(1, Math.min(5, analysis.relevancia || 1)),
+      status: 'A curar',
+      input_bruto: mainTitle.substring(0, 2000),
+      resumo_curado: generateCuratedSummary(mainTitle, '', analysis),
+      user_id: userId
+    });
+    
+    return items;
+  }
   
   // Dividir em seções se for muito longo
-  const sections = splitIntoSections(cleanText, mainTitle);
+  const sections = splitIntoSections(fullContent, mainTitle);
   
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i];
     
-    if (section.content.length > 100) { // Só processar seções com conteúdo substancial
+    if (section.content.length > 100) {
       const analysis = analyzeContentRelevance(section.title, section.content);
       
       if (analysis.relevancia >= 2) {
@@ -206,7 +186,7 @@ async function processScrapedContent(content: any, url: string, sourceName: stri
           editoria: analysis.editoria || editoria,
           tags: Array.isArray(analysis.tags) ? analysis.tags.slice(0, 10) : [],
           relevancia: Math.max(1, Math.min(5, analysis.relevancia || 1)),
-          status: analysis.relevancia >= 4 ? 'Em aprovação' : 'A curar',
+          status: 'A curar',
           input_bruto: section.content.substring(0, 2000),
           resumo_curado: generateCuratedSummary(section.title, section.content, analysis),
           user_id: userId
@@ -217,30 +197,10 @@ async function processScrapedContent(content: any, url: string, sourceName: stri
     }
   }
   
-  // Se não encontrou seções, criar um item com todo o conteúdo
-  if (items.length === 0 && cleanText.length > 100) {
-    const analysis = analyzeContentRelevance(mainTitle, cleanText);
-    
-    items.push({
-      title: mainTitle.substring(0, 500),
-      link: url.substring(0, 500),
-      source: sourceName.substring(0, 100),
-      pub_date: new Date().toISOString(),
-      editoria: analysis.editoria || editoria,
-      tags: Array.isArray(analysis.tags) ? analysis.tags.slice(0, 10) : [],
-      relevancia: Math.max(1, Math.min(5, analysis.relevancia || 1)),
-      status: analysis.relevancia >= 4 ? 'Em aprovação' : 'A curar',
-      input_bruto: cleanText.substring(0, 2000),
-      resumo_curado: generateCuratedSummary(mainTitle, cleanText, analysis),
-      user_id: userId
-    });
-  }
-  
   return items;
 }
 
 function splitIntoSections(content: string, mainTitle: string) {
-  // Dividir por parágrafos ou seções naturais
   const paragraphs = content.split('\n\n').filter(p => p.trim().length > 50);
   
   if (paragraphs.length <= 2) {
@@ -256,7 +216,6 @@ function splitIntoSections(content: string, mainTitle: string) {
   for (let i = 0; i < paragraphs.length; i++) {
     const paragraph = paragraphs[i].trim();
     
-    // Se parece ser um título (curto e sem pontuação final)
     if (paragraph.length < 100 && !paragraph.endsWith('.') && !paragraph.endsWith('!') && !paragraph.endsWith('?')) {
       if (currentSection) {
         sections.push({
@@ -270,7 +229,6 @@ function splitIntoSections(content: string, mainTitle: string) {
     }
   }
   
-  // Adicionar última seção
   if (currentSection) {
     sections.push({
       title: generateSectionTitle(currentSection),
@@ -288,7 +246,6 @@ function generateSectionTitle(content: string): string {
     return firstLine;
   }
   
-  // Extrair primeiras palavras como título
   const words = firstLine.split(' ').slice(0, 8).join(' ');
   return words + '...';
 }
@@ -307,7 +264,6 @@ function analyzeContentRelevance(title: string, content: string) {
   let editoria = 'Geral';
   const tags = [];
   
-  // Análise por categoria
   if (hasKeywords(fullText, culturalKeywords)) {
     score += 2;
     editoria = 'Cultura';
@@ -338,7 +294,6 @@ function analyzeContentRelevance(title: string, content: string) {
     tags.push('Sustentabilidade');
   }
   
-  // Boost para conteúdo brasileiro específico
   if (fullText.includes('brasil') || fullText.includes('brasileiro')) {
     score += 1;
     tags.push('Brasil');

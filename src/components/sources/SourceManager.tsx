@@ -10,9 +10,21 @@ import {
   useRadarSources,
   useCreateRadarSource,
   useUpdateRadarSource,
-  useDeleteRadarSource,
-  NewsSource
-} from '@/hooks/useRadarConfig';
+  useDeleteRadarSource
+} from '@/hooks/useRadarBrasis';
+
+interface NewsSource {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  active: boolean;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+  credentials?: any;
+  config?: any;
+}
 
 interface SourceFormData {
   name: string;

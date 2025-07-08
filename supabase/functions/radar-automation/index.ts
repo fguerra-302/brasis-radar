@@ -25,17 +25,7 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Verify authentication
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: 'Authentication required' }),
-      { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-  }
+  console.log('Radar automation request received');
 
   try {
     const supabaseClient = createClient(
@@ -43,26 +33,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Verify the JWT token
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(jwt);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    const defaultUserId = '00000000-0000-0000-0000-000000000000';
 
-    // Buscar fontes configuradas pelo usuário autenticado
+    // Buscar fontes ativas (sem filtro por usuário)
     const { data: userSources, error: sourcesError } = await supabaseClient
       .from('radar_sources')
       .select('*')
-      .eq('active', true)
-      .eq('user_id', user.id);
+      .eq('active', true);
 
     if (sourcesError) {
       console.error('Erro ao buscar fontes:', sourcesError);
@@ -131,7 +108,7 @@ serve(async (req) => {
             status: item.status || 'A curar',
             input_bruto: item.input_bruto ? item.input_bruto.substring(0, 2000) : null,
             resumo_curado: item.resumo_curado ? item.resumo_curado.substring(0, 1000) : null,
-            user_id: user.id
+            user_id: defaultUserId
           }, { 
             onConflict: 'link',
             ignoreDuplicates: true 
