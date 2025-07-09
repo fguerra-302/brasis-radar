@@ -49,7 +49,7 @@ export const NewsletterEditor = () => {
       await updateItemMutation.mutateAsync({
         id: item.id,
         payload: { 
-          status: 'Na Newsletter',
+          status: 'Para Newsletter',
           updated_at: new Date().toISOString()
         }
       });
