@@ -107,8 +107,8 @@ const ContentList = ({
     );
   }
 
-  // Usa dados do Supabase se disponíveis, senão usa mock data
-  const items = supabaseData && supabaseData.length > 0 ? supabaseData : mockData;
+  // Usa apenas dados do Supabase
+  const items = supabaseData || [];
 
   // Filtros
   const filteredItems = items.filter(item => {
