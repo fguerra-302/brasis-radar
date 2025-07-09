@@ -11,57 +11,7 @@ import ContentCard from './ContentCard';
 
 const ITEMS_PER_PAGE = 9;
 
-// Dados de exemplo para fallback
-const mockData: RadarBrasisItem[] = [
-  {
-    id: '1',
-    title: 'Startup baiana desenvolve tecnologia sustentável',
-    source_url: 'https://example.com/1',
-    source: 'Portal Local BA',
-    pub_date: '2024-07-01T10:00:00Z',
-    editoria: 'Negócios',
-    tags: ['startup', 'sustentabilidade', 'bahia'],
-    score: 3,
-    status: ContentStatus.IMPORTED,
-    resumo_curado: 'Empresa baiana inova no setor de energia limpa com solução revolucionária.',
-    created_at: '2024-07-01T10:00:00Z',
-    updated_at: null,
-    user_id: 'mock-user',
-    input_bruto: null
-  },
-  {
-    id: '2',
-    title: 'Festival de cultura nordestina acontece em Salvador',
-    source_url: 'https://example.com/2',
-    source: 'Cultura BA',
-    pub_date: '2024-07-01T14:00:00Z',
-    editoria: 'Cultura',
-    tags: ['festival', 'cultura', 'salvador'],
-    score: 2,
-    status: ContentStatus.REVIEWING,
-    resumo_curado: 'Evento celebra tradições nordestinas com shows e gastronomia típica.',
-    created_at: '2024-07-01T14:00:00Z',
-    updated_at: null,
-    user_id: 'mock-user',
-    input_bruto: null
-  },
-  {
-    id: '3',
-    title: 'Projeto social transforma comunidade no interior',
-    source_url: 'https://example.com/3',
-    source: 'Social Impact',
-    pub_date: '2024-07-01T16:00:00Z',
-    editoria: 'Social',
-    tags: ['projeto social', 'comunidade', 'interior'],
-    score: 3,
-    status: ContentStatus.FOR_NEWSLETTER,
-    resumo_curado: 'Iniciativa local promove educação e desenvolvimento econômico.',
-    created_at: '2024-07-01T16:00:00Z',
-    updated_at: null,
-    user_id: 'mock-user',
-    input_bruto: null
-  }
-];
+// Remover dados mock - sistema agora usa apenas dados reais do Supabase
 
 interface ContentListProps {
   supabaseData: RadarBrasisItem[] | undefined;

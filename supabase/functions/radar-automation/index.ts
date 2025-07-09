@@ -33,9 +33,19 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const defaultUserId = '00000000-0000-0000-0000-000000000000';
+    // Buscar um usuário válido do sistema para associar os dados
 
-    // Buscar fontes ativas (sem filtro por usuário)
+    // Buscar um usuário válido existente no sistema
+    const { data: userData, error: userError } = await supabaseClient
+      .from('user_roles')
+      .select('user_id')
+      .limit(1);
+
+    const defaultUserId = userData && userData.length > 0 
+      ? userData[0].user_id 
+      : '00000000-0000-0000-0000-000000000000'; // Fallback se não houver usuários
+
+    // Buscar fontes ativas
     const { data: userSources, error: sourcesError } = await supabaseClient
       .from('radar_sources')
       .select('*')
@@ -111,7 +121,7 @@ serve(async (req) => {
             user_id: defaultUserId
           }, { 
             onConflict: 'link',
-            ignoreDuplicates: true 
+            ignoreDuplicates: false
           });
 
         if (!error && data) {
@@ -236,7 +246,7 @@ async function curateWithAI(items: NewsItem[]) {
         editoria: analysis.editoria,
         tags: analysis.tags,
         relevancia: analysis.relevancia,
-        status: analysis.relevancia >= 4 ? 'Em aprovação' : 'A curar',
+        status: analysis.relevancia >= 4 ? 'Para Newsletter' : 'A curar',
         input_bruto: item.description || '',
         resumo_curado: await generateCuratedSummary(item, analysis)
       };
