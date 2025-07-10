@@ -38,7 +38,7 @@ export const useFluxoValidation = () => {
         validation.warnings.push('⚠️ Nenhum item encontrado - execute uma coleta primeiro');
       }
 
-      if (!statusCount['A curar'] && !statusCount['Em aprovação']) {
+      if (!statusCount['Em aprovação']) {
         validation.warnings.push('⚠️ Não há itens para processar na curadoria');
       }
 

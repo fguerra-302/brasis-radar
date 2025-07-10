@@ -150,7 +150,7 @@ export const useRadarBrasisStats = () => {
     return {
       total: items.length,
       imported: items.filter(item => 
-        item.status === 'Coletado' || item.status === 'A curar'
+        item.status === 'Coletado' || item.status === ContentStatus.REVIEWING
       ).length,
       reviewing: items.filter(item => item.status === ContentStatus.REVIEWING).length,
       approved: items.filter(item => 

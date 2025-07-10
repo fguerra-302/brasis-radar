@@ -1,7 +1,7 @@
 export enum ContentStatus {
-  // Fluxo simplificado: Coletado → A curar → Editor escolhe destino
+  // Fluxo simplificado: Coletado → Em aprovação → Editor escolhe destino
   COLLECTED = "Coletado",
-  REVIEWING = "A curar", 
+  REVIEWING = "Em aprovação", 
   FOR_NEWSLETTER = "Para Newsletter",
   FOR_SOCIAL = "Para Redes Sociais",
   FOR_BOTH = "Para Newsletter e Redes",
