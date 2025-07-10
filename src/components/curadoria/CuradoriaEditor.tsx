@@ -28,7 +28,7 @@ export const CuradoriaEditor = () => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .select('*')
-        .eq('status', 'Para Redes Sociais')
+        .eq('status', 'Em edição')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -180,7 +180,7 @@ Informação da ${sanitizedSource}`;
                       {item.editoria}
                     </Badge>
                      <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
-                       Para Redes Sociais
+                       Em edição
                      </Badge>
                   </div>
 

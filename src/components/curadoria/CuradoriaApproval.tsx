@@ -73,7 +73,7 @@ export const CuradoriaApproval = () => {
       await updateItemMutation.mutateAsync({
         id: item.id,
         payload: { 
-          status: 'Para Redes Sociais',
+          status: 'Em edição',
           updated_at: new Date().toISOString()
         }
       });
