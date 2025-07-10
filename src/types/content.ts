@@ -6,6 +6,9 @@ export enum ContentStatus {
   FOR_SOCIAL = "Para Redes Sociais",
   FOR_BOTH = "Para Newsletter e Redes",
   REJECTED = "Ignorado",
+  // Fases adicionais da newsletter
+  IN_NEWSLETTER = "Na Newsletter",
+  IN_EDITING = "Em edição", 
   // Legacy para compatibilidade
   IMPORTED = "Coletado",
   PUBLISHED = "Publicado"
