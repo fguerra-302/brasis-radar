@@ -26,6 +26,7 @@ interface ContentListProps {
   onAprovar: (id: string, title: string) => Promise<void>;
   onIgnorar: (id: string, title: string) => Promise<void>;
   onVerOriginal: (sourceUrl: string, title: string) => void;
+  onUpdateStatus: (id: string, status: string, title: string) => Promise<void>;
   onConfigurar: () => void;
   onExecutarCuradoria: () => Promise<void>;
   updateMutation: any;
@@ -44,6 +45,7 @@ const ContentList = ({
   onAprovar,
   onIgnorar,
   onVerOriginal,
+  onUpdateStatus,
   onConfigurar,
   onExecutarCuradoria,
   updateMutation
@@ -101,6 +103,7 @@ const ContentList = ({
                 onAprovar={onAprovar}
                 onIgnorar={onIgnorar}
                 onVerOriginal={onVerOriginal}
+                onUpdateStatus={onUpdateStatus}
                 isUpdating={updateMutation.isPending}
               />
             ))}

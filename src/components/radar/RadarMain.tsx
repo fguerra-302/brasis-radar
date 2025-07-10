@@ -134,6 +134,27 @@ const RadarMain = () => {
     // Aqui você pode abrir um modal de configurações
   };
 
+  const handleUpdateStatus = async (itemId: string, status: string, title: string) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: itemId,
+        payload: { status: status as ContentStatus }
+      });
+      
+      toast({
+        title: "✅ Status Atualizado",
+        description: `"${title}" foi alterado para "${status}".`,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar status.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleExecutarCuradoria = async () => {
     toast({
       title: "🚀 Coleta Iniciada",
@@ -188,6 +209,7 @@ const RadarMain = () => {
                 onAprovar={handleAprovar}
                 onIgnorar={handleIgnorar}
                 onVerOriginal={handleVerOriginal}
+                onUpdateStatus={handleUpdateStatus}
                 onConfigurar={handleConfigurar}
                 onExecutarCuradoria={handleExecutarCuradoria}
                 updateMutation={updateMutation}
