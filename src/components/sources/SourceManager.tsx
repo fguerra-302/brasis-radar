@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, X, Settings, Loader2, Globe, Instagram, Music, BarChart3, Mail } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { BulkSourceUpload } from './BulkSourceUpload';
 import {
   useRadarSources,
   useCreateRadarSource,
@@ -176,9 +177,10 @@ const SourceManager = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="list" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="list">Fontes Ativas</TabsTrigger>
               <TabsTrigger value="add">Adicionar Nova</TabsTrigger>
+              <TabsTrigger value="bulk">Upload em Massa</TabsTrigger>
             </TabsList>
 
             <TabsContent value="list" className="space-y-4">
@@ -296,6 +298,10 @@ const SourceManager = () => {
                   Adicionar Fonte
                 </Button>
               </div>
+            </TabsContent>
+
+            <TabsContent value="bulk" className="space-y-4">
+              <BulkSourceUpload />
             </TabsContent>
           </Tabs>
         </CardContent>
