@@ -7,6 +7,7 @@ import { KeywordsConfig } from '@/components/config/KeywordsConfig';
 import { EditoriaWeights } from '@/components/config/EditoriaWeights';
 import { APIsConfig } from '@/components/config/APIsConfig';
 import { AutomationConfig } from '@/components/config/AutomationConfig';
+import { BrandingConfig } from '@/components/config/BrandingConfig';
 
 
 const Config = () => {
@@ -20,6 +21,7 @@ const Config = () => {
         <Route path="weights" element={<EditoriaWeights />} />
         <Route path="apis" element={<APIsConfig />} />
         <Route path="automation" element={<AutomationConfig />} />
+        <Route path="branding" element={<BrandingConfig />} />
       </Routes>
     </ConfigLayout>
   );

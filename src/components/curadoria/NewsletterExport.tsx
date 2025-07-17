@@ -8,10 +8,12 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Copy, FileText, Calendar } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useBranding } from '@/hooks/useBranding';
 
 export const NewsletterExport = () => {
   const [generatedContent, setGeneratedContent] = useState('');
   const { toast } = useToast();
+  const { brandingConfig } = useBranding();
 
   // Buscar conteúdos aprovados para newsletter
   const { data: items, isLoading } = useQuery({
@@ -44,8 +46,8 @@ export const NewsletterExport = () => {
       year: 'numeric' 
     });
 
-    let content = `🎯 RADAR BRASIS - ${today}\n\n`;
-    content += `📍 O Brasil Real em Destaque\n\n`;
+    let content = `🎯 ${brandingConfig.companyName.toUpperCase()} - ${today}\n\n`;
+    content += `📍 ${brandingConfig.companyTagline}\n\n`;
     content += `Olá! Aqui estão os destaques selecionados:\n\n`;
 
     // Agrupar por editoria
@@ -74,8 +76,8 @@ export const NewsletterExport = () => {
       });
     });
 
-    content += `📧 Este é o Radar Brasis - sua newsletter sobre o Brasil real.\n\n`;
-    content += `Até a próxima edição!\nEquipe Brasis.IA`;
+    content += `${brandingConfig.newsletterFooter}\n\n`;
+    content += `Até a próxima edição!\n${brandingConfig.newsletterSignature}`;
 
     setGeneratedContent(content);
   };

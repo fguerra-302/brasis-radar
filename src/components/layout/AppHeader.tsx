@@ -6,17 +6,27 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from 'react-router-dom';
 import { UserMenu } from '@/components/UserMenu';
 import { useFluxoValidation } from '@/hooks/useFluxoValidation';
+import { useBranding } from '@/hooks/useBranding';
 
 const RadarHeader = () => {
   const navigate = useNavigate();
   const { data: validacao, isLoading } = useFluxoValidation();
+  const { brandingConfig } = useBranding();
   
   return (
     <div className="text-center space-y-6 py-8">
       <div className="flex items-center justify-center gap-4">
-        <Bot className="h-10 w-10 text-primary" />
+        {brandingConfig.logoUrl ? (
+          <img 
+            src={brandingConfig.logoUrl} 
+            alt={`${brandingConfig.companyName} Logo`}
+            className="h-12 w-12 object-contain"
+          />
+        ) : (
+          <Bot className="h-10 w-10 text-primary" />
+        )}
         <h1 className="text-5xl font-bold text-primary font-brasis">
-          BRASIS.IA
+          {brandingConfig.companyName}
         </h1>
         <Sparkles className="h-10 w-10 text-secondary" />
       </div>
@@ -38,7 +48,7 @@ const RadarHeader = () => {
       <div className="relative">
         <div className="absolute inset-0 bg-brasis-beige rounded-2xl"></div>
         <p className="text-xl text-foreground max-w-4xl mx-auto relative z-10 py-6 px-8 font-medium">
-          Newsletter inteligente que acessa múltiplas fontes e faz curadoria automática do Brasil real
+          {brandingConfig.companyDescription}
         </p>
       </div>
       <div className="flex justify-center items-center gap-6 pt-6">
