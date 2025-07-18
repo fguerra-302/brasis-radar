@@ -1,24 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import { CuratedContent, ContentStatus, ContentFilters, ContentStats } from '@/types/content';
 
 export type RadarBrasisItem = CuratedContent; // Compatibilidade com código existente
 
 export const useRadarBrasis = () => {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ['radar-brasis'],
+    queryKey: ['radar-brasis', user?.id],
     queryFn: async (): Promise<CuratedContent[]> => {
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+
       console.log('Hook useRadarBrasis - Buscando dados do Supabase');
       
       try {
         const { data, error } = await supabase
           .from('radar_brasis')
-          .select('*')
+          .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
           .order('created_at', { ascending: false });
         
         if (error) {
           console.error('Erro ao buscar dados:', error);
+          toast.error('Erro ao carregar conteúdo');
           throw error;
         }
         
@@ -26,9 +35,10 @@ export const useRadarBrasis = () => {
         return data ? mapToContent(data) : [];
       } catch (error) {
         console.error('Erro de conexão com Supabase:', error);
-        throw error; // Propagar o erro em vez de retornar dados fake
+        throw error;
       }
     },
+    enabled: !!user?.id,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -57,9 +67,14 @@ const mapToContent = (data: any[]): CuratedContent[] => {
 
 export const useUpdateRadarBrasis = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: Partial<CuratedContent> }) => {
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('radar_brasis')
         .update({
@@ -72,14 +87,16 @@ export const useUpdateRadarBrasis = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .select()
+        .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
         .single();
       
       if (error) {
         console.error('Erro ao atualizar:', error);
+        toast.error('Erro ao atualizar conteúdo');
         throw error;
       }
       
+      toast.success('Conteúdo atualizado com sucesso');
       return mapToContent([data])[0];
     },
     onSettled: () => {
@@ -90,14 +107,20 @@ export const useUpdateRadarBrasis = () => {
 
 // Consolidação com funcionalidades do useContentFetcher
 export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ['radar-brasis', filters],
+    queryKey: ['radar-brasis', filters, user?.id],
     queryFn: async (): Promise<CuratedContent[]> => {
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+
       console.log('Hook useRadarBrasis - Buscando dados com filtros:', filters);
       
       let query = supabase
         .from('radar_brasis')
-        .select('*')
+        .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (filters?.status) {
@@ -116,12 +139,14 @@ export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
       
       if (error) {
         console.error('Erro ao buscar dados:', error);
+        toast.error('Erro ao carregar conteúdo filtrado');
         throw error;
       }
       
       console.log(`Dados carregados: ${data?.length || 0} itens`);
       return data ? mapToContent(data) : [];
     },
+    enabled: !!user?.id,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -169,11 +194,13 @@ export const useRadarBrasisStats = () => {
 
 export const useCreateRadarBrasis = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
-    mutationFn: async (payload: Omit<CuratedContent, 'id' | 'created_at' | 'updated_at'>) => {
-      // Usar user_id padrão para MVP sem autenticação
-      const defaultUserId = '00000000-0000-0000-0000-000000000000';
+    mutationFn: async (payload: Omit<CuratedContent, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
       
       const { data, error } = await supabase
         .from('radar_brasis')
@@ -188,16 +215,18 @@ export const useCreateRadarBrasis = () => {
           status: payload.status,
           resumo_curado: payload.resumo_curado,
           input_bruto: payload.input_bruto,
-          user_id: payload.user_id || defaultUserId
+          user_id: user.id
         })
-        .select()
+        .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
         .single();
       
       if (error) {
         console.error('Erro ao criar:', error);
+        toast.error('Erro ao criar conteúdo');
         throw error;
       }
       
+      toast.success('Conteúdo criado com sucesso');
       return mapToContent([data])[0];
     },
     onSettled: () => {
