@@ -19,13 +19,15 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/config/*" element={<Config />} />
-            <Route path="/curadoria/*" element={<Curadoria />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthGuard>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/config/*" element={<Config />} />
+              <Route path="/curadoria/*" element={<Curadoria />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthGuard>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
