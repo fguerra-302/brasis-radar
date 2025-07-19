@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,11 +19,48 @@ export const AuthPage = () => {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
+  const getErrorMessage = (error: any) => {
+    const errorMessage = error?.message || '';
+    
+    if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('invalid_credentials')) {
+      return 'Email ou senha incorretos. Verifique seus dados ou recupere sua senha.';
+    }
+    
+    if (errorMessage.includes('User already registered') || errorMessage.includes('user_already_exists')) {
+      return 'Este email já possui uma conta. Tente fazer login ou recuperar sua senha.';
+    }
+    
+    if (errorMessage.includes('Email not confirmed')) {
+      return 'Confirme seu email antes de fazer login. Verifique sua caixa de entrada.';
+    }
+    
+    if (errorMessage.includes('Too many requests')) {
+      return 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.';
+    }
+    
+    if (errorMessage.includes('signup_disabled')) {
+      return 'Cadastro temporariamente desabilitado. Entre em contato com o suporte.';
+    }
+
+    // Mensagem genérica para outros erros
+    return 'Erro na autenticação. Verifique seus dados e tente novamente.';
+  };
+
   const handleAuth = async (mode: 'signin' | 'signup') => {
     if (!email || !password) {
       toast({
         title: "Campos obrigatórios",
         description: "Por favor, preencha email e senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validação básica de email
+    if (!email.includes('@') || !email.includes('.')) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, digite um email válido.",
         variant: "destructive",
       });
       return;
@@ -35,21 +73,39 @@ export const AuthPage = () => {
         : await signUp(email, password);
 
       if (error) {
+        const friendlyMessage = getErrorMessage(error);
+        
         toast({
           title: mode === 'signin' ? "Erro no Login" : "Erro no Cadastro",
-          description: error.message,
+          description: friendlyMessage,
           variant: "destructive",
         });
+
+        // Se o erro for de usuário já existente no cadastro, sugerir login
+        if (mode === 'signup' && (error.message.includes('User already registered') || error.message.includes('user_already_exists'))) {
+          setTimeout(() => {
+            toast({
+              title: "Dica",
+              description: "Clique em 'Login' para acessar sua conta existente.",
+            });
+          }, 2000);
+        }
       } else if (mode === 'signup') {
         toast({
           title: "Cadastro realizado!",
           description: "Verifique seu email para confirmar a conta.",
         });
+      } else {
+        toast({
+          title: "Login realizado!",
+          description: "Bem-vindo ao sistema.",
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Auth error:', error);
       toast({
         title: "Erro",
-        description: "Falha na autenticação. Tente novamente.",
+        description: "Falha na conexão. Verifique sua internet e tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -67,6 +123,15 @@ export const AuthPage = () => {
       return;
     }
 
+    if (!email.includes('@') || !email.includes('.')) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, digite um email válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -74,9 +139,10 @@ export const AuthPage = () => {
       });
 
       if (error) {
+        const friendlyMessage = getErrorMessage(error);
         toast({
           title: "Erro",
-          description: error.message,
+          description: friendlyMessage,
           variant: "destructive",
         });
       } else {
@@ -86,10 +152,11 @@ export const AuthPage = () => {
         });
         setShowForgotPassword(false);
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Password reset error:', error);
       toast({
         title: "Erro",
-        description: "Falha ao enviar email de recuperação.",
+        description: "Falha ao enviar email de recuperação. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -258,6 +325,11 @@ export const AuthPage = () => {
                     </div>
                   </div>
 
+                  <div className="text-xs text-muted-foreground bg-muted/20 p-3 rounded">
+                    <p>• Use pelo menos 6 caracteres</p>
+                    <p>• Combine letras e números</p>
+                  </div>
+
                   <Button 
                     onClick={() => handleAuth('signup')} 
                     disabled={loading}
@@ -272,7 +344,7 @@ export const AuthPage = () => {
         </Card>
 
         <div className="text-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/70">
             Sistema seguro com autenticação obrigatória
           </p>
         </div>
