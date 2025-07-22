@@ -1,18 +1,12 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 export const useRadarKeywords = () => {
-  const { user } = useAuth();
-
   return useQuery({
-    queryKey: ['radar-keywords', user?.id],
+    queryKey: ['radar-keywords'],
     queryFn: async () => {
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
-
       const { data, error } = await supabase
         .from('radar_keywords')
         .select('id, category_name, keywords, weight, created_at, updated_at')
@@ -26,7 +20,6 @@ export const useRadarKeywords = () => {
       
       return data || [];
     },
-    enabled: !!user?.id,
   });
 };
 

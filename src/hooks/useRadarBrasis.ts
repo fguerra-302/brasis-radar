@@ -1,23 +1,17 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { CuratedContent, ContentStatus, ContentFilters, ContentStats } from '@/types/content';
 
 export type RadarBrasisItem = CuratedContent; // Compatibilidade com código existente
 
 export const useRadarBrasis = () => {
-  const { user } = useAuth();
-
   return useQuery({
-    queryKey: ['radar-brasis', user?.id],
+    queryKey: ['radar-brasis'],
     queryFn: async (): Promise<CuratedContent[]> => {
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      console.log('Hook useRadarBrasis - Buscando dados do Supabase');
+      console.log('Hook useRadarBrasis - Buscando dados do Supabase (sem auth)');
       
       try {
         const { data, error } = await supabase
@@ -38,7 +32,6 @@ export const useRadarBrasis = () => {
         throw error;
       }
     },
-    enabled: !!user?.id,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -67,14 +60,9 @@ const mapToContent = (data: any[]): CuratedContent[] => {
 
 export const useUpdateRadarBrasis = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: Partial<CuratedContent> }) => {
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
-
       const { data, error } = await supabase
         .from('radar_brasis')
         .update({
@@ -107,15 +95,9 @@ export const useUpdateRadarBrasis = () => {
 
 // Consolidação com funcionalidades do useContentFetcher
 export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
-  const { user } = useAuth();
-
   return useQuery({
-    queryKey: ['radar-brasis', filters, user?.id],
+    queryKey: ['radar-brasis', filters],
     queryFn: async (): Promise<CuratedContent[]> => {
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
-
       console.log('Hook useRadarBrasis - Buscando dados com filtros:', filters);
       
       let query = supabase
@@ -146,7 +128,6 @@ export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
       console.log(`Dados carregados: ${data?.length || 0} itens`);
       return data ? mapToContent(data) : [];
     },
-    enabled: !!user?.id,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -194,14 +175,9 @@ export const useRadarBrasisStats = () => {
 
 export const useCreateRadarBrasis = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (payload: Omit<CuratedContent, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
-      
       const { data, error } = await supabase
         .from('radar_brasis')
         .insert({
@@ -215,7 +191,7 @@ export const useCreateRadarBrasis = () => {
           status: payload.status,
           resumo_curado: payload.resumo_curado,
           input_bruto: payload.input_bruto,
-          user_id: user.id
+          user_id: null // Permitir sem usuário
         })
         .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
         .single();

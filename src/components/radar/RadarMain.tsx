@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,14 +30,16 @@ const RadarMain = () => {
     }
   }, []);
 
-  // Hooks do Supabase simplificados
+  // Hooks do Supabase sem autenticação
   const { data: supabaseData, isLoading, error, refetch } = useRadarBrasis();
   const updateMutation = useUpdateRadarBrasis();
 
   console.log('RadarMain - Dados do Supabase:', { supabaseData, isLoading, error });
 
-  // Real-time updates para coleta automatizada
+  // Real-time updates para coleta automatizada (sem autenticação)
   useEffect(() => {
+    console.log('Configurando real-time updates...');
+    
     const channel = supabase
       .channel('radar-realtime')
       .on(
@@ -67,9 +70,12 @@ const RadarMain = () => {
           refetch(); // Atualiza a lista
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Status da subscription real-time:', status);
+      });
 
     return () => {
+      console.log('Removendo channel real-time...');
       supabase.removeChannel(channel);
     };
   }, [toast, refetch]);
