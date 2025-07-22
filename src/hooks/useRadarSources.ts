@@ -1,38 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 export const useRadarSources = () => {
-  const { user } = useAuth();
-
   return useQuery({
-    queryKey: ['radar-sources', user?.id],
+    queryKey: ['radar-sources'],
     queryFn: async () => {
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
-
+      console.log('📡 Buscando fontes RSS...');
+      
       const { data, error } = await supabase
         .from('radar_sources')
         .select('id, name, url, type, active, credentials, config, created_at, updated_at')
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('Erro ao buscar fontes:', error);
+        console.error('❌ Erro ao buscar fontes:', error);
         toast.error('Erro ao carregar fontes de dados');
         throw error;
       }
       
+      console.log(`📊 ${data?.length || 0} fontes carregadas`);
       return data || [];
     },
-    enabled: !!user?.id,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 };
 
 export const useCreateRadarSource = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (payload: {
@@ -43,10 +39,6 @@ export const useCreateRadarSource = () => {
       credentials?: Record<string, any>;
       config?: Record<string, any>;
     }) => {
-      if (!user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
-      
       const { data, error } = await supabase
         .from('radar_sources')
         .insert({
@@ -54,7 +46,7 @@ export const useCreateRadarSource = () => {
           url: payload.url,
           type: payload.type,
           active: payload.active,
-          user_id: user.id,
+          user_id: null, // Permitir sem usuário
           credentials: payload.credentials,
           config: payload.config
         })
@@ -62,12 +54,12 @@ export const useCreateRadarSource = () => {
         .single();
       
       if (error) {
-        console.error('Erro ao criar fonte:', error);
+        console.error('❌ Erro ao criar fonte:', error);
         toast.error('Erro ao criar fonte de dados');
         throw error;
       }
       
-      toast.success('Fonte criada com sucesso');
+      toast.success('✅ Fonte criada com sucesso');
       return data;
     },
     onSettled: () => {
