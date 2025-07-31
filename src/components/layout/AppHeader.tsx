@@ -66,6 +66,13 @@ const RadarHeader = () => {
         >
           Configurações
         </Button>
+        <Button 
+          onClick={() => navigate('/config/sources')}
+          variant="outline"
+          className="border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground font-semibold px-6 py-3"
+        >
+          Adicionar Fontes
+        </Button>
         <div className="ml-4">
           <UserMenu />
         </div>
