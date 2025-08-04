@@ -131,6 +131,10 @@ serve(async (req) => {
           continue;
         }
 
+        // Buscar um usuário padrão para associar os dados
+        const { data: users } = await supabaseClient.auth.admin.listUsers()
+        const defaultUserId = users?.users?.[0]?.id || null
+        
         const { data, error } = await supabaseClient
           .from('radar_brasis')
           .insert({
@@ -141,10 +145,10 @@ serve(async (req) => {
             editoria: item.editoria || 'Geral',
             tags: Array.isArray(item.tags) ? item.tags.slice(0, 10) : [],
             relevancia: Math.max(1, Math.min(5, item.relevancia || 1)),
-            status: item.status || 'A curar',
+            status: item.status === 'A curar' ? 'Em aprovação' : item.status || 'Em aprovação',
             input_bruto: item.input_bruto ? item.input_bruto.substring(0, 2000) : null,
             resumo_curado: item.resumo_curado ? item.resumo_curado.substring(0, 1000) : null,
-            user_id: null // Permitir sem usuário
+            user_id: defaultUserId
           })
           .select('id, title')
           .single();
