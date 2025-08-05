@@ -205,7 +205,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      emergency_disable_all_rls: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      emergency_disable_rls_brasis: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       emergency_disable_rls_keywords: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      emergency_disable_rls_sources: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
