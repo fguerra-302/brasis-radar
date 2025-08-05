@@ -205,12 +205,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      emergency_disable_rls_keywords: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      log_security_event: {
+        Args: { event_type: string; user_id?: string; details?: Json }
+        Returns: undefined
       }
     }
     Enums: {
