@@ -14,6 +14,20 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+// Simple in-memory rate limiter: 20 requests per 5 minutes per user
+const rateLimiter = (() => {
+  const store = new Map<string, number[]>();
+  const windowMs = 5 * 60 * 1000;
+  const max = 20;
+  return (id: string) => {
+    const now = Date.now();
+    const arr = (store.get(id) || []).filter(t => now - t < windowMs);
+    if (arr.length >= max) return false;
+    arr.push(now);
+    store.set(id, arr);
+    return true;
+  };
+})();
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -35,6 +49,15 @@ serve(async (req) => {
       });
     }
 
+    // Rate limit per user
+    const identifier = user.id;
+    if (!rateLimiter(identifier)) {
+      return new Response(JSON.stringify({ success: false, error: 'Rate limit exceeded' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { url, sourceName, editoria = 'Geral' } = await req.json();
     
     // Input validation
@@ -48,11 +71,30 @@ serve(async (req) => {
       });
     }
 
-    // Validate URL format
+    // Validate URL format and block private/internal networks
+    let urlObj: URL;
     try {
-      const urlObj = new URL(url);
+      urlObj = new URL(url);
       if (!['http:', 'https:'].includes(urlObj.protocol)) {
         throw new Error('Protocolo inválido');
+      }
+      const host = urlObj.hostname.toLowerCase();
+      const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(host) || host === '::1';
+      const privateIp = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|127\.|0\.0\.0\.0|169\.254\.)/.test(host);
+      const forbiddenHosts = new Set(['localhost','127.0.0.1']);
+      const forbiddenTlds = ['.local', '.internal', '.intranet'];
+      if (
+        forbiddenHosts.has(host) ||
+        (isIp && privateIp) ||
+        forbiddenTlds.some(tld => host.endsWith(tld))
+      ) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Host não permitido para scraping'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     } catch {
       return new Response(JSON.stringify({
@@ -71,22 +113,33 @@ serve(async (req) => {
     
     console.log(`🔍 Fazendo scraping de: ${sanitizedUrl}`);
 
-    // Scraping simples com fetch nativo
+    // Scraping com timeout e checagem de tamanho
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const response = await fetch(sanitizedUrl, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
         'DNT': '1',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
       },
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const contentLength = Number(response.headers.get('content-length') || '0');
+    if (contentLength && contentLength > 1_500_000) {
+      return new Response(JSON.stringify({ success: false, error: 'Conteúdo muito grande' }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const html = await response.text();

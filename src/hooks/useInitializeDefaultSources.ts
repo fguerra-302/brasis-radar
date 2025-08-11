@@ -74,16 +74,3 @@ export const useInitializeDefaultSources = () => {
     }
   };
 
-      console.log(`✅ ${data?.length || 0} fontes RSS configuradas com sucesso!`);
-      toast.success(`${data?.length || 0} fontes RSS configuradas automaticamente`);
-      setIsInitialized(true);
-
-    } catch (error) {
-      console.error('❌ Erro na inicialização das fontes:', error);
-    } finally {
-      setIsInitializing(false);
-    }
-  };
-
-  return { isInitialized, isInitializing, initializeDefaultSources };
-};
