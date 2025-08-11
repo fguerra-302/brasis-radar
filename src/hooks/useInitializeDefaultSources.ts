@@ -16,7 +16,14 @@ export const useInitializeDefaultSources = () => {
     try {
       setIsInitializing(true);
       
-      // Verificar se já existem fontes
+      // Garantir que há usuário autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('Usuário não autenticado - pulando inicialização de fontes padrão');
+        return;
+      }
+      
+      // Verificar se já existem fontes do usuário
       const { data: existingSources, error: checkError } = await supabase
         .from('radar_sources')
         .select('name')
@@ -42,7 +49,7 @@ export const useInitializeDefaultSources = () => {
         url: source.url,
         type: source.type,
         active: true,
-        user_id: null // Permitir sem usuário
+        user_id: user.id
       }));
 
       const { data, error } = await supabase
@@ -55,6 +62,17 @@ export const useInitializeDefaultSources = () => {
         toast.error('Erro ao configurar fontes RSS');
         return;
       }
+
+      console.log(`✅ ${data?.length || 0} fontes RSS configuradas com sucesso!`);
+      toast.success(`${data?.length || 0} fontes RSS configuradas automaticamente`);
+      setIsInitialized(true);
+
+    } catch (error) {
+      console.error('❌ Erro na inicialização das fontes:', error);
+    } finally {
+      setIsInitializing(false);
+    }
+  };
 
       console.log(`✅ ${data?.length || 0} fontes RSS configuradas com sucesso!`);
       toast.success(`${data?.length || 0} fontes RSS configuradas automaticamente`);

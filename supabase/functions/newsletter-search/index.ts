@@ -8,9 +8,8 @@ const corsHeaders = {
 };
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Rate limiting setup
 const rateLimiter = createRateLimiter(10, 60000); // 10 requests per minute
@@ -83,12 +82,17 @@ serve(async (req) => {
   console.log('Newsletter search request received');
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const authorization = req.headers.get('Authorization') ?? '';
+    const supabaseClient = createClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      { global: { headers: { Authorization: authorization } } }
     );
 
-    const defaultUserId = '00000000-0000-0000-0000-000000000000';
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     if (!openaiApiKey) {
       return new Response(
@@ -120,7 +124,7 @@ serve(async (req) => {
     console.log(`🔍 Pesquisando newsletters com termos: ${validation.sanitized}`);
 
     try {
-      const result = await searchNewsletters(validation.sanitized, defaultUserId);
+      const result = await searchNewsletters(validation.sanitized, user.id, supabaseClient);
       
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -148,7 +152,7 @@ serve(async (req) => {
   }
 });
 
-async function searchNewsletters(searchTerms: string, userId: string) {
+async function searchNewsletters(searchTerms: string, userId: string, supabaseClient: ReturnType<typeof createClient>) {
   try {
     // Usar OpenAI para buscar newsletters recentes
     const searchQuery = `Encontre newsletters brasileiras recentes sobre ${searchTerms}. 
@@ -248,7 +252,7 @@ async function searchNewsletters(searchTerms: string, userId: string) {
       };
 
       // Verificar se já existe um item similar
-      const { data: existing } = await supabase
+      const { data: existing } = await supabaseClient
         .from('radar_brasis')
         .select('id')
         .eq('title', item.title)
@@ -262,7 +266,7 @@ async function searchNewsletters(searchTerms: string, userId: string) {
 
     // Salvar novos itens
     if (processedItems.length > 0) {
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('radar_brasis')
         .insert(processedItems);
 

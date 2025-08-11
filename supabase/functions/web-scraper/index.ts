@@ -12,8 +12,7 @@ const corsHeaders = {
 };
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -23,6 +22,19 @@ serve(async (req) => {
   console.log('Web scraper request received');
 
   try {
+    const authorization = req.headers.get('Authorization') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authorization } },
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ success: false, error: 'Not authenticated' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { url, sourceName, editoria = 'Geral' } = await req.json();
     
     // Input validation
@@ -78,22 +90,21 @@ serve(async (req) => {
     }
 
     const html = await response.text();
-    const defaultUserId = '00000000-0000-0000-0000-000000000000';
-    const processedItems = await processScrapedContent(html, sanitizedUrl, sanitizedSourceName, sanitizedEditoria, defaultUserId);
+    const processedItems = await processScrapedContent(html, sanitizedUrl, sanitizedSourceName, sanitizedEditoria, user.id);
 
     // Salvar itens no banco
     const savedItems = [];
     for (const item of processedItems) {
       try {
         // Verificar se já existe
-        const { data: existing } = await supabase
+        const { data: existing } = await supabaseClient
           .from('radar_brasis')
           .select('id')
           .eq('link', item.link)
           .single();
 
         if (!existing) {
-          const { data, error } = await supabase
+          const { data, error } = await supabaseClient
             .from('radar_brasis')
             .insert(item)
             .select()

@@ -39,6 +39,11 @@ export const useCreateRadarSource = () => {
       credentials?: Record<string, any>;
       config?: Record<string, any>;
     }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
       const { data, error } = await supabase
         .from('radar_sources')
         .insert({
@@ -46,7 +51,7 @@ export const useCreateRadarSource = () => {
           url: payload.url,
           type: payload.type,
           active: payload.active,
-          user_id: null, // Permitir sem usuário
+          user_id: user.id,
           credentials: payload.credentials,
           config: payload.config
         })

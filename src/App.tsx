@@ -7,6 +7,9 @@ import Index from "./pages/Index";
 import Config from "./pages/Config";
 import Curadoria from "./pages/Curadoria";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "@/components/AuthProvider";
+import { AuthGuard } from "@/components/auth/AuthGuard";
+import { AuthPage } from "@/components/auth/AuthPage";
 
 const queryClient = new QueryClient();
 
@@ -18,15 +21,18 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/config/*" element={<Config />} />
-            <Route path="/curadoria/*" element={<Curadoria />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
+              <Route path="/config/*" element={<AuthGuard><Config /></AuthGuard>} />
+              <Route path="/curadoria/*" element={<AuthGuard><Curadoria /></AuthGuard>} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -178,6 +178,11 @@ export const useCreateRadarBrasis = () => {
   
   return useMutation({
     mutationFn: async (payload: Omit<CuratedContent, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
       const { data, error } = await supabase
         .from('radar_brasis')
         .insert({
@@ -191,7 +196,7 @@ export const useCreateRadarBrasis = () => {
           status: payload.status,
           resumo_curado: payload.resumo_curado,
           input_bruto: payload.input_bruto,
-          user_id: null // Permitir sem usuário
+          user_id: user.id
         })
         .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
         .single();
