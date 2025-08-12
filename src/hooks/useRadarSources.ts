@@ -60,7 +60,8 @@ export const useCreateRadarSource = () => {
       
       if (error) {
         console.error('❌ Erro ao criar fonte:', error);
-        toast.error('Erro ao criar fonte de dados');
+        const msg = (error as any)?.message || (error as any)?.error_description || 'Erro ao criar fonte de dados';
+        toast.error(msg);
         throw error;
       }
       

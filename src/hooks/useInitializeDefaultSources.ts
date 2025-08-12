@@ -73,4 +73,7 @@ export const useInitializeDefaultSources = () => {
       setIsInitializing(false);
     }
   };
+  
+  return { isInitialized, isInitializing, initializeDefaultSources };
+};
 

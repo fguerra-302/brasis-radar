@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,9 +68,9 @@ const SourceManager = () => {
 
   const addSource = async () => {
     console.log('Tentando adicionar fonte:', newSource);
-    
-    if (!newSource.name || !newSource.url) {
-      console.log('Campos obrigatórios faltando');
+
+    // Validações básicas
+    if (!newSource.name?.trim() || !newSource.url?.trim()) {
       toast({
         title: "Campos obrigatórios",
         description: "Nome e URL são obrigatórios.",
@@ -77,28 +79,65 @@ const SourceManager = () => {
       return;
     }
 
+    const allowedTypes = ['RSS', 'NEWSLETTER', 'INSTAGRAM', 'SPOTIFY', 'IBGE'];
+    if (!allowedTypes.includes(newSource.type)) {
+      toast({
+        title: "Tipo inválido",
+        description: `Tipo de fonte não suportado: ${newSource.type}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validação simples de URL para tipos baseados em HTTP
+    if (newSource.type === 'RSS' || newSource.type === 'IBGE') {
+      try {
+        const u = new URL(newSource.url);
+        if (!['http:', 'https:'].includes(u.protocol)) throw new Error('Protocolo inválido');
+      } catch {
+        toast({
+          title: "URL inválida",
+          description: "Informe uma URL válida começando com http(s)://",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Bloqueia se não houver sessão
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Autenticação necessária",
+        description: "Você precisa estar logado para adicionar fontes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      console.log('Chamando createSourceMutation.mutateAsync');
       const result = await createSourceMutation.mutateAsync({
-        name: newSource.name,
-        url: newSource.url,
-        type: newSource.type,
+        name: newSource.name.trim(),
+        url: newSource.url.trim(),
+        type: newSource.type as any,
         active: true,
         credentials: newSource.credentials,
         config: newSource.config
       } as any);
-      
+
       console.log('Fonte criada com sucesso:', result);
+      const createdName = newSource.name;
       resetForm();
       toast({
         title: "✅ Fonte Adicionada",
-        description: `${newSource.name} foi adicionada às suas fontes.`,
+        description: `${createdName} foi adicionada às suas fontes.`,
       });
-    } catch (error) {
-      console.error('Erro ao adicionar fonte:', error);
+    } catch (err: any) {
+      console.error('Erro ao adicionar fonte:', err);
+      const description = err?.message || err?.error_description || 'Falha ao adicionar fonte';
       toast({
         title: "Erro",
-        description: `Falha ao adicionar fonte: ${error.message}`,
+        description,
         variant: "destructive",
       });
     }
