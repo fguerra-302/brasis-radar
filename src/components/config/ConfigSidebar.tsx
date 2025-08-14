@@ -17,7 +17,7 @@ const configItems = [
   { title: "Fontes de Dados", url: "/config/sources", icon: Database },
   { title: "Palavras-chave", url: "/config/keywords", icon: Tag },
   { title: "Pesos por Editoria", url: "/config/weights", icon: TrendingUp },
-  { title: "APIs Externas", url: "/config/apis", icon: Globe },
+  { title: "API Externa", url: "/config/external-api", icon: Globe },
   { title: "Automação", url: "/config/automation", icon: Sliders },
   { title: "Personalização", url: "/config/branding", icon: Palette },
 ];

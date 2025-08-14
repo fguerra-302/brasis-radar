@@ -5,7 +5,7 @@ import { SourcesConfig } from '@/components/config/SourcesConfig';
 import { SourcesStatus } from '@/components/sources/SourcesStatus';
 import { KeywordsConfig } from '@/components/config/KeywordsConfig';
 import { EditoriaWeights } from '@/components/config/EditoriaWeights';
-import { APIsConfig } from '@/components/config/APIsConfig';
+import { ExternalApiConfig } from '@/components/config/ExternalApiConfig';
 import { AutomationConfig } from '@/components/config/AutomationConfig';
 import { BrandingConfig } from '@/components/config/BrandingConfig';
 
@@ -19,7 +19,7 @@ const Config = () => {
         <Route path="sources" element={<SourcesConfig />} />
         <Route path="keywords" element={<KeywordsConfig />} />
         <Route path="weights" element={<EditoriaWeights />} />
-        <Route path="apis" element={<APIsConfig />} />
+        <Route path="external-api" element={<ExternalApiConfig />} />
         <Route path="automation" element={<AutomationConfig />} />
         <Route path="branding" element={<BrandingConfig />} />
       </Routes>

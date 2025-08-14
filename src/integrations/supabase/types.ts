@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -29,7 +29,7 @@ export type Database = {
           tags: string[] | null
           title: string
           updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
@@ -45,7 +45,7 @@ export type Database = {
           tags?: string[] | null
           title: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
@@ -61,7 +61,7 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -72,7 +72,7 @@ export type Database = {
           id: string
           keywords: string[] | null
           updated_at: string | null
-          user_id: string | null
+          user_id: string
           weight: number | null
         }
         Insert: {
@@ -81,7 +81,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
           weight?: number | null
         }
         Update: {
@@ -90,7 +90,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
           weight?: number | null
         }
         Relationships: []
@@ -101,36 +101,42 @@ export type Database = {
           config: Json | null
           created_at: string | null
           credentials: Json | null
+          external_api_config: Json | null
           id: string
+          last_sync: string | null
           name: string
           type: string | null
           updated_at: string | null
           url: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           active?: boolean | null
           config?: Json | null
           created_at?: string | null
           credentials?: Json | null
+          external_api_config?: Json | null
           id?: string
+          last_sync?: string | null
           name: string
           type?: string | null
           updated_at?: string | null
           url: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           active?: boolean | null
           config?: Json | null
           created_at?: string | null
           credentials?: Json | null
+          external_api_config?: Json | null
           id?: string
+          last_sync?: string | null
           name?: string
           type?: string | null
           updated_at?: string | null
           url?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -223,13 +229,13 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
       log_security_event: {
-        Args: { event_type: string; user_id?: string; details?: Json }
+        Args: { details?: Json; event_type: string; user_id?: string }
         Returns: undefined
       }
     }
