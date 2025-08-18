@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRadarSources, useCreateRadarSource, useUpdateRadarSource, useDeleteRadarSource } from '@/hooks/useRadarSources';
 import { NewsletterSearchManager } from '@/components/sources/NewsletterSearchManager';
 import SourceManager from '@/components/sources/SourceManager';
-import { SimpleLogin } from '@/components/auth/SimpleLogin';
 
 export const SourcesConfig = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
