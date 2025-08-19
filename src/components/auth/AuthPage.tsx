@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Radar, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { ConfigurationAlert } from '@/components/ConfigurationAlert';
 
 export const AuthPage = () => {
   const [email, setEmail] = useState('');
@@ -197,6 +198,9 @@ export const AuthPage = () => {
           </p>
         </div>
 
+        {/* Configuration Status Alert */}
+        <ConfigurationAlert className="mb-4" />
+
         <Card className="brasis-card backdrop-blur-sm border-white/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -363,18 +367,25 @@ export const AuthPage = () => {
           </CardContent>
         </Card>
 
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3">
           <p className="text-sm text-white/70">
             Sistema seguro com autenticação obrigatória
           </p>
-          <Button 
-            variant="link" 
-            size="sm"
-            onClick={() => window.location.href = '/setup'}
-            className="text-white/60 hover:text-white underline"
-          >
-            Problemas para acessar? Use nosso assistente de configuração →
-          </Button>
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+            <p className="text-sm text-white/90 mb-3 font-medium">
+              🔧 Precisando de ajuda com a configuração?
+            </p>
+            <Button 
+              onClick={() => window.location.href = '/setup'}
+              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30"
+              size="sm"
+            >
+              Assistente de Configuração
+            </Button>
+            <p className="text-xs text-white/60 mt-2">
+              Configure automaticamente as URLs do Supabase
+            </p>
+          </div>
         </div>
       </div>
     </div>

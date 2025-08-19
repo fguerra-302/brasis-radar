@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserMenu } from '@/components/UserMenu';
 import { useFluxoValidation } from '@/hooks/useFluxoValidation';
 import { useBranding } from '@/hooks/useBranding';
+import { ConfigurationAlert } from '@/components/ConfigurationAlert';
 
 const RadarHeader = () => {
   const navigate = useNavigate();
@@ -31,9 +32,14 @@ const RadarHeader = () => {
         <Sparkles className="h-10 w-10 text-secondary" />
       </div>
       
+      {/* Configuration Status Alert */}
+      <div className="max-w-4xl mx-auto">
+        <ConfigurationAlert showOnSuccess={true} />
+      </div>
+      
       {/* Alertas de Validação */}
       {validacao?.warnings && validacao.warnings.length > 0 && (
-        <div className="max-w-4xl mx-auto space-y-2">
+        <div className="max-w-4xl mx-auto space-y-2 mt-4">
           {validacao.warnings.map((warning, index) => (
             <Alert key={index} className="border-orange-200 bg-orange-50">
               <AlertTriangle className="h-4 w-4 text-orange-600" />
