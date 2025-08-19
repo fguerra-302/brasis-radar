@@ -34,16 +34,42 @@ export const useBranding = () => {
     };
   }, [userSettings]);
 
+  // Load local branding config on startup
+  useEffect(() => {
+    const localBranding = localStorage.getItem('branding-config');
+    if (localBranding) {
+      try {
+        const parsed = JSON.parse(localBranding);
+        console.log('🎨 Aplicando branding local:', parsed);
+        applyCSSVariables(parsed);
+        updatePageMeta(parsed);
+      } catch (error) {
+        console.error('Erro ao carregar branding local:', error);
+      }
+    }
+  }, []);
+
   // Aplicar CSS ao montar/atualizar
   useEffect(() => {
     if (!isLoading) {
       applyCSSVariables(brandingConfig);
       updatePageMeta(brandingConfig);
+      // Save to localStorage for immediate local persistence
+      localStorage.setItem('branding-config', JSON.stringify(brandingConfig));
     }
   }, [brandingConfig, isLoading]);
 
   const updateBrandingConfig = async (config: Partial<BrandingConfig>) => {
     try {
+      // Apply immediately to DOM for instant feedback
+      const updatedConfig = { ...brandingConfig, ...config };
+      applyCSSVariables(updatedConfig);
+      updatePageMeta(updatedConfig);
+      
+      // Save to localStorage for persistence
+      localStorage.setItem('branding-config', JSON.stringify(updatedConfig));
+      
+      // Also save to database if user is authenticated
       const payload = {
         company_name: config.companyName,
         company_description: config.companyDescription,
@@ -62,7 +88,8 @@ export const useBranding = () => {
 
       await upsertSettings.mutateAsync(filteredPayload);
     } catch (error) {
-      console.error('Erro ao atualizar branding:', error);
+      console.log('🎨 Branding aplicado localmente (sem login)');
+      // If database save fails, branding is still applied locally
     }
   };
 

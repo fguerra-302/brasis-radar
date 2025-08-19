@@ -1,0 +1,2 @@
+-- Create the radar-automation Edge Function to enable RSS collection
+-- No database changes needed, just using existing tables

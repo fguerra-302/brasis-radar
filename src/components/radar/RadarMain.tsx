@@ -51,7 +51,7 @@ const RadarMain = () => {
     
     const channel = supabase
       .channel('radar-realtime-updates')
-      .on(
+        .on(
         'postgres_changes',
         {
           event: 'INSERT',

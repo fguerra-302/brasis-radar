@@ -2,3 +2,6 @@ project_id = "vlsirftmzvmilugalbpr"
 
 [functions.newsletter-search]
 verify_jwt = true
+
+[functions.radar-automation]
+verify_jwt = false

@@ -44,6 +44,13 @@ export const useAuthState = () => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Handle password recovery
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log('🔐 Password recovery detected, redirecting...');
+          // Set a flag to show password reset form
+          sessionStorage.setItem('password-recovery', 'true');
+        }
       }
     );
 

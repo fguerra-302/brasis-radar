@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,11 +11,23 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/components/AuthProvider";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { AuthPage } from "@/components/auth/AuthPage";
+import { PasswordRecovery } from "@/components/auth/PasswordRecovery";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   console.log('🚀 App inicializando - Preview deve aparecer agora');
+  
+  // Check for password recovery on app load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const type = urlParams.get('type');
+    
+    if (type === 'recovery') {
+      console.log('🔐 Password recovery detected in URL');
+      sessionStorage.setItem('password-recovery', 'true');
+    }
+  }, []);
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -23,6 +35,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <AuthProvider>
+          <PasswordRecovery />
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />

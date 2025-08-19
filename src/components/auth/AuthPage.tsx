@@ -134,6 +134,59 @@ export const AuthPage = () => {
     }
   };
 
+  const handleMagicLink = async () => {
+    if (!email) {
+      toast({
+        title: "Email obrigatório",
+        description: "Por favor, digite seu email para receber o link de acesso.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, digite um email válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        const friendlyMessage = getErrorMessage(error);
+        toast({
+          title: "Erro",
+          description: friendlyMessage,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Link enviado!",
+          description: "Verifique seu email e clique no link para acessar.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Magic link error:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao enviar link de acesso. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleForgotPassword = async () => {
     if (!email) {
       toast({
@@ -247,9 +300,10 @@ export const AuthPage = () => {
               </div>
             ) : (
               <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="signin">Login</TabsTrigger>
                   <TabsTrigger value="signup">Cadastro</TabsTrigger>
+                  <TabsTrigger value="magic">Link</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="signin" className="space-y-4">
@@ -361,6 +415,33 @@ export const AuthPage = () => {
                   >
                     {loading ? "Cadastrando..." : "Criar Conta"}
                   </Button>
+                </TabsContent>
+
+                <TabsContent value="magic" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="magic-email">Email</Label>
+                    <Input
+                      id="magic-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={handleMagicLink} 
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? "Enviando..." : "Enviar Link de Acesso"}
+                  </Button>
+
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Receba um link de acesso direto no seu email
+                    </p>
+                  </div>
                 </TabsContent>
               </Tabs>
             )}
