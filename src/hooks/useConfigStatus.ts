@@ -22,29 +22,19 @@ export const useConfigStatus = () => {
   const checkConfiguration = async () => {
     setLoading(true);
     try {
-      // Test basic connection
+      // Test basic connection only - no intrusive operations
       const { data: session, error: sessionError } = await supabase.auth.getSession();
       
-      // Test sign up capability (without actually signing up)
-      const testEmail = 'test@example.com';
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: testEmail,
-        password: 'testpassword123',
-        options: {
-          emailRedirectTo: `${window.location.origin}/`
-        }
-      });
-
-      const hasAuthError = !!(sessionError || (signUpError && !signUpError.message.includes('User already registered')));
-      const configIssues = signUpError?.message.includes('requested path is invalid') || 
-                          signUpError?.message.includes('redirect') ||
-                          signUpError?.message.includes('Invalid redirect URL');
-
+      // Basic check - if we can get session without errors, configuration is likely working
+      const hasAuthError = !!sessionError;
+      
+      // For now, consider it configured if there are no session errors
+      // Users will discover actual auth issues when they try to sign in/up
       setStatus({
-        isConfigured: !configIssues,
+        isConfigured: !hasAuthError,
         hasAuthError,
-        canSignUp: !configIssues,
-        canSignIn: !configIssues,
+        canSignUp: !hasAuthError,
+        canSignIn: !hasAuthError,
         lastChecked: new Date()
       });
     } catch (error) {

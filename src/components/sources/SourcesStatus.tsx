@@ -32,12 +32,13 @@ export const SourcesStatus = () => {
 
   const testSourceMutation = useMutation({
     mutationFn: async (sourceId: string) => {
-      const { data, error } = await supabase.functions.invoke('multi-source-collector', {
-        body: { action: 'test-source', sourceId }
-      });
-      
-      if (error) throw error;
-      return data;
+      // Find the source to test
+      const source = sources?.find(s => s.id === sourceId);
+      if (!source) throw new Error('Fonte não encontrada');
+
+      // Use ExternalApiService for testing
+      const { ExternalApiService } = await import('@/services/externalApiService');
+      return await ExternalApiService.testSource(source);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recent-collections'] });
@@ -49,7 +50,7 @@ export const SourcesStatus = () => {
     onError: () => {
       toast({
         title: "❌ Erro no teste",
-        description: "Falha ao testar a fonte.",
+        description: "Falha ao testar a fonte. Verifique se a API externa está configurada.",
         variant: "destructive",
       });
     },

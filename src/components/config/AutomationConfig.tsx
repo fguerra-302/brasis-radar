@@ -66,20 +66,18 @@ export const AutomationConfig = () => {
     });
 
     try {
-      const { data, error } = await supabase.functions.invoke('radar-automation', {
-        body: { manual: true }
-      });
-
-      if (error) throw error;
+      // Try to use ExternalApiService as fallback for manual collection
+      const { ExternalApiService } = await import('@/services/externalApiService');
+      await ExternalApiService.syncAllSources();
 
       toast({
         title: "✅ Coleta Concluída",
-        description: `Coletados ${data.savedItems || 0} novos itens.`,
+        description: "Fontes sincronizadas via API externa.",
       });
     } catch (error) {
       toast({
         title: "❌ Erro na Coleta",
-        description: "Falha ao executar coleta manual.",
+        description: "Falha ao executar coleta manual. Verifique se a API externa está configurada.",
         variant: "destructive",
       });
     }
