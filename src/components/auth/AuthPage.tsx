@@ -42,6 +42,10 @@ export const AuthPage = () => {
       return 'Cadastro temporariamente desabilitado. Entre em contato com o suporte.';
     }
 
+    if (errorMessage.includes('requested path is invalid') || errorMessage.includes('redirect')) {
+      return 'Erro de configuração. Configure as URLs no Supabase.';
+    }
+
     // Mensagem genérica para outros erros
     return 'Erro na autenticação. Verifique seus dados e tente novamente.';
   };
@@ -80,6 +84,22 @@ export const AuthPage = () => {
           description: friendlyMessage,
           variant: "destructive",
         });
+
+        // Se o erro for de configuração, mostrar link para setup
+        if (error.message.includes('requested path is invalid') || error.message.includes('redirect')) {
+          setTimeout(() => {
+            toast({
+              title: "Precisa configurar o Supabase?",
+              description: "Use nosso assistente para configurar as URLs automaticamente.",
+              action: <Button 
+                size="sm" 
+                onClick={() => window.location.href = '/setup'}
+              >
+                Configurar Agora
+              </Button>
+            });
+          }, 1000);
+        }
 
         // Se o erro for de usuário já existente no cadastro, sugerir login
         if (mode === 'signup' && (error.message.includes('User already registered') || error.message.includes('user_already_exists'))) {
@@ -343,10 +363,18 @@ export const AuthPage = () => {
           </CardContent>
         </Card>
 
-        <div className="text-center">
+        <div className="text-center space-y-2">
           <p className="text-sm text-white/70">
             Sistema seguro com autenticação obrigatória
           </p>
+          <Button 
+            variant="link" 
+            size="sm"
+            onClick={() => window.location.href = '/setup'}
+            className="text-white/60 hover:text-white underline"
+          >
+            Problemas para acessar? Use nosso assistente de configuração →
+          </Button>
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +26,11 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/setup" element={
+                <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando...</div>}>
+                  {React.createElement(React.lazy(() => import("./pages/Setup")))}
+                </Suspense>
+              } />
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/config/*" element={<AuthGuard><Config /></AuthGuard>} />
               <Route path="/curadoria/*" element={<AuthGuard><Curadoria /></AuthGuard>} />
