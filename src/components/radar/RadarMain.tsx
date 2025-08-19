@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { Bot } from 'lucide-react';
+import { Bot, Info } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,6 +23,7 @@ const RadarMain = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showTour, setShowTour] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Inicializar fontes RSS padrão
   const { isInitialized } = useInitializeDefaultSources();
@@ -90,6 +92,15 @@ const RadarMain = () => {
   }, [toast, refetch]);
 
   const handleAprovar = async (itemId: string, title: string) => {
+    if (!user) {
+      toast({
+        title: "🔐 Login Necessário",
+        description: "Faça login para aprovar conteúdo. Clique no link acima.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       await updateMutation.mutateAsync({
         id: itemId,
@@ -111,6 +122,15 @@ const RadarMain = () => {
   };
 
   const handleIgnorar = async (itemId: string, title: string) => {
+    if (!user) {
+      toast({
+        title: "🔐 Login Necessário",
+        description: "Faça login para rejeitar conteúdo. Clique no link acima.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       await updateMutation.mutateAsync({
         id: itemId,
@@ -149,6 +169,15 @@ const RadarMain = () => {
   };
 
   const handleUpdateStatus = async (itemId: string, status: string, title: string) => {
+    if (!user) {
+      toast({
+        title: "🔐 Login Necessário",
+        description: "Faça login para alterar status. Clique no link acima.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       await updateMutation.mutateAsync({
         id: itemId,
@@ -223,6 +252,17 @@ const RadarMain = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           <AppHeader />
+          
+          {!user && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-orange-600" />
+                <p className="text-orange-800 font-medium">
+                  🎭 Modo Demonstração — <a href="/auth" className="underline hover:no-underline">faça login</a> para curar conteúdo
+                </p>
+              </div>
+            </div>
+          )}
           
           {!isInitialized && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
