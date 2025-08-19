@@ -9,6 +9,7 @@ import { Plus, X, Target, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRadarKeywords, useUpdateRadarKeyword } from '@/hooks/useRadarKeywords';
+import { useInitializeDefaultKeywords } from '@/hooks/useInitializeDefaultKeywords';
 
 export const KeywordsConfig = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -18,6 +19,7 @@ export const KeywordsConfig = () => {
   
   const { data: keywordCategories = [], isLoading } = useRadarKeywords();
   const updateKeywordMutation = useUpdateRadarKeyword();
+  const { initializeDefaultKeywords, isInitializing } = useInitializeDefaultKeywords();
 
   const addKeyword = async () => {
     if (newKeyword.trim() && keywordCategories[selectedCategory]) {
@@ -237,15 +239,20 @@ export const KeywordsConfig = () => {
               Nenhuma categoria configurada
             </h3>
             <p className="text-slate-500 mb-4">
-              Configure categorias para análise de relevância do conteúdo
+              Crie categorias com palavras-chave para análise de relevância do conteúdo
             </p>
-            <Button 
-              onClick={() => window.location.href = '/config'}
-              variant="outline"
-              className="w-auto"
-            >
-              Ir para Configurações
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={initializeDefaultKeywords}
+                disabled={isInitializing}
+                className="w-auto bg-indigo-600 hover:bg-indigo-700"
+              >
+                {isInitializing ? "Criando..." : "Criar Categorias Padrão"}
+              </Button>
+              <p className="text-xs text-slate-400">
+                Inclui 8 categorias: Política, Economia, Segurança, Saúde, Educação, Meio Ambiente, Tecnologia e Esporte
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
