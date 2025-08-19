@@ -11,8 +11,36 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Rate limiting setup
-const rateLimiter = createRateLimiter(10, 60000); // 10 requests per minute
+// Implementar rate limiting real por usuário
+const rateLimiter = createRateLimiter();
+
+function createRateLimiter() {
+  const requests = new Map<string, number[]>();
+  
+  return {
+    isAllowed: (userId: string): boolean => {
+      const now = Date.now();
+      const windowStart = now - (60 * 1000); // 1 minuto
+      
+      if (!requests.has(userId)) {
+        requests.set(userId, []);
+      }
+      
+      const userRequests = requests.get(userId)!;
+      // Remove requisições antigas
+      const validRequests = userRequests.filter((time: number) => time > windowStart);
+      requests.set(userId, validRequests);
+      
+      // Permitir até 10 requisições por minuto por usuário
+      if (validRequests.length >= 10) {
+        return false;
+      }
+      
+      validRequests.push(now);
+      return true;
+    }
+  };
+}
 
 // Input validation
 const validateSearchTerms = (searchTerms: string): { isValid: boolean; sanitized: string; error?: string } => {
@@ -48,30 +76,6 @@ const validateSearchTerms = (searchTerms: string): { isValid: boolean; sanitized
     .substring(0, 100);
 
   return { isValid: true, sanitized };
-};
-
-const createRateLimiter = (maxRequests: number, windowMs: number) => {
-  const requests = new Map<string, number[]>();
-  
-  return (identifier: string): boolean => {
-    const now = Date.now();
-    const windowStart = now - windowMs;
-    
-    if (!requests.has(identifier)) {
-      requests.set(identifier, []);
-    }
-    
-    const userRequests = requests.get(identifier)!;
-    const recentRequests = userRequests.filter(time => time > windowStart);
-    
-    if (recentRequests.length >= maxRequests) {
-      return false;
-    }
-    
-    recentRequests.push(now);
-    requests.set(identifier, recentRequests);
-    return true;
-  };
 };
 
 serve(async (req) => {
@@ -119,6 +123,17 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
+    }
+    
+    // Rate limiting por usuário
+    if (!rateLimiter.isAllowed(user.id)) {
+      return new Response(JSON.stringify({ 
+        error: 'Muitas solicitações. Aguarde um minuto antes de tentar novamente.',
+        details: 'Limite de 10 pesquisas por minuto atingido'
+      }), { 
+        status: 429, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
     
     console.log(`🔍 Pesquisando newsletters com termos: ${validation.sanitized}`);
@@ -181,7 +196,7 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -197,7 +212,7 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 1500,
       }),
     });
 
