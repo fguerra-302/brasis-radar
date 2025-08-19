@@ -237,8 +237,15 @@ export const KeywordsConfig = () => {
               Nenhuma categoria configurada
             </h3>
             <p className="text-slate-500 mb-4">
-              As categorias de palavras-chave são criadas automaticamente pelo sistema
+              Configure categorias para análise de relevância do conteúdo
             </p>
+            <Button 
+              onClick={() => window.location.href = '/config'}
+              variant="outline"
+              className="w-auto"
+            >
+              Ir para Configurações
+            </Button>
           </CardContent>
         </Card>
       )}

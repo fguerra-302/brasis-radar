@@ -139,13 +139,18 @@ export const useUpsertUserSettings = () => {
         .upsert({
           user_id: user.id,
           ...payload
+        }, {
+          onConflict: 'user_id'
         })
         .select()
         .single();
       
       if (error) {
         console.error('Erro ao salvar configurações:', error);
-        toast.error('Erro ao salvar configurações');
+        // Evitar spam de toast para erros de duplicidade
+        if (!error.message?.includes('23505')) {
+          toast.error('Erro ao salvar configurações');
+        }
         throw error;
       }
       

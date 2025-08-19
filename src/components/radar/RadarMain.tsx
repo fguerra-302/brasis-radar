@@ -171,6 +171,18 @@ const RadarMain = () => {
 
   const handleExecutarCuradoria = async () => {
     console.log('🚀 Executando coleta manual...');
+    
+    // Obter usuário autenticado
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      toast({
+        title: "❌ Erro",
+        description: "Usuário não autenticado. Faça login primeiro.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     toast({
       title: "🤖 Coleta Iniciada",
       description: "Coletando dados das fontes RSS configuradas...",
@@ -178,7 +190,7 @@ const RadarMain = () => {
     
     try {
       const { data, error } = await supabase.functions.invoke('radar-automation', {
-        body: { manual: true }
+        body: { userId: user.id, manual: true }
       });
       
       if (error) {

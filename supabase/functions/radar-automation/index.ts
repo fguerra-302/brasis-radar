@@ -27,12 +27,30 @@ Deno.serve(async (req) => {
   try {
     console.log('🚀 Iniciando coleta automática de RSS...');
     
-    // Fetch all active RSS sources
+    // Obter userId do body da requisição
+    const body = await req.json().catch(() => ({}));
+    const { userId } = body;
+
+    if (!userId) {
+      console.error('❌ UserId não fornecido');
+      return new Response(
+        JSON.stringify({ error: 'UserId obrigatório' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
+
+    console.log(`👤 Processando para usuário: ${userId}`);
+    
+    // Fetch user's active RSS sources
     const { data: sources, error: sourcesError } = await supabase
       .from('radar_sources')
       .select('*')
       .eq('active', true)
-      .eq('type', 'RSS');
+      .eq('type', 'RSS')
+      .eq('user_id', userId);
 
     if (sourcesError) {
       console.error('❌ Erro ao buscar fontes:', sourcesError);
@@ -40,9 +58,9 @@ Deno.serve(async (req) => {
     }
 
     if (!sources || sources.length === 0) {
-      console.log('⚠️ Nenhuma fonte RSS ativa encontrada');
+      console.log('⚠️ Nenhuma fonte RSS ativa encontrada para o usuário');
       return new Response(
-        JSON.stringify({ message: 'Nenhuma fonte RSS ativa encontrada', processedSources: 0, savedItems: 0 }),
+        JSON.stringify({ message: 'Nenhuma fonte RSS ativa encontrada para este usuário', processedSources: 0, savedItems: 0 }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
@@ -50,7 +68,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`📡 Processando ${sources.length} fontes RSS...`);
+    console.log(`📡 Processando ${sources.length} fontes RSS para o usuário...`);
     
     let totalSavedItems = 0;
     let processedSources = 0;
@@ -80,30 +98,31 @@ Deno.serve(async (req) => {
         // Save new items to database
         for (const item of items) {
           try {
-            // Check if item already exists (avoid duplicates)
+            // Check if item already exists for this user (avoid duplicates)
             const { data: existing } = await supabase
               .from('radar_brasis')
               .select('id')
-              .eq('source_url', item.link)
-              .single();
+              .eq('link', item.link)
+              .eq('user_id', userId)
+              .maybeSingle();
 
             if (existing) {
               console.log(`⏭️ Item já existe: ${item.title.substring(0, 50)}...`);
               continue;
             }
 
-            // Insert new item
+            // Insert new item with correct schema
             const { error: insertError } = await supabase
               .from('radar_brasis')
               .insert({
-                title: item.title.substring(0, 500), // Truncate if too long
-                description: item.description.substring(0, 1000),
-                source_url: item.link,
-                source_name: item.source,
-                keywords: extractKeywords(item.title + ' ' + item.description),
-                status: 'PENDING',
-                collection_date: new Date().toISOString(),
-                pub_date: item.pubDate
+                user_id: userId,
+                title: item.title.substring(0, 500),
+                link: item.link,
+                source: item.source,
+                pub_date: item.pubDate || new Date().toISOString(),
+                input_bruto: item.description.substring(0, 1000),
+                tags: extractKeywords(item.title + ' ' + item.description),
+                status: 'A curar'
               });
 
             if (insertError) {
@@ -119,10 +138,10 @@ Deno.serve(async (req) => {
 
         processedSources++;
         
-        // Update source last_checked timestamp
+        // Update source last_sync timestamp
         await supabase
           .from('radar_sources')
-          .update({ last_checked: new Date().toISOString() })
+          .update({ last_sync: new Date().toISOString() })
           .eq('id', source.id);
 
       } catch (sourceError) {

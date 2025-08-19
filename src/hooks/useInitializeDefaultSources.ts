@@ -3,22 +3,24 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_RSS_SOURCES } from '@/utils/defaultRSSSources';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useInitializeDefaultSources = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
-    initializeDefaultSources();
-  }, []);
+    if (user?.id) {
+      initializeDefaultSources();
+    }
+  }, [user?.id]);
 
   const initializeDefaultSources = async () => {
     try {
       setIsInitializing(true);
       
-      // Garantir que há usuário autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!user?.id) {
         console.warn('Usuário não autenticado - pulando inicialização de fontes padrão');
         return;
       }
@@ -27,6 +29,7 @@ export const useInitializeDefaultSources = () => {
       const { data: existingSources, error: checkError } = await supabase
         .from('radar_sources')
         .select('name')
+        .eq('user_id', user.id)
         .limit(5);
 
       if (checkError) {
@@ -59,7 +62,10 @@ export const useInitializeDefaultSources = () => {
 
       if (error) {
         console.error('❌ Erro ao inserir fontes:', error);
-        toast.error('Erro ao configurar fontes RSS');
+        // Tratar duplicatas sem spam
+        if (!error.message?.includes('23505')) {
+          toast.error('Erro ao configurar fontes RSS');
+        }
         return;
       }
 

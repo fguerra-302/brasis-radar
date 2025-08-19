@@ -7,12 +7,14 @@ import { CheckCircle, XCircle, Clock, RefreshCw, AlertTriangle } from "lucide-re
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRadarSources } from '@/hooks/useRadarSources';
+import { useInitializeDefaultSources } from '@/hooks/useInitializeDefaultSources';
 
 export const SourcesStatus = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const { data: sources, isLoading } = useRadarSources();
+  const { initializeDefaultSources, isInitializing } = useInitializeDefaultSources();
 
   // Verificar últimas coletas
   const { data: recentCollections } = useQuery({
@@ -181,6 +183,13 @@ export const SourcesStatus = () => {
             <p className="text-slate-500 mb-4">
               Configure suas fontes de dados para começar a coletar conteúdo
             </p>
+            <Button 
+              onClick={initializeDefaultSources}
+              disabled={isInitializing}
+              className="w-auto"
+            >
+              {isInitializing ? "Configurando..." : "Adicionar Fontes Padrão"}
+            </Button>
           </CardContent>
         </Card>
       )}
