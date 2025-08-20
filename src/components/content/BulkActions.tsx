@@ -25,10 +25,10 @@ interface BulkActionsProps {
 const BulkActions = ({ filteredItems, statusFilter, onBulkDelete, isUpdating }: BulkActionsProps) => {
   // Use string values as they appear in the database
   const rejectedCount = filteredItems.filter(item => 
-    item.status?.includes('Rejeitado') || item.status?.includes('Ignorado')
+    item.status === 'Ignorado'
   ).length;
   
-  const approvalCount = filteredItems.filter(item => item.status?.includes('Em aprovação')).length;
+  const approvalCount = filteredItems.filter(item => item.status === 'Em aprovação').length;
 
   if (filteredItems.length === 0) return null;
 
@@ -77,7 +77,7 @@ const BulkActions = ({ filteredItems, statusFilter, onBulkDelete, isUpdating }: 
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction 
-                  onClick={() => onBulkDelete('Rejeitado')}
+                  onClick={() => onBulkDelete('Ignorado')}
                   className="bg-red-600 hover:bg-red-700"
                 >
                   Excluir {rejectedCount} itens
