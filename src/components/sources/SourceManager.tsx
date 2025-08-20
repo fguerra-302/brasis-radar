@@ -115,6 +115,20 @@ const SourceManager = () => {
       return;
     }
 
+    // Verificar se URL já existe para evitar constraint violation
+    const existingSource = sources.find(source => 
+      source.url.trim().toLowerCase() === newSource.url.trim().toLowerCase()
+    );
+    
+    if (existingSource) {
+      toast({
+        title: "URL já existe",
+        description: `Esta URL já está cadastrada na fonte "${existingSource.name}". Use uma URL diferente.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const result = await createSourceMutation.mutateAsync({
         name: newSource.name.trim(),
@@ -134,6 +148,18 @@ const SourceManager = () => {
       });
     } catch (err: any) {
       console.error('Erro ao adicionar fonte:', err);
+      
+      // Tratamento específico para erro de URL duplicada
+      if (err?.message?.includes('duplicate key value violates unique constraint') || 
+          err?.message?.includes('radar_sources_url_key')) {
+        toast({
+          title: "URL duplicada",
+          description: "Esta URL já está cadastrada. Verifique suas fontes existentes ou use uma URL diferente.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const description = err?.message || err?.error_description || 'Falha ao adicionar fonte';
       toast({
         title: "Erro",
