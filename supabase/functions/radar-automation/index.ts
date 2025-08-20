@@ -5,10 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize Supabase client with anon key (JWT will handle auth)
+// Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface RSSItem {
   title: string;
@@ -42,8 +41,17 @@ Deno.serve(async (req) => {
 
     const token = authHeader.substring(7);
     
-    // Set the auth session with the JWT token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Create authenticated Supabase client for this user
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    });
+    
+    // Verify authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
       console.error('❌ Token JWT inválido:', authError);
@@ -93,8 +101,15 @@ Deno.serve(async (req) => {
       try {
         console.log(`🔄 Processando fonte: ${source.name} (${source.url})`);
         
+        // Normalize URL - ensure it has protocol
+        let normalizedUrl = source.url.trim();
+        if (!normalizedUrl.match(/^https?:\/\//i)) {
+          normalizedUrl = `https://${normalizedUrl}`;
+          console.log(`🔗 URL normalizada: ${normalizedUrl}`);
+        }
+        
         // Fetch RSS feed
-        const rssResponse = await fetch(source.url, {
+        const rssResponse = await fetch(normalizedUrl, {
           headers: {
             'User-Agent': 'Radar Brasis RSS Collector 1.0'
           }

@@ -89,19 +89,27 @@ const SourceManager = () => {
       return;
     }
 
-    // Validação simples de URL para tipos baseados em HTTP
+    // Normalização de URL - adiciona https:// se necessário
+    let normalizedUrl = newSource.url.trim();
     if (newSource.type === 'RSS' || newSource.type === 'IBGE') {
+      if (!normalizedUrl.match(/^https?:\/\//i)) {
+        normalizedUrl = `https://${normalizedUrl}`;
+      }
+      
       try {
-        const u = new URL(newSource.url);
+        const u = new URL(normalizedUrl);
         if (!['http:', 'https:'].includes(u.protocol)) throw new Error('Protocolo inválido');
       } catch {
         toast({
           title: "URL inválida",
-          description: "Informe uma URL válida começando com http(s)://",
+          description: "Não foi possível normalizar a URL. Verifique se está no formato correto.",
           variant: "destructive",
         });
         return;
       }
+      
+      // Atualiza com a URL normalizada
+      newSource.url = normalizedUrl;
     }
 
     // Bloqueia se não houver sessão
