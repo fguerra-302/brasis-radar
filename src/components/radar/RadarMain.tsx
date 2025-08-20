@@ -198,6 +198,62 @@ const RadarMain = () => {
     }
   };
 
+  const handleDeleteItem = async (itemId: string, title: string) => {
+    console.log('🗑️ Excluindo item:', itemId);
+    
+    try {
+      const { error } = await supabase
+        .from('radar_brasis')
+        .delete()
+        .eq('id', itemId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "✅ Item Excluído",
+        description: `"${title.substring(0, 40)}..." foi excluído permanentemente.`,
+      });
+      
+      // Refresh the data
+      refetch();
+    } catch (error) {
+      console.error('❌ Erro ao excluir item:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao excluir item.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async (status: string) => {
+    console.log('🗑️ Excluindo itens em lote:', status);
+    
+    try {
+      const { error } = await supabase
+        .from('radar_brasis')
+        .delete()
+        .eq('status', status);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "✅ Itens Excluídos",
+        description: `Todos os itens com status "${status}" foram excluídos.`,
+      });
+      
+      // Refresh the data
+      refetch();
+    } catch (error) {
+      console.error('❌ Erro ao excluir itens em lote:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao excluir itens.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleExecutarCuradoria = async () => {
     console.log('🚀 Executando coleta manual...');
     
@@ -295,6 +351,8 @@ const RadarMain = () => {
                 onUpdateStatus={handleUpdateStatus}
                 onConfigurar={handleConfigurar}
                 onExecutarCuradoria={handleExecutarCuradoria}
+                onDeleteItem={handleDeleteItem}
+                onBulkDelete={handleBulkDelete}
                 updateMutation={updateMutation}
               />
             </div>

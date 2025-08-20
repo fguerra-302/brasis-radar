@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, MoreVertical } from 'lucide-react';
+import { Loader2, MoreVertical, Trash2, RotateCcw } from 'lucide-react';
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import {
@@ -13,6 +13,17 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator,
 } from "@/components/ui/context-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface RadarCardProps {
   item: RadarBrasisItem;
@@ -20,10 +31,11 @@ interface RadarCardProps {
   onIgnorar: (id: string, title: string) => Promise<void>;
   onVerOriginal: (sourceUrl: string, title: string) => void;
   onUpdateStatus: (id: string, status: string, title: string) => Promise<void>;
+  onDeleteItem: (id: string, title: string) => Promise<void>;
   isUpdating: boolean;
 }
 
-const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, isUpdating }: RadarCardProps) => {
+const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onDeleteItem, isUpdating }: RadarCardProps) => {
   const getEditoriaColor = (editoria: string) => {
     const colors = {
       'Cultura': 'bg-purple-100 text-purple-800',
@@ -170,6 +182,52 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, 
             {item.status === option.value && " ✓"}
           </ContextMenuItem>
         ))}
+        
+        <ContextMenuSeparator />
+        
+        {(item.status === 'Para Newsletter' || item.status === 'Para Redes Sociais' || 
+          item.status === 'Para Newsletter e Redes' || item.status === 'Na Newsletter' || 
+          item.status === 'Em edição') && (
+          <ContextMenuItem
+            onClick={() => onUpdateStatus(item.id, 'Em aprovação', item.title)}
+            disabled={isUpdating}
+            className="text-orange-600"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Remover da Seleção
+          </ContextMenuItem>
+        )}
+        
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <ContextMenuItem
+              onSelect={(e) => e.preventDefault()}
+              disabled={isUpdating}
+              className="text-red-600"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir Permanentemente
+            </ContextMenuItem>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir item</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir permanentemente "{item.title}"? 
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => onDeleteItem(item.id, item.title)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </ContextMenuContent>
     </ContextMenu>
   );

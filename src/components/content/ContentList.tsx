@@ -1,13 +1,14 @@
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import ContentFilters from './ContentFilters';
 import RadarDebugInfo from '../radar/RadarDebugInfo';
 import RadarEmpty from '../radar/RadarEmpty';
 import ContentCard from './ContentCard';
+import BulkActions from './BulkActions';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -30,6 +31,8 @@ interface ContentListProps {
   onConfigurar: () => void;
   onExecutarCuradoria: () => Promise<void>;
   updateMutation: any;
+  onDeleteItem: (id: string, title: string) => Promise<void>;
+  onBulkDelete: (status: string) => Promise<void>;
 }
 
 const ContentList = ({
@@ -48,7 +51,9 @@ const ContentList = ({
   onUpdateStatus,
   onConfigurar,
   onExecutarCuradoria,
-  updateMutation
+  updateMutation,
+  onDeleteItem,
+  onBulkDelete
 }: ContentListProps) => {
   if (isLoading) {
     return (
@@ -90,6 +95,37 @@ const ContentList = ({
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedItems = filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
+  // Helper para gerar números das páginas com janela
+  const getPaginationItems = () => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+
+    for (
+      let i = Math.max(2, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
+      range.push(i);
+    }
+
+    if (currentPage - delta > 2) {
+      rangeWithDots.push(1, '...');
+    } else {
+      rangeWithDots.push(1);
+    }
+
+    rangeWithDots.push(...range);
+
+    if (currentPage + delta < totalPages - 1) {
+      rangeWithDots.push('...', totalPages);
+    } else {
+      rangeWithDots.push(totalPages);
+    }
+
+    return rangeWithDots;
+  };
+
   return (
     <div className="space-y-6">
       <RadarDebugInfo 
@@ -106,6 +142,13 @@ const ContentList = ({
         onExecutarCuradoria={onExecutarCuradoria}
       />
 
+      <BulkActions
+        filteredItems={filteredItems}
+        statusFilter={statusFilter}
+        onBulkDelete={onBulkDelete}
+        isUpdating={updateMutation.isPending}
+      />
+
       {filteredItems.length === 0 ? (
         <RadarEmpty onExecutarCuradoria={onExecutarCuradoria} />
       ) : (
@@ -119,6 +162,7 @@ const ContentList = ({
                 onIgnorar={onIgnorar}
                 onVerOriginal={onVerOriginal}
                 onUpdateStatus={onUpdateStatus}
+                onDeleteItem={onDeleteItem}
                 isUpdating={updateMutation.isPending}
               />
             ))}
@@ -135,17 +179,37 @@ const ContentList = ({
                     />
                   </PaginationItem>
                   
-                  {[...Array(totalPages)].map((_, index) => (
-                    <PaginationItem key={index}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(index + 1)}
-                        isActive={currentPage === index + 1}
-                        className="cursor-pointer"
-                      >
-                        {index + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
+                  {totalPages <= 7 ? (
+                    // Show all pages if total is 7 or less
+                    [...Array(totalPages)].map((_, index) => (
+                      <PaginationItem key={index}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(index + 1)}
+                          isActive={currentPage === index + 1}
+                          className="cursor-pointer"
+                        >
+                          {index + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))
+                  ) : (
+                    // Show smart pagination with ellipses
+                    getPaginationItems().map((item, index) => (
+                      <PaginationItem key={index}>
+                        {item === '...' ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink
+                            onClick={() => setCurrentPage(Number(item))}
+                            isActive={currentPage === item}
+                            className="cursor-pointer"
+                          >
+                            {item}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))
+                  )}
                   
                   <PaginationItem>
                     <PaginationNext 
