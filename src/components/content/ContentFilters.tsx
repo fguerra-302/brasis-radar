@@ -45,6 +45,7 @@ const RadarFilters = ({
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
               <SelectItem value="Em aprovação">Em aprovação</SelectItem>
+              <SelectItem value="selecionados">Selecionados (Curadoria)</SelectItem>
               <SelectItem value="Para Newsletter">Para Newsletter</SelectItem>
               <SelectItem value="Na Newsletter">Na Newsletter</SelectItem>
               <SelectItem value="Para Redes Sociais">Para Redes Sociais</SelectItem>

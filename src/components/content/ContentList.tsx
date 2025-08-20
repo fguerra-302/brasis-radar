@@ -66,7 +66,22 @@ const ContentList = ({
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.source?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'todos' || item.status === statusFilter;
+    
+    let matchesStatus = true;
+    if (statusFilter === 'selecionados') {
+      // Mostra apenas itens selecionados para curadoria
+      const selectedStatuses = [
+        'Para Newsletter',
+        'Para Redes Sociais', 
+        'Para Newsletter e Redes',
+        'Na Newsletter',
+        'Em edição'
+      ];
+      matchesStatus = selectedStatuses.includes(item.status);
+    } else if (statusFilter !== 'todos') {
+      matchesStatus = item.status === statusFilter;
+    }
+    
     return matchesSearch && matchesStatus;
   });
 
