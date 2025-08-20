@@ -5,10 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize Supabase client
+// Initialize Supabase client with anon key (JWT will handle auth)
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface RSSItem {
   title: string;
@@ -27,21 +27,36 @@ Deno.serve(async (req) => {
   try {
     console.log('🚀 Iniciando coleta automática de RSS...');
     
-    // Obter userId do body da requisição
-    const body = await req.json().catch(() => ({}));
-    const { userId } = body;
-
-    if (!userId) {
-      console.error('❌ UserId não fornecido');
+    // Get JWT token from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ Token JWT não fornecido');
       return new Response(
-        JSON.stringify({ error: 'UserId obrigatório' }),
+        JSON.stringify({ error: 'Authorization token required' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
+          status: 401
         }
       );
     }
 
+    const token = authHeader.substring(7);
+    
+    // Set the auth session with the JWT token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('❌ Token JWT inválido:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authorization token' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401
+        }
+      );
+    }
+
+    const userId = user.id;
     console.log(`👤 Processando para usuário: ${userId}`);
     
     // Fetch user's active RSS sources

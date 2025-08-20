@@ -10,7 +10,7 @@ export const useRadarSources = () => {
       
       const { data, error } = await supabase
         .from('radar_sources')
-        .select('id, name, url, type, active, credentials, config, created_at, updated_at')
+        .select('id, name, url, type, active, config, created_at, updated_at, last_sync')
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -55,7 +55,7 @@ export const useCreateRadarSource = () => {
           credentials: payload.credentials,
           config: payload.config
         })
-        .select('id, name, url, type, active, credentials, config, created_at, updated_at')
+        .select('id, name, url, type, active, config, created_at, updated_at, last_sync')
         .single();
       
       if (error) {
@@ -99,7 +99,7 @@ export const useUpdateRadarSource = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .select('id, name, url, type, active, credentials, config, created_at, updated_at')
+        .select('id, name, url, type, active, config, created_at, updated_at, last_sync')
         .single();
       
       if (error) {
