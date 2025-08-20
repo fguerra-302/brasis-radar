@@ -62,3 +62,101 @@ export const useUpdateRadarKeyword = () => {
     },
   });
 };
+
+export const useCreateRadarKeyword = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      category_name, 
+      weight = 1, 
+      keywords = [] 
+    }: { 
+      category_name: string; 
+      weight?: number; 
+      keywords?: string[];
+    }) => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Usuário não autenticado');
+
+      const { data, error } = await supabase
+        .from('radar_keywords')
+        .insert({
+          user_id: user.user.id,
+          category_name,
+          weight,
+          keywords,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select('id, category_name, keywords, weight, created_at, updated_at')
+        .single();
+      
+      if (error) {
+        console.error('Erro ao criar categoria:', error);
+        toast.error('Erro ao criar categoria');
+        throw error;
+      }
+      
+      toast.success('Categoria criada com sucesso');
+      return data;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['radar-keywords'] });
+    },
+  });
+};
+
+export const useRenameRadarKeyword = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, category_name }: { id: string; category_name: string }) => {
+      const { data, error } = await supabase
+        .from('radar_keywords')
+        .update({
+          category_name,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select('id, category_name, keywords, weight, created_at, updated_at')
+        .single();
+      
+      if (error) {
+        console.error('Erro ao renomear categoria:', error);
+        toast.error('Erro ao renomear categoria');
+        throw error;
+      }
+      
+      toast.success('Categoria renomeada com sucesso');
+      return data;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['radar-keywords'] });
+    },
+  });
+};
+
+export const useDeleteRadarKeyword = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('radar_keywords')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Erro ao deletar categoria:', error);
+        toast.error('Erro ao deletar categoria');
+        throw error;
+      }
+      
+      toast.success('Categoria deletada com sucesso');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['radar-keywords'] });
+    },
+  });
+};

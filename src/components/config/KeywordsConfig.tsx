@@ -5,20 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, X, Target, Trash2 } from "lucide-react";
+import { Plus, X, Target, Trash2, Edit2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRadarKeywords, useUpdateRadarKeyword } from '@/hooks/useRadarKeywords';
+import { useRadarKeywords, useUpdateRadarKeyword, useCreateRadarKeyword, useRenameRadarKeyword, useDeleteRadarKeyword } from '@/hooks/useRadarKeywords';
 import { useInitializeDefaultKeywords } from '@/hooks/useInitializeDefaultKeywords';
 
 export const KeywordsConfig = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [newKeyword, setNewKeyword] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryWeight, setNewCategoryWeight] = useState(1);
+  const [renameCategoryId, setRenameCategoryId] = useState('');
+  const [renameCategoryName, setRenameCategoryName] = useState('');
   const { toast } = useToast();
   
   const { data: keywordCategories = [], isLoading } = useRadarKeywords();
   const updateKeywordMutation = useUpdateRadarKeyword();
+  const createKeywordMutation = useCreateRadarKeyword();
+  const renameKeywordMutation = useRenameRadarKeyword();
+  const deleteKeywordMutation = useDeleteRadarKeyword();
   const { initializeDefaultKeywords, isInitializing } = useInitializeDefaultKeywords();
 
   const addKeyword = async () => {
@@ -104,6 +114,47 @@ export const KeywordsConfig = () => {
     return labels[weight] || 'Indefinida';
   };
 
+  const createCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
+    try {
+      await createKeywordMutation.mutateAsync({
+        category_name: newCategoryName.trim(),
+        weight: newCategoryWeight,
+        keywords: []
+      });
+      setNewCategoryName('');
+      setNewCategoryWeight(1);
+      setIsCreateDialogOpen(false);
+    } catch (error) {
+      // Error handling já está no hook
+    }
+  };
+
+  const renameCategory = async () => {
+    if (!renameCategoryName.trim() || !renameCategoryId) return;
+
+    try {
+      await renameKeywordMutation.mutateAsync({
+        id: renameCategoryId,
+        category_name: renameCategoryName.trim()
+      });
+      setRenameCategoryName('');
+      setRenameCategoryId('');
+      setIsRenameDialogOpen(false);
+    } catch (error) {
+      // Error handling já está no hook
+    }
+  };
+
+  const deleteCategory = async (categoryId: string) => {
+    try {
+      await deleteKeywordMutation.mutateAsync(categoryId);
+    } catch (error) {
+      // Error handling já está no hook
+    }
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center p-8">Carregando categorias...</div>;
   }
@@ -118,14 +169,68 @@ export const KeywordsConfig = () => {
           </p>
         </div>
         
-        {keywordCategories.length > 0 && (
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700">
-                <Plus className="h-4 w-4" />
-                Adicionar Palavra-chave
-              </Button>
-            </DialogTrigger>
+        <div className="flex gap-3">
+          {keywordCategories.length > 0 && (
+            <>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+                    <Plus className="h-4 w-4" />
+                    Nova Categoria
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Nova Categoria</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="categoryName">Nome da categoria</Label>
+                      <Input
+                        id="categoryName"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Ex: Política, Economia..."
+                        onKeyPress={(e) => e.key === 'Enter' && createCategory()}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="categoryWeight">Peso da relevância</Label>
+                      <Select
+                        value={newCategoryWeight.toString()}
+                        onValueChange={(value) => setNewCategoryWeight(parseInt(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Peso 1 (Baixa)</SelectItem>
+                          <SelectItem value="2">Peso 2 (Média)</SelectItem>
+                          <SelectItem value="3">Peso 3 (Alta)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex justify-end gap-3 pt-4">
+                      <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={createCategory} disabled={!newCategoryName.trim()}>
+                        Criar Categoria
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700">
+                    <Plus className="h-4 w-4" />
+                    Adicionar Palavra-chave
+                  </Button>
+                </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Adicionar Nova Palavra-chave</DialogTitle>
@@ -172,7 +277,9 @@ export const KeywordsConfig = () => {
               </div>
             </DialogContent>
           </Dialog>
+        </>
         )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -183,7 +290,49 @@ export const KeywordsConfig = () => {
                 <div className="flex items-center gap-3">
                   <Target className="h-5 w-5 text-indigo-600" />
                   <CardTitle className="text-lg">{category.category_name}</CardTitle>
+                  
+                  <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setRenameCategoryId(category.id);
+                          setRenameCategoryName(category.category_name);
+                        }}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Renomear Categoria</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="renameCategoryName">Novo nome da categoria</Label>
+                          <Input
+                            id="renameCategoryName"
+                            value={renameCategoryName}
+                            onChange={(e) => setRenameCategoryName(e.target.value)}
+                            placeholder="Novo nome da categoria"
+                            onKeyPress={(e) => e.key === 'Enter' && renameCategory()}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-end gap-3 pt-4">
+                          <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+                            Cancelar
+                          </Button>
+                          <Button onClick={renameCategory} disabled={!renameCategoryName.trim()}>
+                            Renomear
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
+                
                 <div className="flex items-center gap-3">
                   <Badge className={getWeightColor(category.weight)}>
                     Relevância {getWeightLabel(category.weight)}
@@ -201,6 +350,32 @@ export const KeywordsConfig = () => {
                       <SelectItem value="3">Peso 3 (Alta)</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir categoria</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir a categoria "{category.category_name}"? 
+                          Esta ação removerá todas as palavras-chave associadas e não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => deleteCategory(category.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Excluir categoria
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardHeader>

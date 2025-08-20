@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Calendar, Tag, TrendingUp, Share2 } from "lucide-react";
+import { CheckCircle, XCircle, Calendar, Tag, TrendingUp, Share2, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -213,6 +213,18 @@ export const CuradoriaApproval = () => {
                     <Share2 className="h-4 w-4 mr-1" />
                     Enviar p/ Redes Sociais
                   </Button>
+                  
+                  {item.link && (
+                    <Button 
+                      variant="outline"
+                      className="text-sm"
+                      size="sm"
+                      onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Ver Original
+                    </Button>
+                  )}
                   
                   <Button 
                     onClick={() => handleReject(item)}

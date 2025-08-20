@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Edit3, Share2, Video, Camera, Linkedin, Instagram, CheckCircle, Copy } from "lucide-react";
+import { Edit3, Share2, Video, Camera, Linkedin, Instagram, CheckCircle, Copy, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -196,6 +196,17 @@ Informação da ${sanitizedSource}`;
                 </div>
 
                 <div className="flex items-center gap-2 ml-4">
+                  {item.link && (
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Ver Original
+                    </Button>
+                  )}
+                  
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button 
