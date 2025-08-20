@@ -1,198 +1,228 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, RefreshCw, AlertTriangle } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Badge } from "@/components/ui/badge";
+import { Activity, RefreshCw, Globe, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 import { useRadarSources } from '@/hooks/useRadarSources';
-import { useInitializeDefaultSources } from '@/hooks/useInitializeDefaultSources';
+import { secureApi } from '@/lib/api';
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-export const SourcesStatus = () => {
+export function SourcesStatus() {
   const { toast } = useToast();
+  const { data: sources = [], isLoading } = useRadarSources();
   const queryClient = useQueryClient();
-  
-  const { data: sources, isLoading } = useRadarSources();
-  const { initializeDefaultSources, isInitializing } = useInitializeDefaultSources();
 
-  // Verificar últimas coletas
-  const { data: recentCollections } = useQuery({
-    queryKey: ['recent-collections'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('radar_brasis')
-        .select('source, created_at')
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      if (error) throw error;
-      return data;
+  const collectDataMutation = useMutation({
+    mutationFn: async () => {
+      console.log('🚀 Iniciando coleta de dados RSS...');
+      const result = await secureApi.invokeFunction('radar-automation');
+      console.log('📊 Resultado da coleta:', result);
+      return result;
     },
-    refetchInterval: 30000, // Atualiza a cada 30 segundos
-  });
-
-  const testSourceMutation = useMutation({
-    mutationFn: async (sourceId: string) => {
-      // Find the source to test
-      const source = sources?.find(s => s.id === sourceId);
-      if (!source) throw new Error('Fonte não encontrada');
-
-      // Use ExternalApiService for testing
-      const { ExternalApiService } = await import('@/services/externalApiService');
-      return await ExternalApiService.testSource(source);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recent-collections'] });
+    onSuccess: (data) => {
+      console.log('✅ Coleta concluída:', data);
       toast({
-        title: "✅ Teste realizado",
-        description: "Fonte testada com sucesso.",
+        title: "✅ Coleta Concluída",
+        description: `${data.processedSources || 0} fontes processadas, ${data.savedItems || 0} novos itens coletados.`,
       });
+      queryClient.invalidateQueries({ queryKey: ['radar-sources'] });
+      queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('❌ Erro na coleta:', error);
       toast({
-        title: "❌ Erro no teste",
-        description: "Falha ao testar a fonte. Verifique se a API externa está configurada.",
+        title: "❌ Erro na Coleta",
+        description: error?.message || 'Falha ao coletar dados das fontes RSS.',
         variant: "destructive",
       });
     },
   });
 
-  const getSourceStatus = (sourceName: string) => {
-    if (!recentCollections) return 'unknown';
+  const activeSources = sources.filter(s => s.active);
+  const inactiveSources = sources.filter(s => !s.active);
+
+  const getStatusBadge = (source: any) => {
+    if (!source.last_sync) {
+      return <Badge variant="secondary" className="text-xs">Nunca sincronizado</Badge>;
+    }
     
+    const lastSync = new Date(source.last_sync);
     const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const hoursDiff = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60);
     
-    const recentFromSource = recentCollections.filter(
-      item => item.source === sourceName && new Date(item.created_at) > yesterday
-    );
-    
-    if (recentFromSource.length > 0) return 'working';
-    
-    const anyFromSource = recentCollections.find(item => item.source === sourceName);
-    if (anyFromSource) return 'stale';
-    
-    return 'never';
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'working': return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'stale': return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'never': return <XCircle className="h-4 w-4 text-red-600" />;
-      default: return <AlertTriangle className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'working': return 'Funcionando';
-      case 'stale': return 'Sem dados recentes';
-      case 'never': return 'Nunca coletou';
-      default: return 'Desconhecido';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'working': return 'bg-green-100 text-green-800';
-      case 'stale': return 'bg-yellow-100 text-yellow-800';
-      case 'never': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+    if (hoursDiff < 1) {
+      return <Badge variant="default" className="text-xs bg-green-600">Recente</Badge>;
+    } else if (hoursDiff < 24) {
+      return <Badge variant="secondary" className="text-xs">Hoje</Badge>;
+    } else {
+      return <Badge variant="outline" className="text-xs">Antigo</Badge>;
     }
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center p-8">Carregando status das fontes...</div>;
+    return (
+      <div className="flex items-center justify-center gap-3 p-6">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span>Carregando status das fontes...</span>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Status das Fontes</h2>
-          <p className="text-slate-600 mt-1">
-            Monitoramento em tempo real das suas fontes de dados
+          <h1 className="text-2xl font-semibold">Status das Fontes</h1>
+          <p className="text-muted-foreground mt-1">
+            Monitore e gerencie suas fontes de dados
           </p>
         </div>
         <Button 
-          onClick={() => queryClient.invalidateQueries({ queryKey: ['recent-collections'] })}
-          variant="outline"
+          onClick={() => collectDataMutation.mutate()}
+          disabled={collectDataMutation.isPending}
+          className="gap-2"
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Atualizar
+          {collectDataMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Coletar Dados Agora
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sources?.map((source) => {
-          const status = getSourceStatus(source.name);
-          return (
-            <Card key={source.id} className="transition-all hover:shadow-md">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{source.name}</CardTitle>
-                  {getStatusIcon(status)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {source.type}
-                  </Badge>
-                  <Badge className={getStatusColor(status)}>
-                    {getStatusLabel(status)}
-                  </Badge>
-                  <Badge variant={source.active ? "default" : "secondary"}>
-                    {source.active ? "Ativa" : "Inativa"}
-                  </Badge>
-                </div>
-                
-                <p className="text-sm text-slate-600 truncate" title={source.url}>
-                  {source.url}
+      {/* Resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-blue-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total</p>
+                <p className="text-2xl font-semibold">{sources.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Ativas</p>
+                <p className="text-2xl font-semibold">{activeSources.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-red-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Inativas</p>
+                <p className="text-2xl font-semibold">{inactiveSources.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-orange-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">RSS</p>
+                <p className="text-2xl font-semibold">
+                  {sources.filter(s => s.type === 'RSS').length}
                 </p>
-                
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => testSourceMutation.mutate(source.id)}
-                  disabled={testSourceMutation.isPending || !source.active}
-                >
-                  {testSourceMutation.isPending ? (
-                    <RefreshCw className="h-3 w-3 animate-spin mr-2" />
-                  ) : (
-                    <CheckCircle className="h-3 w-3 mr-2" />
-                  )}
-                  Testar Fonte
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {(!sources || sources.length === 0) && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <AlertTriangle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-600 mb-2">
-              Nenhuma fonte configurada
-            </h3>
-            <p className="text-slate-500 mb-4">
-              Configure suas fontes de dados para começar a coletar conteúdo
+      {/* Lista de Fontes */}
+      {sources.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-medium mb-2">Nenhuma fonte configurada</h3>
+            <p className="text-muted-foreground mb-4">
+              Configure suas primeiras fontes de dados para começar a coletar conteúdo.
             </p>
-            <Button 
-              onClick={initializeDefaultSources}
-              disabled={isInitializing}
-              className="w-auto"
-            >
-              {isInitializing ? "Configurando..." : "Adicionar Fontes Padrão"}
+            <Button onClick={() => window.location.href = '/config/sources'}>
+              Configurar Fontes
             </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Fontes Configuradas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {sources.map((source) => (
+                <div key={source.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className={`p-2 rounded-lg ${source.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      <Globe className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{source.name}</div>
+                      <div className="text-sm text-muted-foreground truncate max-w-md">
+                        {source.url}
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {source.type}
+                        </Badge>
+                        {getStatusBadge(source)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {source.active ? (
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Debug Info */}
+      {process.env.NODE_ENV === 'development' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Debug Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="text-xs bg-muted p-4 rounded overflow-auto">
+              {JSON.stringify({ 
+                total: sources.length,
+                active: activeSources.length,
+                types: sources.reduce((acc, s) => {
+                  acc[s.type] = (acc[s.type] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>)
+              }, null, 2)}
+            </pre>
           </CardContent>
         </Card>
       )}
     </div>
   );
-};
+}

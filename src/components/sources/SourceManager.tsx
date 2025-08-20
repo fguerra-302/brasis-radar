@@ -115,21 +115,23 @@ const SourceManager = () => {
       return;
     }
 
-    // Verificar se URL já existe para evitar constraint violation
+    // Com a nova constraint, verificamos se já existe a combinação (user_id, url, type)
     const existingSource = sources.find(source => 
-      source.url.trim().toLowerCase() === newSource.url.trim().toLowerCase()
+      source.url.trim().toLowerCase() === newSource.url.trim().toLowerCase() &&
+      source.type === newSource.type
     );
     
     if (existingSource) {
       toast({
-        title: "URL já existe",
-        description: `Esta URL já está cadastrada na fonte "${existingSource.name}". Use uma URL diferente.`,
+        title: "Fonte já existe",
+        description: `Esta URL já está cadastrada como "${existingSource.name}" do tipo ${existingSource.type}. Use uma URL diferente ou um tipo diferente.`,
         variant: "destructive",
       });
       return;
     }
 
     try {
+      console.log('🔄 Criando fonte para usuário:', user.id);
       const result = await createSourceMutation.mutateAsync({
         name: newSource.name.trim(),
         url: newSource.url.trim(),
@@ -139,7 +141,7 @@ const SourceManager = () => {
         config: newSource.config
       } as any);
 
-      console.log('Fonte criada com sucesso:', result);
+      console.log('✅ Fonte criada com sucesso:', result);
       const createdName = newSource.name;
       resetForm();
       toast({
@@ -147,14 +149,14 @@ const SourceManager = () => {
         description: `${createdName} foi adicionada às suas fontes.`,
       });
     } catch (err: any) {
-      console.error('Erro ao adicionar fonte:', err);
+      console.error('❌ Erro ao adicionar fonte:', err);
       
-      // Tratamento específico para erro de URL duplicada
+      // Tratamento específico para erro de constraint única
       if (err?.message?.includes('duplicate key value violates unique constraint') || 
-          err?.message?.includes('radar_sources_url_key')) {
+          err?.message?.includes('radar_sources_user_url_type_unique')) {
         toast({
-          title: "URL duplicada",
-          description: "Esta URL já está cadastrada. Verifique suas fontes existentes ou use uma URL diferente.",
+          title: "Combinação duplicada",
+          description: "Esta combinação de URL e tipo já existe para sua conta. Verifique suas fontes existentes.",
           variant: "destructive",
         });
         return;
@@ -238,6 +240,9 @@ const SourceManager = () => {
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
             Gerenciar Fontes de Dados
+            <Badge variant="secondary" className="ml-2">
+              {sources.length} fontes
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -249,42 +254,57 @@ const SourceManager = () => {
             </TabsList>
 
             <TabsContent value="list" className="space-y-4">
-              <div className="space-y-3">
-                {sources.map((source) => (
-                  <div key={source.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className={`p-2 rounded-lg ${getSourceColor(source.type)}`}>
-                        {getSourceIcon(source.type)}
+              {sources.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhuma fonte configurada ainda.</p>
+                  <p className="text-sm">Clique em "Adicionar Nova" para começar.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sources.map((source) => (
+                    <div key={source.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className={`p-2 rounded-lg ${getSourceColor(source.type)}`}>
+                          {getSourceIcon(source.type)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">{source.name}</div>
+                          <div className="text-sm text-muted-foreground truncate max-w-md">{source.url}</div>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {source.type}
+                            </Badge>
+                            {source.last_sync && (
+                              <Badge variant="secondary" className="text-xs">
+                                Última sync: {new Date(source.last_sync).toLocaleDateString('pt-BR')}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{source.name}</div>
-                        <div className="text-sm text-muted-foreground truncate">{source.url}</div>
-                        <Badge variant="outline" className="mt-1 text-xs">
-                          {source.type}
-                        </Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant={source.active ? "default" : "outline"}
+                          onClick={() => toggleSource(source)}
+                          disabled={updateSourceMutation.isPending}
+                        >
+                          {source.active ? "Ativa" : "Inativa"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeSource(source.id)}
+                          disabled={deleteSourceMutation.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant={source.active ? "default" : "outline"}
-                        onClick={() => toggleSource(source)}
-                        disabled={updateSourceMutation.isPending}
-                      >
-                        {source.active ? "Ativa" : "Inativa"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeSource(source.id)}
-                        disabled={deleteSourceMutation.isPending}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="add" className="space-y-4">
