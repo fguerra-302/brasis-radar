@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.radar-automation]
 verify_jwt = true
+
+[functions.newsletter-editor]
+verify_jwt = false

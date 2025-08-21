@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { BackButton } from "@/components/ui/BackButton";
-import { Copy, FileText, Calendar, ExternalLink, Filter } from "lucide-react";
+import { Copy, FileText, Calendar, ExternalLink, Filter, Sparkles, Loader2, Undo2 } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useBranding } from '@/hooks/useBranding';
@@ -13,8 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export const NewsletterExport = () => {
   const [generatedContent, setGeneratedContent] = useState('');
+  const [originalContent, setOriginalContent] = useState('');
+  const [publicoAlvo, setPublicoAlvo] = useState('');
   const [editoriaFilter, setEditoriaFilter] = useState<string>('Todas');
   const [relevanciaFilter, setRelevanciaFilter] = useState<string>('Todas');
+  const [isRefining, setIsRefining] = useState(false);
+  const [lastRefinementTime, setLastRefinementTime] = useState<number>(0);
   const { toast } = useToast();
   const { brandingConfig } = useBranding();
 
@@ -101,6 +105,73 @@ export const NewsletterExport = () => {
     content += `Até a próxima edição!\n${brandingConfig.newsletterSignature}`;
 
     setGeneratedContent(content);
+    setOriginalContent(content); // Guardar versão original
+  };
+
+  const refineWithAI = async () => {
+    if (!generatedContent) {
+      toast({
+        title: "Aviso",
+        description: "Gere o texto da newsletter primeiro antes de refinar com IA.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Rate limiting: 1 refinamento por 10 segundos
+    const now = Date.now();
+    if (now - lastRefinementTime < 10000) {
+      toast({
+        title: "Aguarde",
+        description: "Aguarde alguns segundos antes de refinar novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRefining(true);
+    setLastRefinementTime(now);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('newsletter-editor', {
+        body: {
+          newsletterText: generatedContent,
+          publicoAlvo: publicoAlvo.trim() || null,
+        },
+      });
+
+      if (error) {
+        console.error('Erro ao refinar newsletter:', error);
+        throw error;
+      }
+
+      setGeneratedContent(data.refinedText);
+      
+      toast({
+        title: "✨ Newsletter refinada!",
+        description: "O texto foi aprimorado com storytelling e correções.",
+      });
+
+    } catch (error) {
+      console.error('Erro ao refinar com IA:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao refinar com IA. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const undoRefinement = () => {
+    if (originalContent) {
+      setGeneratedContent(originalContent);
+      toast({
+        title: "Desfeito",
+        description: "Texto restaurado para a versão original.",
+      });
+    }
   };
 
   const copyToClipboard = async () => {
@@ -260,25 +331,67 @@ export const NewsletterExport = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Campo Público-Alvo */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-slate-700">
+                🎯 Público-Alvo (opcional)
+              </label>
+              <Textarea
+                value={publicoAlvo}
+                onChange={(e) => setPublicoAlvo(e.target.value)}
+                placeholder="Ex: Profissionais de RH em empresas de médio porte, tom empático e claro, foco em ação e aprendizado prático..."
+                rows={3}
+                className="text-sm"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Descreva o público-alvo, tom desejado e objetivos para personalizar a linguagem da IA
+              </p>
+            </div>
+
             <Textarea
               value={generatedContent}
               onChange={(e) => setGeneratedContent(e.target.value)}
               placeholder="Clique em 'Gerar Texto da Newsletter' para criar o conteúdo..."
-              rows={20}
+              rows={16}
               className="font-mono text-sm"
             />
             
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <Button 
                 onClick={copyToClipboard}
                 disabled={!generatedContent}
                 variant="outline"
-                className="flex-1"
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Copiar Texto
               </Button>
+
+              <Button 
+                onClick={refineWithAI}
+                disabled={!generatedContent || isRefining}
+                variant="default"
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {isRefining ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                {isRefining ? 'Refinando...' : '🤖 Refinar com IA'}
+              </Button>
             </div>
+
+            {originalContent && originalContent !== generatedContent && (
+              <Button 
+                onClick={undoRefinement}
+                variant="ghost"
+                size="sm"
+                className="w-full text-slate-600"
+              >
+                <Undo2 className="h-4 w-4 mr-2" />
+                Desfazer refinamento (voltar ao original)
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
