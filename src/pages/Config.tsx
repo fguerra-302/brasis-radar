@@ -8,6 +8,7 @@ import { EditoriaWeights } from '@/components/config/EditoriaWeights';
 import { ExternalApiConfig } from '@/components/config/ExternalApiConfig';
 import { AutomationConfig } from '@/components/config/AutomationConfig';
 import { BrandingConfig } from '@/components/config/BrandingConfig';
+import { AINewsletterConfig } from '@/components/config/AINewsletterConfig';
 
 
 const Config = () => {
@@ -22,6 +23,7 @@ const Config = () => {
         <Route path="external-api" element={<ExternalApiConfig />} />
         <Route path="automation" element={<AutomationConfig />} />
         <Route path="branding" element={<BrandingConfig />} />
+        <Route path="ai-newsletter" element={<AINewsletterConfig />} />
       </Routes>
     </ConfigLayout>
   );

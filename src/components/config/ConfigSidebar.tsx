@@ -1,4 +1,4 @@
-import { Settings, Database, Tag, TrendingUp, Globe, Sliders, Activity, Palette } from "lucide-react";
+import { Settings, Database, Tag, TrendingUp, Globe, Sliders, Activity, Palette, Sparkles } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -20,6 +20,7 @@ const configItems = [
   { title: "API Externa", url: "/config/external-api", icon: Globe },
   { title: "Automação", url: "/config/automation", icon: Sliders },
   { title: "Personalização", url: "/config/branding", icon: Palette },
+  { title: "IA Newsletter", url: "/config/ai-newsletter", icon: Sparkles },
 ];
 
 export function ConfigSidebar() {
