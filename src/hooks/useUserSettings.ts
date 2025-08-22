@@ -14,6 +14,8 @@ export interface UserSettings {
   secondary_color: string;
   newsletter_signature: string;
   newsletter_footer: string;
+  ai_newsletter_prompt: string | null;
+  ai_example_audiences: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,7 +44,7 @@ export const useUserSettings = () => {
         throw error;
       }
       
-      return data;
+      return data as UserSettings;
     },
     enabled: !!user?.id,
   });
