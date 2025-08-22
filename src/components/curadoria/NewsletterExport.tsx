@@ -9,6 +9,7 @@ import { Copy, FileText, Calendar, ExternalLink, Filter, Sparkles, Loader2, Undo
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useBranding } from '@/hooks/useBranding';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const NewsletterExport = () => {
@@ -21,6 +22,7 @@ export const NewsletterExport = () => {
   const [lastRefinementTime, setLastRefinementTime] = useState<number>(0);
   const { toast } = useToast();
   const { brandingConfig } = useBranding();
+  const { data: userSettings } = useUserSettings();
 
   // Buscar conteúdos aprovados para newsletter
   const { data: allItems, isLoading } = useQuery({
@@ -49,11 +51,21 @@ export const NewsletterExport = () => {
     });
   }, [allItems, editoriaFilter, relevanciaFilter]);
 
-  // Lista única de editorias dos itens
   const editorias = useMemo(() => {
     if (!allItems) return [];
     return [...new Set(allItems.map(item => item.editoria))].sort();
   }, [allItems]);
+
+  // Lista de sugestões de público-alvo (da configuração do usuário ou padrão)
+  const audienceSuggestions = useMemo(() => {
+    return userSettings?.ai_example_audiences || [
+      "Profissionais de RH em empresas de médio porte, tom empático e claro, foco em ação e aprendizado prático",
+      "Executivos C-level, linguagem objetiva e estratégica, foco em insights de mercado e tendências",
+      "Desenvolvedores e tech leads, tom técnico mas acessível, foco em inovação e boas práticas",
+      "Gestores de marketing digital, linguagem criativa e analítica, foco em ROI e performance",
+      "Empreendedores e startups, tom inspirador e prático, foco em crescimento e oportunidades"
+    ];
+  }, [userSettings]);
 
   const generateNewsletterText = () => {
     if (!filteredItems || filteredItems.length === 0) {
@@ -105,7 +117,7 @@ export const NewsletterExport = () => {
     content += `Até a próxima edição!\n${brandingConfig.newsletterSignature}`;
 
     setGeneratedContent(content);
-    setOriginalContent(content); // Guardar versão original
+    setOriginalContent(content);
   };
 
   const refineWithAI = async () => {
@@ -118,7 +130,6 @@ export const NewsletterExport = () => {
       return;
     }
 
-    // Rate limiting: 1 refinamento por 10 segundos
     const now = Date.now();
     if (now - lastRefinementTime < 10000) {
       toast({
@@ -137,6 +148,8 @@ export const NewsletterExport = () => {
         body: {
           newsletterText: generatedContent,
           publicoAlvo: publicoAlvo.trim() || null,
+          // Usa o prompt salvo do usuário automaticamente se disponível
+          customPrompt: null // deixa a edge function buscar o prompt salvo
         },
       });
 
@@ -149,7 +162,7 @@ export const NewsletterExport = () => {
       
       toast({
         title: "✨ Newsletter refinada!",
-        description: "O texto foi aprimorado com storytelling e correções.",
+        description: `Texto aprimorado com ${data.promptUsed === 'saved' ? 'seu prompt personalizado' : 'prompt padrão'}.`,
       });
 
     } catch (error) {
@@ -331,7 +344,7 @@ export const NewsletterExport = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Campo Público-Alvo */}
+            {/* Campo Público-Alvo com sugestões */}
             <div>
               <label className="block text-sm font-medium mb-2 text-slate-700">
                 🎯 Público-Alvo (opcional)
@@ -343,8 +356,29 @@ export const NewsletterExport = () => {
                 rows={3}
                 className="text-sm"
               />
+              
+              {/* Sugestões de público-alvo */}
+              {audienceSuggestions.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-slate-500 mb-2">Sugestões rápidas:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {audienceSuggestions.slice(0, 3).map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-6 px-2"
+                        onClick={() => setPublicoAlvo(suggestion)}
+                      >
+                        {suggestion.split(',')[0]}...
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <p className="text-xs text-slate-500 mt-1">
-                Descreva o público-alvo, tom desejado e objetivos para personalizar a linguagem da IA
+                A IA usará {userSettings?.ai_newsletter_prompt ? 'seu prompt personalizado' : 'o prompt padrão'} configurado em Configurações → IA Newsletter
               </p>
             </div>
 

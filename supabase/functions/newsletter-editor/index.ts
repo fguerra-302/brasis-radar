@@ -1,12 +1,43 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Rate limiting: simple in-memory store (resets on function restart)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 10; // 10 requests per minute
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitStore.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    // First request or window expired
+    rateLimitStore.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  
+  if (userLimit.count >= RATE_LIMIT_MAX) {
+    return false; // Rate limit exceeded
+  }
+  
+  userLimit.count++;
+  return true;
+}
+
+function logSecurityEvent(eventType: string, userId: string, details: any) {
+  console.log(`[SECURITY] ${eventType} - User: ${userId} - Details:`, details);
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -15,6 +46,46 @@ serve(async (req) => {
   }
 
   try {
+    // Verificar autenticação JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      logSecurityEvent('newsletter_editor_no_auth', 'anonymous', {});
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }), 
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      logSecurityEvent('newsletter_editor_invalid_token', 'anonymous', { error: authError?.message });
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }), 
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Rate limiting check
+    if (!checkRateLimit(user.id)) {
+      logSecurityEvent('newsletter_editor_rate_limit', user.id, { limit: RATE_LIMIT_MAX });
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Try again in a few moments.' }), 
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     if (!openAIApiKey) {
       console.error('OpenAI API key não configurada');
       return new Response(
@@ -40,8 +111,22 @@ serve(async (req) => {
 
     console.log('📝 Processando newsletter com IA...');
     console.log('🎯 Público-alvo:', publicoAlvo || 'Não especificado');
+    console.log('👤 Usuário:', user.id);
 
-    // Prompt base (o que você criou)
+    // Buscar prompt personalizado do usuário se não fornecido
+    let finalPrompt = customPrompt;
+    
+    if (!customPrompt) {
+      const { data: userSettings } = await supabase
+        .from('user_settings')
+        .select('ai_newsletter_prompt')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      finalPrompt = userSettings?.ai_newsletter_prompt;
+    }
+
+    // Prompt base como fallback
     const basePrompt = `# Nome do GPT  
 Lovable Editor – Texto Corrigido com Storytelling
 
@@ -82,8 +167,10 @@ Lovable Editor – Texto Corrigido com Storytelling
 - Agrupamento lógico por editoria  
 - Adaptação de tom conforme o público informado`;
 
-    // Construir prompt final
-    let finalPrompt = customPrompt || basePrompt;
+    // Usar prompt salvo do usuário ou fallback para o base
+    if (!finalPrompt) {
+      finalPrompt = basePrompt;
+    }
     
     // Adicionar contexto de público-alvo se fornecido
     if (publicoAlvo) {
@@ -99,7 +186,7 @@ Lovable Editor – Texto Corrigido com Storytelling
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini-2025-08-07',
+        model: 'gpt-4o-mini',
         messages: [
           { 
             role: 'system', 
@@ -130,13 +217,15 @@ Lovable Editor – Texto Corrigido com Storytelling
     const refinedText = data.choices[0].message.content;
 
     console.log('✅ Newsletter refinada com sucesso');
+    logSecurityEvent('newsletter_editor_success', user.id, { length: refinedText.length });
 
     return new Response(
       JSON.stringify({ 
         refinedText,
         originalLength: newsletterText.length,
         refinedLength: refinedText.length,
-        publicoAlvo: publicoAlvo || null
+        publicoAlvo: publicoAlvo || null,
+        promptUsed: customPrompt ? 'custom' : 'saved'
       }), 
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

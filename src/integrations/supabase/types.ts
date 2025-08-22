@@ -163,6 +163,8 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          ai_example_audiences: string[] | null
+          ai_newsletter_prompt: string | null
           company_description: string | null
           company_name: string | null
           created_at: string | null
@@ -177,6 +179,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_example_audiences?: string[] | null
+          ai_newsletter_prompt?: string | null
           company_description?: string | null
           company_name?: string | null
           created_at?: string | null
@@ -191,6 +195,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_example_audiences?: string[] | null
+          ai_newsletter_prompt?: string | null
           company_description?: string | null
           company_name?: string | null
           created_at?: string | null
