@@ -86,10 +86,10 @@ export class ExternalApiService {
    */
   static async syncAllSources(): Promise<ExternalApiResult> {
     try {
-      // Buscar fontes ativas do usuário
+      // Buscar fontes ativas do usuário (excluindo credentials por segurança)
       const { data: sources, error } = await supabase
         .from('radar_sources')
-        .select('*')
+        .select('id, name, url, type, active, config, external_api_config, last_sync, created_at, updated_at, user_id')
         .eq('active', true);
 
       if (error) {

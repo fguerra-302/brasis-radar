@@ -67,10 +67,10 @@ Deno.serve(async (req) => {
     const userId = user.id;
     console.log(`👤 Processando para usuário: ${userId}`);
     
-    // Fetch user's active RSS sources
+    // Fetch user's active RSS sources (excluindo credentials por segurança)
     const { data: sources, error: sourcesError } = await supabase
       .from('radar_sources')
-      .select('*')
+      .select('id, name, url, type, active, config, external_api_config, last_sync, created_at, updated_at, user_id')
       .eq('active', true)
       .eq('type', 'RSS')
       .eq('user_id', userId);
