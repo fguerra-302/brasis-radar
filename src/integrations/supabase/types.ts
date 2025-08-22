@@ -244,6 +244,14 @@ export type Database = {
         Args: { details?: Json; event_type: string; user_id?: string }
         Returns: undefined
       }
+      source_has_credentials: {
+        Args: { source_id: string }
+        Returns: boolean
+      }
+      update_source_credentials: {
+        Args: { new_credentials: Json; source_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
