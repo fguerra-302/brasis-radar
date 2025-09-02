@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, X, Settings, Loader2, Globe, Instagram, Music, BarChart3, Mail } from 'lucide-react';
+import { Plus, X, Settings, Loader2, Globe, Instagram, Music, BarChart3, Mail, Key } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { BulkSourceUpload } from './BulkSourceUpload';
+import CredentialsModal from './CredentialsModal';
+import SourceCredentialsBadge from './SourceCredentialsBadge';
+import { useSourceCredentials } from '@/hooks/useSourceCredentials';
 import {
   useRadarSources,
   useCreateRadarSource,
@@ -56,6 +59,19 @@ const SourceManager = () => {
     name: '',
     url: '',
     type: 'RSS'
+  });
+
+  // Credentials modal state
+  const [credentialsModal, setCredentialsModal] = useState<{
+    isOpen: boolean;
+    sourceId: string;
+    sourceName: string;
+    sourceType: string;
+  }>({
+    isOpen: false,
+    sourceId: '',
+    sourceName: '',
+    sourceType: ''
   });
 
   const resetForm = () => {
@@ -145,7 +161,7 @@ const SourceManager = () => {
         url: newSource.url.trim(),
         type: newSource.type as any,
         active: true,
-        credentials: newSource.credentials,
+        // Remove credentials from creation - will be configured separately
         config: newSource.config
       } as any);
 
@@ -232,6 +248,28 @@ const SourceManager = () => {
     }
   };
 
+  const needsCredentials = (type: string) => {
+    return ['INSTAGRAM', 'SPOTIFY'].includes(type);
+  };
+
+  const openCredentialsModal = (source: NewsSource) => {
+    setCredentialsModal({
+      isOpen: true,
+      sourceId: source.id,
+      sourceName: source.name,
+      sourceType: source.type
+    });
+  };
+
+  const closeCredentialsModal = () => {
+    setCredentialsModal({
+      isOpen: false,
+      sourceId: '',
+      sourceName: '',
+      sourceType: ''
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-3 p-6">
@@ -283,6 +321,10 @@ const SourceManager = () => {
                             <Badge variant="outline" className="text-xs">
                               {source.type}
                             </Badge>
+                            <SourceCredentialsBadge 
+                              sourceId={source.id} 
+                              sourceType={source.type} 
+                            />
                             {source.last_sync && (
                               <Badge variant="secondary" className="text-xs">
                                 Última sync: {new Date(source.last_sync).toLocaleDateString('pt-BR')}
@@ -292,6 +334,16 @@ const SourceManager = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {needsCredentials(source.type) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openCredentialsModal(source)}
+                          >
+                            <Key className="h-4 w-4 mr-1" />
+                            Credenciais
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant={source.active ? "default" : "outline"}
@@ -364,16 +416,18 @@ const SourceManager = () => {
                   />
                 </div>
 
-                {newSource.type !== 'RSS' && newSource.type !== 'NEWSLETTER' && (
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 className="font-medium text-yellow-800 mb-2">⚠️ Credenciais Necessárias</h4>
-                    <p className="text-sm text-yellow-700 mb-2">
-                      {newSource.type === 'INSTAGRAM' && 'Será necessário configurar Access Token do Instagram Basic Display API.'}
-                      {newSource.type === 'SPOTIFY' && 'Será necessário configurar Client ID e Secret do Spotify.'}
-                      {newSource.type === 'IBGE' && 'IBGE API é pública, não precisa de credenciais.'}
+                {needsCredentials(newSource.type) && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <h4 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
+                      <Key className="h-4 w-4" />
+                      Credenciais Necessárias
+                    </h4>
+                    <p className="text-sm text-amber-700 mb-2">
+                      {newSource.type === 'INSTAGRAM' && 'Após criar a fonte, configure o Access Token do Instagram Basic Display API.'}
+                      {newSource.type === 'SPOTIFY' && 'Após criar a fonte, configure o Client ID e Client Secret do Spotify.'}
                     </p>
-                    <p className="text-xs text-yellow-600">
-                      As credenciais serão configuradas nas próximas etapas.
+                    <p className="text-xs text-amber-600">
+                      Use o botão "Credenciais" na lista de fontes para configurar com segurança.
                     </p>
                   </div>
                 )}
@@ -399,6 +453,23 @@ const SourceManager = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <CredentialsModal
+        source={{
+          id: credentialsModal.sourceId,
+          name: credentialsModal.sourceName,
+          type: credentialsModal.sourceType
+        }}
+        isOpen={credentialsModal.isOpen}
+        onClose={closeCredentialsModal}
+        onSuccess={() => {
+          // Refresh sources list to update credential status
+          closeCredentialsModal();
+        }}
+        hasCredentials={credentialsModal.sourceId ? 
+          useSourceCredentials(credentialsModal.sourceId).data : null
+        }
+      />
     </div>
   );
 };
