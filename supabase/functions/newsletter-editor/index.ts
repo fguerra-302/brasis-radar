@@ -1,11 +1,10 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,7 +47,7 @@ serve(async (req) => {
   try {
     // Verificar autenticação JWT
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       logSecurityEvent('newsletter_editor_no_auth', 'anonymous', {});
       return new Response(
         JSON.stringify({ error: 'Authorization header required' }), 
@@ -59,10 +58,18 @@ serve(async (req) => {
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const token = authHeader.substring(7);
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Create authenticated Supabase client using anon key + user JWT (respects RLS)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    });
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       logSecurityEvent('newsletter_editor_invalid_token', 'anonymous', { error: authError?.message });
       return new Response(

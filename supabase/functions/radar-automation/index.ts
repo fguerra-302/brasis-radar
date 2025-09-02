@@ -108,6 +108,12 @@ Deno.serve(async (req) => {
           console.log(`🔗 URL normalizada: ${normalizedUrl}`);
         }
         
+        // SSRF Protection: validate URL
+        if (!isUrlSafe(normalizedUrl)) {
+          console.error(`🚫 URL rejeitada por política de segurança: ${normalizedUrl}`);
+          continue;
+        }
+        
         // Fetch RSS feed
         const rssResponse = await fetch(normalizedUrl, {
           headers: {
@@ -250,6 +256,39 @@ function extractXMLContent(xml: string, tagName: string): string | null {
   const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\/${tagName}>`, 'i');
   const match = xml.match(regex);
   return match ? match[1].trim() : null;
+}
+
+function isUrlSafe(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    
+    // Only allow HTTP and HTTPS protocols
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      return false;
+    }
+    
+    // Block private/local networks and localhost
+    const hostname = parsedUrl.hostname.toLowerCase();
+    
+    // Block localhost variations
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+      return false;
+    }
+    
+    // Block private IP ranges (basic check)
+    if (hostname.match(/^10\./) || 
+        hostname.match(/^192\.168\./) || 
+        hostname.match(/^172\.(1[6-9]|2[0-9]|3[01])\./) ||
+        hostname.match(/^169\.254\./) || // Link-local
+        hostname.match(/^fc00:/) || // IPv6 unique local
+        hostname.match(/^fe80:/)) { // IPv6 link-local
+      return false;
+    }
+    
+    return true;
+  } catch {
+    return false; // Invalid URL
+  }
 }
 
 function extractKeywords(text: string): string[] {
