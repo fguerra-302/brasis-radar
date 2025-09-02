@@ -8,6 +8,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Copy, FileText, Calendar, ExternalLink, Filter, Sparkles, Loader2, Undo2 } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { secureApi } from '@/lib/api';
 import { useBranding } from '@/hooks/useBranding';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -144,18 +145,15 @@ export const NewsletterExport = () => {
     setLastRefinementTime(now);
 
     try {
-      const { data, error } = await supabase.functions.invoke('newsletter-editor', {
-        body: {
-          newsletterText: generatedContent,
-          publicoAlvo: publicoAlvo.trim() || null,
-          // Usa o prompt salvo do usuário automaticamente se disponível
-          customPrompt: null // deixa a edge function buscar o prompt salvo
-        },
+      const data = await secureApi.invokeFunction('newsletter-editor', {
+        newsletterText: generatedContent,
+        publicoAlvo: publicoAlvo.trim() || null,
+        // Usa o prompt salvo do usuário automaticamente se disponível
+        customPrompt: null // deixa a edge function buscar o prompt salvo
       });
 
-      if (error) {
-        console.error('Erro ao refinar newsletter:', error);
-        throw error;
+      if (!data) {
+        throw new Error('Nenhum dado retornado do refinamento');
       }
 
       setGeneratedContent(data.refinedText);
@@ -165,11 +163,18 @@ export const NewsletterExport = () => {
         description: `Texto aprimorado com ${data.promptUsed === 'saved' ? 'seu prompt personalizado' : 'prompt padrão'}.`,
       });
 
-    } catch (error) {
-      console.error('Erro ao refinar com IA:', error);
+    } catch (error: any) {
+      console.error('❌ Erro no refinamento:', error);
+      
+      const isSessionExpired = error?.message?.includes('Authentication required') || 
+                               error?.status === 403 || 
+                               error?.message?.includes('JWT');
+      
       toast({
-        title: "Erro",
-        description: "Falha ao refinar com IA. Tente novamente.",
+        title: "Erro no Refinamento",
+        description: isSessionExpired 
+          ? "Sua sessão expirou. Faça login novamente." 
+          : "Não foi possível refinar o conteúdo. Tente novamente.",
         variant: "destructive",
       });
     } finally {

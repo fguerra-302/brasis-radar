@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, Search, Loader2, Plus, AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { secureApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 
 export const NewsletterSearchManager = () => {
@@ -18,11 +19,9 @@ export const NewsletterSearchManager = () => {
 
   const searchNewslettersMutation = useMutation({
     mutationFn: async (terms: string) => {
-      const { data, error } = await supabase.functions.invoke('newsletter-search', {
-        body: { searchTerms: terms }
+      const data = await secureApi.invokeFunction('newsletter-search', {
+        searchTerms: terms
       });
-
-      if (error) throw error;
       return data;
     },
     onSuccess: (data) => {

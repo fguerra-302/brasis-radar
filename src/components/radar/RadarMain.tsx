@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
+import { secureApi } from '@/lib/api';
 import { useInitializeDefaultSources } from '@/hooks/useInitializeDefaultSources';
 import RadarLiveStats from './RadarLiveStats';
 import RadarRecentActions from './RadarRecentActions';
@@ -274,14 +275,10 @@ const RadarMain = () => {
     });
     
     try {
-      const { data, error } = await supabase.functions.invoke('radar-automation', {
-        body: { userId: user.id, manual: true }
+      const data = await secureApi.invokeFunction('radar-automation', {
+        userId: user.id, 
+        manual: true 
       });
-      
-      if (error) {
-        console.error('❌ Erro na função:', error);
-        throw error;
-      }
       
       console.log('✅ Resultado da coleta:', data);
       await refetch();
@@ -291,11 +288,18 @@ const RadarMain = () => {
         description: `${data?.processedSources || 0} fontes processadas, ${data?.savedItems || 0} novos itens coletados.`,
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro na coleta:', error);
+      
+      const isSessionExpired = error?.message?.includes('Authentication required') || 
+                               error?.status === 403 || 
+                               error?.message?.includes('JWT');
+      
       toast({
-        title: "❌ Erro na Coleta",
-        description: error instanceof Error ? error.message : "Falha ao coletar dados das fontes RSS.",
+        title: "Erro na Coleta",
+        description: isSessionExpired 
+          ? "Sua sessão expirou. Faça login novamente." 
+          : "Erro ao coletar dados das fontes RSS. Verifique sua conexão.",
         variant: "destructive",
       });
     }
