@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Radar, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { ConfigurationAlert } from '@/components/ConfigurationAlert';
+
 
 export const AuthPage = () => {
   const [email, setEmail] = useState('');
@@ -262,8 +262,6 @@ export const AuthPage = () => {
           </p>
         </div>
 
-        {/* Configuration Status Alert */}
-        <ConfigurationAlert className="mb-4" />
 
         <Card className="brasis-card backdrop-blur-sm border-white/20">
           <CardHeader>
