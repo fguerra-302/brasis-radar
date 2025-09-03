@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +18,16 @@ export const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users to curadoria
+  useEffect(() => {
+    if (user) {
+      navigate('/curadoria', { replace: true });
+    }
+  }, [user, navigate]);
 
   const getErrorMessage = (error: any) => {
     const errorMessage = error?.message || '';
@@ -121,6 +130,8 @@ export const AuthPage = () => {
           title: "Login realizado!",
           description: "Bem-vindo ao sistema.",
         });
+        // Redirect to curadoria after successful login
+        navigate('/curadoria', { replace: true });
       }
     } catch (error: any) {
       console.error('Auth error:', error);
