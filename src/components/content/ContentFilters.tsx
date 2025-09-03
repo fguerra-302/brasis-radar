@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Settings, Zap } from 'lucide-react';
+import { Search, Settings, Zap, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface RadarFiltersProps {
@@ -13,6 +13,7 @@ interface RadarFiltersProps {
   setStatusFilter: (status: string) => void;
   onConfigurar: () => void;
   onExecutarCuradoria: () => void;
+  onRecalcularRelevancia?: () => void;
 }
 
 const RadarFilters = ({ 
@@ -21,7 +22,8 @@ const RadarFilters = ({
   statusFilter, 
   setStatusFilter, 
   onConfigurar, 
-  onExecutarCuradoria 
+  onExecutarCuradoria,
+  onRecalcularRelevancia
 }: RadarFiltersProps) => {
   const navigate = useNavigate();
   return (
@@ -56,6 +58,17 @@ const RadarFilters = ({
         </div>
 
         <div className="flex gap-2">
+          {onRecalcularRelevancia && (
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2" 
+              onClick={onRecalcularRelevancia}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Recalcular Relevância
+            </Button>
+          )}
+          
           <Button 
             variant="outline" 
             className="flex items-center gap-2" 

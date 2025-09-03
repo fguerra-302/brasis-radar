@@ -67,6 +67,19 @@ Deno.serve(async (req) => {
     const userId = user.id;
     console.log(`👤 Processando para usuário: ${userId}`);
     
+    // Fetch user's keyword categories for relevance calculation
+    const { data: keywords, error: keywordsError } = await supabase
+      .from('radar_keywords')
+      .select('category_name, keywords, weight')
+      .eq('user_id', userId);
+
+    if (keywordsError) {
+      console.error('❌ Erro ao buscar categorias:', keywordsError);
+    }
+
+    const userKeywords = keywords || [];
+    console.log(`📊 ${userKeywords.length} categorias de palavras-chave encontradas`);
+
     // Fetch user's active RSS sources (excluindo credentials por segurança)
     const { data: sources, error: sourcesError } = await supabase
       .from('radar_sources')
@@ -147,6 +160,10 @@ Deno.serve(async (req) => {
               continue;
             }
 
+            // Extract tags and calculate relevance
+            const extractedTags = extractKeywords(item.title + ' ' + item.description);
+            const relevance = calculateRelevance(item, extractedTags, userKeywords);
+
             // Insert new item with correct schema
             const { error: insertError } = await supabase
               .from('radar_brasis')
@@ -157,8 +174,9 @@ Deno.serve(async (req) => {
                 source: item.source,
                 pub_date: item.pubDate || new Date().toISOString(),
                 input_bruto: item.description.substring(0, 1000),
-                tags: extractKeywords(item.title + ' ' + item.description),
-                status: 'A curar'
+                tags: extractedTags,
+                relevancia: relevance,
+                status: 'Em aprovação'
               });
 
             if (insertError) {
@@ -303,4 +321,46 @@ function extractKeywords(text: string): string[] {
     .slice(0, 10); // Limit to 10 keywords
     
   return [...new Set(words)]; // Remove duplicates
+}
+
+function calculateRelevance(item: RSSItem, extractedTags: string[], userKeywords: any[]): number {
+  if (!userKeywords || userKeywords.length === 0) {
+    return 1; // Default relevance if no keywords configured
+  }
+  
+  const text = `${item.title} ${item.description}`.toLowerCase();
+  const tags = extractedTags.map(tag => tag.toLowerCase());
+  
+  let totalScore = 0;
+  
+  for (const category of userKeywords) {
+    const categoryKeywords = category.keywords || [];
+    const categoryWeight = category.weight || 1;
+    
+    let categoryMatched = false;
+    
+    // Check if any keyword from this category is present
+    for (const keyword of categoryKeywords) {
+      const keywordLower = keyword.toLowerCase();
+      
+      // Check in text content
+      if (text.includes(keywordLower)) {
+        categoryMatched = true;
+        break;
+      }
+      
+      // Check in extracted tags
+      if (tags.some(tag => tag.includes(keywordLower))) {
+        categoryMatched = true;
+        break;
+      }
+    }
+    
+    if (categoryMatched) {
+      totalScore += categoryWeight;
+    }
+  }
+  
+  // Clamp between 1 and 5
+  return Math.max(1, Math.min(5, totalScore));
 }

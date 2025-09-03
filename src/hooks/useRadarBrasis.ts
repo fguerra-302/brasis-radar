@@ -17,6 +17,7 @@ export const useRadarBrasis = () => {
         const { data, error } = await supabase
           .from('radar_brasis')
           .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
+          .order('relevancia', { ascending: false })
           .order('created_at', { ascending: false });
         
         if (error) {
@@ -103,6 +104,7 @@ export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
       let query = supabase
         .from('radar_brasis')
         .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
+        .order('relevancia', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (filters?.status) {
@@ -156,7 +158,7 @@ export const useRadarBrasisStats = () => {
     return {
       total: items.length,
       imported: items.filter(item => 
-        item.status === 'Coletado' || item.status === ContentStatus.REVIEWING
+        item.status === ContentStatus.COLLECTED || item.status === ContentStatus.REVIEWING
       ).length,
       reviewing: items.filter(item => item.status === ContentStatus.REVIEWING).length,
       approved: items.filter(item => 

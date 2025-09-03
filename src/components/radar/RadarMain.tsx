@@ -305,6 +305,52 @@ const RadarMain = () => {
     }
   };
 
+  const handleRecalcularRelevancia = async () => {
+    console.log('🔄 Recalculando relevância...');
+    
+    // Obter usuário autenticado
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      toast({
+        title: "❌ Erro",
+        description: "Usuário não autenticado. Faça login primeiro.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "🔄 Recálculo Iniciado",
+      description: "Recalculando relevância de todos os itens...",
+    });
+
+    try {
+      const response = await secureApi.invokeFunction('rescore-content');
+      
+      if (response?.processedItems >= 0) {
+        toast({
+          title: "✅ Recálculo Concluído",
+          description: `${response.processedItems} itens processados, ${response.updatedItems || 0} atualizados.`,
+        });
+        
+        // Força o refetch dos dados
+        refetch();
+      } else {
+        toast({
+          title: "⚠️ Aviso",
+          description: response?.message || "Nenhum item encontrado para recalcular.",
+        });
+      }
+    } catch (error) {
+      console.error('Erro no recálculo:', error);
+      toast({
+        title: "❌ Erro no Recálculo",
+        description: "Erro ao recalcular relevância. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   console.log('🎯 RadarMain - Renderizando interface');
 
   return (
@@ -355,6 +401,7 @@ const RadarMain = () => {
                 onUpdateStatus={handleUpdateStatus}
                 onConfigurar={handleConfigurar}
                 onExecutarCuradoria={handleExecutarCuradoria}
+                onRecalcularRelevancia={user ? handleRecalcularRelevancia : undefined}
                 onDeleteItem={handleDeleteItem}
                 onBulkDelete={handleBulkDelete}
                 updateMutation={updateMutation}

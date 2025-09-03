@@ -30,6 +30,7 @@ interface ContentListProps {
   onUpdateStatus: (id: string, status: string, title: string) => Promise<void>;
   onConfigurar: () => void;
   onExecutarCuradoria: () => Promise<void>;
+  onRecalcularRelevancia?: () => Promise<void>;
   updateMutation: any;
   onDeleteItem: (id: string, title: string) => Promise<void>;
   onBulkDelete: (status: string) => Promise<void>;
@@ -51,6 +52,7 @@ const ContentList = ({
   onUpdateStatus,
   onConfigurar,
   onExecutarCuradoria,
+  onRecalcularRelevancia,
   updateMutation,
   onDeleteItem,
   onBulkDelete
@@ -140,6 +142,7 @@ const ContentList = ({
         setStatusFilter={setStatusFilter}
         onConfigurar={onConfigurar}
         onExecutarCuradoria={onExecutarCuradoria}
+        onRecalcularRelevancia={onRecalcularRelevancia}
       />
 
       <BulkActions
