@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Bot, Info } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'react-router-dom';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
@@ -364,7 +365,7 @@ const RadarMain = () => {
               <div className="flex items-center gap-2">
                 <Info className="h-5 w-5 text-orange-600" />
                 <p className="text-orange-800 font-medium">
-                  🎭 Modo Demonstração — <a href="/auth" className="underline hover:no-underline">faça login</a> para curar conteúdo
+                  🎭 Modo Demonstração — <Link to="/auth" className="underline hover:no-underline">faça login</Link> para curar conteúdo
                 </p>
               </div>
             </div>

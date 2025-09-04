@@ -2,6 +2,7 @@ import React from 'react';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { CuradoriaSidebar } from './CuradoriaSidebar';
 import { BackButton } from '@/components/ui/BackButton';
+import { UserMenu } from '@/components/UserMenu';
 import { useBranding } from '@/hooks/useBranding';
 
 interface CuradoriaLayoutProps {
@@ -18,7 +19,10 @@ export const CuradoriaLayout = ({ children }: CuradoriaLayoutProps) => {
           <SidebarTrigger className="mr-4" />
           <h1 className="text-lg font-semibold">{brandingConfig.companyName} - Edição & Distribuição</h1>
         </div>
-        <BackButton to="/" label="Voltar ao Radar" />
+        <div className="flex items-center gap-2">
+          <BackButton to="/" label="Voltar ao Radar" />
+          <UserMenu />
+        </div>
       </header>
 
       <div className="flex min-h-screen w-full">
