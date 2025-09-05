@@ -85,10 +85,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Fetch user's editorial weights
+    const { data: editorialWeights, error: weightsError } = await supabase
+      .from('editorial_weights')
+      .select('editoria, multiplier')
+      .eq('user_id', userId);
+
+    if (weightsError) {
+      console.error('❌ Erro ao buscar pesos editoriais:', weightsError);
+    }
+
+    const userEditorialWeights = editorialWeights || [];
+    console.log(`📊 ${userEditorialWeights.length} multiplicadores editoriais encontrados`);
+
     // Fetch all radar_brasis items for this user
     const { data: items, error: itemsError } = await supabase
       .from('radar_brasis')
-      .select('id, title, input_bruto, tags, relevancia')
+      .select('id, title, input_bruto, tags, relevancia, editoria')
       .eq('user_id', userId);
 
     if (itemsError) {
@@ -111,7 +124,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`📊 Recalculando ${items.length} itens com ${keywords.length} categorias`);
+    console.log(`📊 Recalculando ${items.length} itens com ${keywords.length} categorias e ${userEditorialWeights.length} multiplicadores`);
     
     let processedItems = 0;
     let updatedItems = 0;
@@ -119,8 +132,10 @@ Deno.serve(async (req) => {
     // Process each item
     for (const item of items) {
       try {
-        // Calculate new relevance
-        const newRelevance = calculateRelevance(item, keywords);
+        // Calculate new relevance with editorial multiplier
+        const keywordScore = calculateKeywordRelevance(item, keywords);
+        const multiplier = getEditorialMultiplier(item.editoria || 'Geral', userEditorialWeights);
+        const newRelevance = Math.max(1, Math.min(5, Math.round(keywordScore * multiplier)));
         
         // Only update if relevance changed
         if (newRelevance !== item.relevancia) {
@@ -176,7 +191,7 @@ Deno.serve(async (req) => {
   }
 });
 
-function calculateRelevance(item: any, categories: any[]): number {
+function calculateKeywordRelevance(item: any, categories: any[]): number {
   const text = `${item.title} ${item.input_bruto || ''}`.toLowerCase();
   const itemTags = (item.tags || []).map((tag: string) => tag.toLowerCase());
   
@@ -210,6 +225,11 @@ function calculateRelevance(item: any, categories: any[]): number {
     }
   }
   
-  // Clamp between 1 and 5
+  // Return raw keyword score (will be multiplied by editorial weight)
   return Math.max(1, Math.min(5, totalScore));
+}
+
+function getEditorialMultiplier(editoria: string, editorialWeights: any[]): number {
+  const weight = editorialWeights.find(w => w.editoria === editoria);
+  return weight ? Number(weight.multiplier) : 1.0; // Default multiplier
 }

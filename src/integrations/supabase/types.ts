@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      editorial_weights: {
+        Row: {
+          created_at: string
+          editoria: string
+          id: string
+          multiplier: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          editoria: string
+          id?: string
+          multiplier?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          editoria?: string
+          id?: string
+          multiplier?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       radar_brasis: {
         Row: {
           created_at: string | null
@@ -171,6 +198,7 @@ export type Database = {
           favicon_url: string | null
           id: string
           logo_url: string | null
+          min_relevance_threshold: number
           newsletter_footer: string | null
           newsletter_signature: string | null
           primary_color: string | null
@@ -187,6 +215,7 @@ export type Database = {
           favicon_url?: string | null
           id?: string
           logo_url?: string | null
+          min_relevance_threshold?: number
           newsletter_footer?: string | null
           newsletter_signature?: string | null
           primary_color?: string | null
@@ -203,6 +232,7 @@ export type Database = {
           favicon_url?: string | null
           id?: string
           logo_url?: string | null
+          min_relevance_threshold?: number
           newsletter_footer?: string | null
           newsletter_signature?: string | null
           primary_color?: string | null

@@ -80,6 +80,29 @@ Deno.serve(async (req) => {
     const userKeywords = keywords || [];
     console.log(`📊 ${userKeywords.length} categorias de palavras-chave encontradas`);
 
+    // Fetch user's editorial weights
+    const { data: editorialWeights, error: weightsError } = await supabase
+      .from('editorial_weights')
+      .select('editoria, multiplier')
+      .eq('user_id', userId);
+
+    if (weightsError) {
+      console.error('❌ Erro ao buscar pesos editoriais:', weightsError);
+    }
+
+    const userEditorialWeights = editorialWeights || [];
+    console.log(`📊 ${userEditorialWeights.length} multiplicadores editoriais encontrados`);
+
+    // Fetch user's minimum relevance threshold
+    const { data: userSettings } = await supabase
+      .from('user_settings')
+      .select('min_relevance_threshold')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const minThreshold = userSettings?.min_relevance_threshold || 3;
+    console.log(`🎯 Threshold mínimo: ${minThreshold}`);
+
     // Fetch user's active RSS sources (excluindo credentials por segurança)
     const { data: sources, error: sourcesError } = await supabase
       .from('radar_sources')
@@ -162,7 +185,22 @@ Deno.serve(async (req) => {
 
             // Extract tags and calculate relevance
             const extractedTags = extractKeywords(item.title + ' ' + item.description);
-            const relevance = calculateRelevance(item, extractedTags, userKeywords);
+            const keywordScore = calculateKeywordRelevance(item, extractedTags, userKeywords);
+            
+            // Try to determine editoria from item content
+            const editoria = determineEditoria(item);
+            
+            // Apply editorial multiplier
+            const multiplier = getEditorialMultiplier(editoria, userEditorialWeights);
+            const finalScore = Math.max(1, Math.min(5, keywordScore * multiplier));
+            
+            console.log(`📝 Item: ${item.title.substring(0, 50)}... | Editoria: ${editoria} | Keywords: ${keywordScore} | Multiplier: ${multiplier} | Final: ${finalScore.toFixed(1)}`);
+            
+            // Only insert if meets minimum threshold
+            if (finalScore < minThreshold) {
+              console.log(`⏭️ Item rejeitado por threshold: ${finalScore.toFixed(1)} < ${minThreshold}`);
+              continue;
+            }
 
             // Insert new item with correct schema
             const { error: insertError } = await supabase
@@ -173,9 +211,10 @@ Deno.serve(async (req) => {
                 link: item.link,
                 source: item.source,
                 pub_date: item.pubDate || new Date().toISOString(),
+                editoria: editoria,
                 input_bruto: item.description.substring(0, 1000),
                 tags: extractedTags,
-                relevancia: relevance,
+                relevancia: Math.round(finalScore),
                 status: 'Em aprovação'
               });
 
@@ -323,7 +362,7 @@ function extractKeywords(text: string): string[] {
   return [...new Set(words)]; // Remove duplicates
 }
 
-function calculateRelevance(item: RSSItem, extractedTags: string[], userKeywords: any[]): number {
+function calculateKeywordRelevance(item: RSSItem, extractedTags: string[], userKeywords: any[]): number {
   if (!userKeywords || userKeywords.length === 0) {
     return 1; // Default relevance if no keywords configured
   }
@@ -361,6 +400,35 @@ function calculateRelevance(item: RSSItem, extractedTags: string[], userKeywords
     }
   }
   
-  // Clamp between 1 and 5
+  // Return raw score (will be multiplied by editorial weight later)
   return Math.max(1, Math.min(5, totalScore));
+}
+
+function determineEditoria(item: RSSItem): string {
+  const text = `${item.title} ${item.description}`.toLowerCase();
+  
+  // Simple keyword-based editorial classification
+  const editoriaKeywords = {
+    'Economia': ['economia', 'mercado', 'investimento', 'negócio', 'empresa', 'financeiro', 'dinheiro', 'lucro'],
+    'Política': ['governo', 'presidente', 'ministro', 'política', 'eleição', 'congresso', 'senado', 'deputado'],
+    'Tecnologia': ['tecnologia', 'internet', 'software', 'app', 'digital', 'computador', 'sistema', 'inovação'],
+    'Saúde': ['saúde', 'médico', 'hospital', 'doença', 'tratamento', 'medicamento', 'vacina', 'sus'],
+    'Educação': ['educação', 'escola', 'universidade', 'professor', 'aluno', 'ensino', 'curso', 'estudo'],
+    'Cultura': ['cultura', 'arte', 'música', 'cinema', 'teatro', 'festival', 'artista', 'livro'],
+    'Esporte': ['esporte', 'futebol', 'jogador', 'time', 'olimpíada', 'copa', 'campeonato', 'atleta'],
+    'Meio Ambiente': ['ambiente', 'sustentabilidade', 'clima', 'floresta', 'energia', 'poluição', 'verde', 'carbono']
+  };
+  
+  for (const [editoria, keywords] of Object.entries(editoriaKeywords)) {
+    if (keywords.some(keyword => text.includes(keyword))) {
+      return editoria;
+    }
+  }
+  
+  return 'Geral'; // Default editoria
+}
+
+function getEditorialMultiplier(editoria: string, editorialWeights: any[]): number {
+  const weight = editorialWeights.find(w => w.editoria === editoria);
+  return weight ? Number(weight.multiplier) : 1.0; // Default multiplier
 }
