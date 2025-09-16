@@ -16,6 +16,7 @@ export interface UserSettings {
   newsletter_footer: string;
   ai_newsletter_prompt: string | null;
   ai_example_audiences: string[] | null;
+  min_relevance_threshold: number;
   created_at: string;
   updated_at: string;
 }
