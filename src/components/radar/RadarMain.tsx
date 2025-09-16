@@ -286,7 +286,7 @@ const RadarMain = () => {
       
       toast({
         title: "✅ Coleta Concluída",
-        description: `${data?.processedSources || 0} fontes processadas, ${data?.savedItems || 0} novos itens coletados.`,
+        description: `${data?.processedSources || 0} fontes processadas, ${data?.savedItems || 0} novos itens coletados${data?.minThreshold ? ` (filtro: ≥${data.minThreshold})` : ''}.`,
       });
       
     } catch (error: any) {
@@ -307,49 +307,10 @@ const RadarMain = () => {
   };
 
   const handleRecalcularRelevancia = async () => {
-    console.log('🔄 Recalculando relevância...');
+    console.log('🔄 Recalculando relevância via nova coleta...');
     
-    // Obter usuário autenticado
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) {
-      toast({
-        title: "❌ Erro",
-        description: "Usuário não autenticado. Faça login primeiro.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    toast({
-      title: "🔄 Recálculo Iniciado",
-      description: "Recalculando relevância de todos os itens...",
-    });
-
-    try {
-      const response = await secureApi.invokeFunction('rescore-content');
-      
-      if (response?.processedItems >= 0) {
-        toast({
-          title: "✅ Recálculo Concluído",
-          description: `${response.processedItems} itens processados, ${response.updatedItems || 0} atualizados.`,
-        });
-        
-        // Força o refetch dos dados
-        refetch();
-      } else {
-        toast({
-          title: "⚠️ Aviso",
-          description: response?.message || "Nenhum item encontrado para recalcular.",
-        });
-      }
-    } catch (error) {
-      console.error('Erro no recálculo:', error);
-      toast({
-        title: "❌ Erro no Recálculo",
-        description: "Erro ao recalcular relevância. Tente novamente.",
-        variant: "destructive",
-      });
-    }
+    // Just run a new collection to refresh items with current settings
+    await handleExecutarCuradoria();
   };
 
   console.log('🎯 RadarMain - Renderizando interface');

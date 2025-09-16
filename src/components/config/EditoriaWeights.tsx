@@ -9,11 +9,17 @@ import { defaultEditorialWeights, type EditoriaWeightUI } from '@/constants/defa
 import { RelevanceThresholdConfig } from './RelevanceThresholdConfig';
 import { EditorialWeightCard } from './EditorialWeightCard';
 import { AddEditoriaForm } from './AddEditoriaForm';
+import { useFilteredItemsCount } from '@/hooks/useFilteredItemsCount';
 
 
 export const EditoriaWeights = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // UI state  
+  const [weights, setWeights] = useState<EditoriaWeightUI[]>([]);
+  const [minThreshold, setMinThreshold] = useState(3);
+  const [hasChanges, setHasChanges] = useState(false);
   
   // Backend data
   const { data: editorialWeights, isLoading } = useEditorialWeights();
@@ -21,11 +27,7 @@ export const EditoriaWeights = () => {
   const upsertWeight = useUpsertEditorialWeight();
   const deleteWeight = useDeleteEditorialWeight();
   const updateUserSettings = useUpdateUserSettings();
-  
-  // UI state
-  const [weights, setWeights] = useState<EditoriaWeightUI[]>([]);
-  const [minThreshold, setMinThreshold] = useState(3);
-  const [hasChanges, setHasChanges] = useState(false);
+  const { data: filteredCount = 0 } = useFilteredItemsCount(minThreshold);
   
   // Sync backend data with UI state
   useEffect(() => {
@@ -164,6 +166,7 @@ export const EditoriaWeights = () => {
           setMinThreshold(value);
           setHasChanges(true);
         }}
+        filteredCount={filteredCount}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

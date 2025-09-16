@@ -43,20 +43,19 @@ Deno.serve(async (req) => {
     
     // Create authenticated Supabase client for this user
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      auth: {
+        detectSessionInUrl: false,
+        persistSession: false
       }
     });
     
-    // Verify authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Verify authentication by getting user from token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
       console.error('❌ Token JWT inválido:', authError);
       return new Response(
-        JSON.stringify({ error: 'Invalid authorization token' }),
+        JSON.stringify({ error: 'Invalid authorization token', details: authError?.message }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401
@@ -242,6 +241,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Count today's filtered items for reporting
+    const { data: todayItems } = await supabase
+      .from('radar_brasis')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId)
+      .gte('created_at', new Date().toISOString().split('T')[0] + 'T00:00:00Z');
+    
+    const todayTotalItems = todayItems?.length || 0;
+    
     console.log(`✅ Coleta concluída: ${processedSources} fontes processadas, ${totalSavedItems} novos itens salvos`);
 
     return new Response(
@@ -249,6 +257,8 @@ Deno.serve(async (req) => {
         message: 'Coleta RSS concluída com sucesso',
         processedSources,
         savedItems: totalSavedItems,
+        todayTotalItems,
+        minThreshold,
         timestamp: new Date().toISOString()
       }),
       { 
