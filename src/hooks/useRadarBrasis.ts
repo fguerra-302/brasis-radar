@@ -16,9 +16,10 @@ export const useRadarBrasis = () => {
       try {
         const { data, error } = await supabase
           .from('radar_brasis')
-          .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
+          .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at, user_id')
           .order('relevancia', { ascending: false })
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(100); // Limita para performance
         
         if (error) {
           console.error('Erro ao buscar dados:', error);
@@ -26,7 +27,8 @@ export const useRadarBrasis = () => {
           throw error;
         }
         
-        console.log(`Dados carregados: ${data?.length || 0} itens`);
+        console.log(`Dados carregados: ${data?.length || 0} itens do banco`);
+        console.log('Primeiro item:', data?.[0]);
         return data ? mapToContent(data) : [];
       } catch (error) {
         console.error('Erro de conexão com Supabase:', error);
