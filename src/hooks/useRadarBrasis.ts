@@ -11,35 +11,69 @@ export const useRadarBrasis = () => {
   return useQuery({
     queryKey: ['radar-brasis'],
     queryFn: async (): Promise<CuratedContent[]> => {
-      console.log('Hook useRadarBrasis - Buscando dados do Supabase (sem auth)');
+      console.log('🔍 useRadarBrasis - Verificando autenticação...');
+      
+      // Verificar se o usuário está autenticado
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ Erro ao verificar sessão:', sessionError);
+        throw sessionError;
+      }
+      
+      if (!session?.user) {
+        console.warn('⚠️ Usuário não autenticado - carregando dados demo');
+        return [];
+      }
+      
+      console.log('✅ Usuário autenticado:', session.user.id);
       
       try {
         const { data, error } = await supabase
           .from('radar_brasis')
           .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at, user_id')
+          .eq('user_id', session.user.id) // CRÍTICO: Filtrar pelos dados do usuário
           .order('relevancia', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(100); // Limita para performance
+          .limit(100);
         
         if (error) {
-          console.error('Erro ao buscar dados:', error);
-          toast.error('Erro ao carregar conteúdo');
+          console.error('❌ Erro RLS ao buscar dados:', error);
+          // Se for erro de RLS, tentar reautenticar
+          if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
+            console.log('🔄 Tentando refresh da sessão...');
+            await supabase.auth.refreshSession();
+            toast.error('Erro de autenticação - faça login novamente');
+          } else {
+            toast.error('Erro ao carregar conteúdo');
+          }
           throw error;
         }
         
-        console.log(`Dados carregados: ${data?.length || 0} itens do banco`);
-        console.log('Primeiro item:', data?.[0]);
+        console.log(`✅ Dados carregados: ${data?.length || 0} itens reais para usuário ${session.user.id}`);
+        if (data && data.length > 0) {
+          console.log('📄 Primeiro item:', data[0].title);
+        } else {
+          console.log('ℹ️ Nenhum item encontrado - execute uma coleta primeiro');
+        }
+        
         return data ? mapToContent(data) : [];
       } catch (error) {
-        console.error('Erro de conexão com Supabase:', error);
+        console.error('❌ Erro de conexão com Supabase:', error);
         throw error;
       }
     },
-    // ⚡ OTIMIZAÇÃO 1: Cache TTL - reduz 80% das queries desnecessárias
-    staleTime: 5 * 60 * 1000, // 5 minutos - dados considerados frescos
-    gcTime: 10 * 60 * 1000, // 10 minutos - garbage collection
-    retry: false,
-    refetchOnWindowFocus: false,
+    enabled: true, // Sempre habilitado, mas com verificação interna de auth
+    staleTime: 2 * 60 * 1000, // 2 minutos - mais agressivo para dados reais
+    gcTime: 5 * 60 * 1000, // 5 minutos - garbage collection
+    retry: (failureCount, error: any) => {
+      // Retry se for erro de rede, mas não se for erro de auth
+      if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
+        return false; // Não retry em erros de RLS
+      }
+      return failureCount < 2; // Máximo 2 tentativas para outros erros
+    },
+    refetchOnWindowFocus: true, // Recarregar quando foco volta à janela
   });
 };
 
@@ -113,11 +147,27 @@ export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
   return useQuery({
     queryKey: ['radar-brasis', filters],
     queryFn: async (): Promise<CuratedContent[]> => {
-      console.log('Hook useRadarBrasis - Buscando dados com filtros:', filters);
+      console.log('🔍 useRadarBrasisWithFilters - Verificando autenticação...');
+      
+      // Verificar autenticação
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ Erro ao verificar sessão:', sessionError);
+        throw sessionError;
+      }
+      
+      if (!session?.user) {
+        console.warn('⚠️ Usuário não autenticado - retornando dados vazios');
+        return [];
+      }
+      
+      console.log('✅ Buscando dados com filtros para usuário:', session.user.id, filters);
       
       let query = supabase
         .from('radar_brasis')
-        .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at')
+        .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at, user_id')
+        .eq('user_id', session.user.id) // CRÍTICO: Filtrar pelos dados do usuário
         .order('relevancia', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -136,19 +186,24 @@ export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
       const { data, error } = await query;
       
       if (error) {
-        console.error('Erro ao buscar dados:', error);
+        console.error('❌ Erro ao buscar dados filtrados:', error);
         toast.error('Erro ao carregar conteúdo filtrado');
         throw error;
       }
       
-      console.log(`Dados carregados: ${data?.length || 0} itens`);
+      console.log(`✅ Dados filtrados carregados: ${data?.length || 0} itens`);
       return data ? mapToContent(data) : [];
     },
-    // ⚡ OTIMIZAÇÃO 1: Cache TTL para filtros também
-    staleTime: 3 * 60 * 1000, // 3 minutos para filtros
-    gcTime: 8 * 60 * 1000, // 8 minutos GC
-    retry: false,
-    refetchOnWindowFocus: false,
+    enabled: true,
+    staleTime: 2 * 60 * 1000, // 2 minutos para dados reais
+    gcTime: 5 * 60 * 1000, // 5 minutos GC
+    retry: (failureCount, error: any) => {
+      if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: true,
   });
 };
 
