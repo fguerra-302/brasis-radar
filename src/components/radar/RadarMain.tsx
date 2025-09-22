@@ -49,9 +49,19 @@ const RadarMain = () => {
     isInitialized
   });
 
-  // Real-time updates para coleta automatizada
+  // ⚡ OTIMIZAÇÃO 2: Real-time com filtros condicionais + debounce
   useEffect(() => {
-    console.log('🔄 Configurando real-time updates...');
+    console.log('🔄 Configurando real-time updates otimizados...');
+    
+    // Debounce para evitar múltiplos refetches simultâneos
+    let debounceTimer: NodeJS.Timeout;
+    const debouncedRefetch = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        console.log('⚡ Executando refetch debounced');
+        refetch();
+      }, 300); // 300ms debounce
+    };
     
     const channel = supabase
       .channel('radar-realtime-updates')
@@ -64,11 +74,16 @@ const RadarMain = () => {
         },
         (payload) => {
           console.log('🚀 Novo item coletado automaticamente:', payload.new);
-          toast({
-            title: "🆕 Novo Conteúdo Coletado",
-            description: `"${payload.new.title?.substring(0, 50)}..." foi adicionado pelo sistema automatizado.`,
-          });
-          refetch(); // Atualiza a lista
+          
+          // ⚡ Filtro condicional: só mostrar toast se não for do próprio usuário
+          if (payload.new.user_id !== user?.id) {
+            toast({
+              title: "🆕 Novo Conteúdo Coletado",
+              description: `"${payload.new.title?.substring(0, 50)}..." foi adicionado pelo sistema automatizado.`,
+            });
+          }
+          
+          debouncedRefetch(); // Usar debounced ao invés de refetch direto
         }
       )
       .on(
@@ -80,7 +95,13 @@ const RadarMain = () => {
         },
         (payload) => {
           console.log('📝 Item atualizado:', payload.new);
-          refetch(); // Atualiza a lista
+          
+          // ⚡ Filtro condicional: ignorar updates do próprio usuário (já otimistic)
+          if (payload.new.user_id !== user?.id) {
+            debouncedRefetch();
+          } else {
+            console.log('⏭️ Ignorando update do próprio usuário (optimistic UI)');
+          }
         }
       )
       .subscribe((status) => {
@@ -89,9 +110,10 @@ const RadarMain = () => {
 
     return () => {
       console.log('🔌 Removendo channel real-time...');
+      clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [toast, refetch]);
+  }, [toast, refetch, user?.id]);
 
   const handleAprovar = async (itemId: string, title: string) => {
     if (!user) {

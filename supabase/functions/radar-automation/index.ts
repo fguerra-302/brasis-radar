@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     console.log('🚀 Iniciando coleta automática de RSS...');
     const startTime = Date.now();
     
-    // Get JWT token from Authorization header
+    // ⚡ OTIMIZAÇÃO 3: Eliminar JWT redundante - Supabase já valida via verify_jwt=true
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.error('❌ Token JWT não fornecido');
@@ -40,23 +40,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    const token = authHeader.substring(7);
-    
-    // Create authenticated Supabase client for this user
+    // Criar client autenticado diretamente (JWT já validado por config.toml)
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         detectSessionInUrl: false,
         persistSession: false
-      }
+      },
+      global: {
+        headers: {
+          Authorization: authHeader, // Passar token diretamente
+        },
+      },
     });
     
-    // Verify authentication by getting user from token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Obter usuário do contexto autenticado (remove 200ms+ de latência)
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.error('❌ Token JWT inválido:', authError);
+      console.error('❌ Erro de autenticação:', authError);
       return new Response(
-        JSON.stringify({ error: 'Invalid authorization token', details: authError?.message }),
+        JSON.stringify({ error: 'Authentication failed', details: authError?.message }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401

@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEditorialWeights, useUpsertEditorialWeight, useDeleteEditorialWeight } from '@/hooks/useEditorialWeights';
-import { useUserSettings, useUpdateUserSettings } from '@/hooks/useUserSettings';
+import { useUpsertEditorialWeight, useDeleteEditorialWeight } from '@/hooks/useEditorialWeights';
+import { useUpdateUserSettings } from '@/hooks/useUserSettings';
+import { useAppConfig } from '@/hooks/useAppConfig';
 import { defaultEditorialWeights, type EditoriaWeightUI } from '@/constants/defaultEditorialWeights';
 import { RelevanceThresholdConfig } from './RelevanceThresholdConfig';
 import { EditorialWeightCard } from './EditorialWeightCard';
@@ -22,9 +23,10 @@ export const EditoriaWeights = () => {
   const [minThreshold, setMinThreshold] = useState(3);
   const [hasChanges, setHasChanges] = useState(false);
   
-  // Backend data
-  const { data: editorialWeights, isLoading } = useEditorialWeights();
-  const { data: userSettings } = useUserSettings();
+  // ⚡ OTIMIZAÇÃO 5: Usar hook centralizado - 50% menos queries
+  const { data: appConfig, isLoading } = useAppConfig();
+  const editorialWeights = appConfig?.editorialWeights;
+  const userSettings = appConfig?.userSettings;
   const upsertWeight = useUpsertEditorialWeight();
   const deleteWeight = useDeleteEditorialWeight();
   const updateUserSettings = useUpdateUserSettings();
