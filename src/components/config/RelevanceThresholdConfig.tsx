@@ -1,18 +1,29 @@
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Info } from "lucide-react";
+import { Info, TrendingUp, Target } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+
+interface PerformanceStats {
+  totalToday: number;
+  accepted: number;
+  filtered: number;
+  acceptanceRate: number;
+  suggestedThreshold: number;
+}
 
 interface RelevanceThresholdConfigProps {
   threshold: number;
   onChange: (value: number) => void;
   filteredCount?: number;
+  performanceStats?: PerformanceStats;
 }
 
 export const RelevanceThresholdConfig = ({ 
   threshold, 
   onChange, 
-  filteredCount = 0 
+  filteredCount = 0,
+  performanceStats
 }: RelevanceThresholdConfigProps) => {
   const getThresholdDescription = (value: number) => {
     switch (value) {
@@ -61,12 +72,39 @@ export const RelevanceThresholdConfig = ({
         </p>
       </div>
 
+      {/* Performance Stats */}
+      {performanceStats && performanceStats.totalToday > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              {performanceStats.acceptanceRate}% aceitos hoje
+            </Badge>
+            {performanceStats.suggestedThreshold !== threshold && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Target className="h-3 w-3" />
+                Sugestão: {performanceStats.suggestedThreshold}
+              </Badge>
+            )}
+          </div>
+          
+          <div className="text-xs text-muted-foreground">
+            Hoje: {performanceStats.accepted} aceitos, {performanceStats.filtered} filtrados
+          </div>
+        </div>
+      )}
+
       {filteredCount > 0 && (
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
             <span className="font-medium">{filteredCount} itens</span> foram filtrados 
             hoje por não atingirem a relevância mínima de {threshold}.
+            {performanceStats?.suggestedThreshold && performanceStats.suggestedThreshold !== threshold && (
+              <span className="block mt-1 text-xs">
+                💡 Sugestão: ajuste para {performanceStats.suggestedThreshold} baseado no padrão de hoje
+              </span>
+            )}
           </AlertDescription>
         </Alert>
       )}

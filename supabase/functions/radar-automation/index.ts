@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
 
   try {
     console.log('🚀 Iniciando coleta automática de RSS...');
+    const startTime = Date.now();
     
     // Get JWT token from Authorization header
     const authHeader = req.headers.get('Authorization');
@@ -66,41 +67,29 @@ Deno.serve(async (req) => {
     const userId = user.id;
     console.log(`👤 Processando para usuário: ${userId}`);
     
-    // Fetch user's keyword categories for relevance calculation
-    const { data: keywords, error: keywordsError } = await supabase
-      .from('radar_keywords')
-      .select('category_name, keywords, weight')
-      .eq('user_id', userId);
+    // Performance: carregar configurações em batch
+    const configStart = Date.now();
+    const [keywordsResult, weightsResult, settingsResult] = await Promise.all([
+      supabase
+        .from('radar_keywords')
+        .select('category_name, keywords, weight')
+        .eq('user_id', userId),
+      supabase
+        .from('editorial_weights')
+        .select('editoria, multiplier')
+        .eq('user_id', userId),
+      supabase
+        .from('user_settings')
+        .select('min_relevance_threshold')
+        .eq('user_id', userId)
+        .maybeSingle()
+    ]);
 
-    if (keywordsError) {
-      console.error('❌ Erro ao buscar categorias:', keywordsError);
-    }
-
-    const userKeywords = keywords || [];
-    console.log(`📊 ${userKeywords.length} categorias de palavras-chave encontradas`);
-
-    // Fetch user's editorial weights
-    const { data: editorialWeights, error: weightsError } = await supabase
-      .from('editorial_weights')
-      .select('editoria, multiplier')
-      .eq('user_id', userId);
-
-    if (weightsError) {
-      console.error('❌ Erro ao buscar pesos editoriais:', weightsError);
-    }
-
-    const userEditorialWeights = editorialWeights || [];
-    console.log(`📊 ${userEditorialWeights.length} multiplicadores editoriais encontrados`);
-
-    // Fetch user's minimum relevance threshold
-    const { data: userSettings } = await supabase
-      .from('user_settings')
-      .select('min_relevance_threshold')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    const minThreshold = userSettings?.min_relevance_threshold || 3;
-    console.log(`🎯 Threshold mínimo: ${minThreshold}`);
+    const userKeywords = keywordsResult.data || [];
+    const userEditorialWeights = weightsResult.data || [];
+    const minThreshold = settingsResult.data?.min_relevance_threshold || 3;
+    
+    console.log(`⚡ Config carregada em ${Date.now() - configStart}ms: ${userKeywords.length} categorias, ${userEditorialWeights.length} multiplicadores, threshold ${minThreshold}`);
 
     // Fetch user's active RSS sources (excluindo credentials por segurança)
     const { data: sources, error: sourcesError } = await supabase
@@ -193,13 +182,14 @@ Deno.serve(async (req) => {
             const multiplier = getEditorialMultiplier(editoria, userEditorialWeights);
             const finalScore = Math.max(1, Math.min(5, keywordScore * multiplier));
             
-            console.log(`📝 Item: ${item.title.substring(0, 50)}... | Editoria: ${editoria} | Keywords: ${keywordScore} | Multiplier: ${multiplier} | Final: ${finalScore.toFixed(1)}`);
-            
-            // Only insert if meets minimum threshold
+            // ⚡ OTIMIZAÇÃO: aplicar filtro antes de qualquer processamento DB
             if (finalScore < minThreshold) {
               console.log(`⏭️ Item rejeitado por threshold: ${finalScore.toFixed(1)} < ${minThreshold}`);
               continue;
             }
+            
+            console.log(`📝 Item aceito: ${item.title.substring(0, 50)}... | Editoria: ${editoria} | Score: ${finalScore.toFixed(1)}`);
+            
 
             // Insert new item with correct schema
             const { error: insertError } = await supabase
@@ -250,7 +240,8 @@ Deno.serve(async (req) => {
     
     const todayTotalItems = todayItems?.length || 0;
     
-    console.log(`✅ Coleta concluída: ${processedSources} fontes processadas, ${totalSavedItems} novos itens salvos`);
+    const totalTime = Date.now() - startTime;
+    console.log(`✅ Coleta concluída em ${totalTime}ms: ${processedSources} fontes processadas, ${totalSavedItems} novos itens salvos`);
 
     return new Response(
       JSON.stringify({
@@ -259,6 +250,11 @@ Deno.serve(async (req) => {
         savedItems: totalSavedItems,
         todayTotalItems,
         minThreshold,
+        performance: {
+          totalTimeMs: totalTime,
+          avgTimePerSource: Math.round(totalTime / Math.max(1, processedSources)),
+          efficiency: Math.round((totalSavedItems / Math.max(1, todayTotalItems)) * 100)
+        },
         timestamp: new Date().toISOString()
       }),
       { 

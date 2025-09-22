@@ -9,8 +9,9 @@ import { defaultEditorialWeights, type EditoriaWeightUI } from '@/constants/defa
 import { RelevanceThresholdConfig } from './RelevanceThresholdConfig';
 import { EditorialWeightCard } from './EditorialWeightCard';
 import { AddEditoriaForm } from './AddEditoriaForm';
-import { useFilteredItemsCount } from '@/hooks/useFilteredItemsCount';
-
+import { useLocalFilteredCount, useFilterPerformanceStats } from '@/hooks/useLocalFilteredCount';
+import { useRadarBrasis } from '@/hooks/useRadarBrasis';
+import { useCallback, useMemo } from 'react';
 
 export const EditoriaWeights = () => {
   const navigate = useNavigate();
@@ -27,7 +28,11 @@ export const EditoriaWeights = () => {
   const upsertWeight = useUpsertEditorialWeight();
   const deleteWeight = useDeleteEditorialWeight();
   const updateUserSettings = useUpdateUserSettings();
-  const { data: filteredCount = 0 } = useFilteredItemsCount(minThreshold);
+  
+  // Performance otimizada: usar dados já carregados
+  const { data: radarItems } = useRadarBrasis();
+  const filteredCount = useLocalFilteredCount(radarItems, minThreshold);
+  const performanceStats = useFilterPerformanceStats(radarItems, minThreshold);
   
   // Sync backend data with UI state
   useEffect(() => {
@@ -63,11 +68,16 @@ export const EditoriaWeights = () => {
     return defaultWeight?.description || 'Categoria personalizada';
   };
 
-  const updateWeight = (index: number, newMultiplier: number) => {
+  // Debounce para otimizar performance do slider
+  const debouncedUpdateWeight = useCallback((index: number, newMultiplier: number) => {
     const updatedWeights = [...weights];
     updatedWeights[index].multiplier = newMultiplier;
     setWeights(updatedWeights);
     setHasChanges(true);
+  }, [weights]);
+
+  const updateWeight = (index: number, newMultiplier: number) => {
+    debouncedUpdateWeight(index, newMultiplier);
   };
 
   const addEditoria = (newEditoriaObj: EditoriaWeightUI) => {
@@ -167,6 +177,7 @@ export const EditoriaWeights = () => {
           setHasChanges(true);
         }}
         filteredCount={filteredCount}
+        performanceStats={performanceStats}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
