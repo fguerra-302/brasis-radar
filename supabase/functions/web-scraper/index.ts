@@ -206,6 +206,28 @@ serve(async (req) => {
       throw new Error('URL inválida ou insegura');
     }
 
+    // Verificar se a fonte está ativa no banco
+    const { data: sourceCheck } = await supabase
+      .from('radar_sources')
+      .select('active')
+      .eq('url', url)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (sourceCheck && !sourceCheck.active) {
+      console.log(`⏭️ Fonte desativada: ${sourceName}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Esta fonte está desativada. Ative-a em Configurações > Fontes para coletar conteúdo.',
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     console.log(`Iniciando scraping: ${url}`);
 
     // Fetch com timeout

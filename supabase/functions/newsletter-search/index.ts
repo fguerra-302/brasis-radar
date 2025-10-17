@@ -124,6 +124,29 @@ serve(async (req) => {
         }
       );
     }
+
+    // Verificar se há fontes NEWSLETTER ativas para este usuário
+    const { data: activeSources } = await supabaseClient
+      .from('radar_sources')
+      .select('active')
+      .eq('type', 'NEWSLETTER')
+      .eq('user_id', user.id)
+      .eq('active', true)
+      .maybeSingle();
+
+    if (!activeSources) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          items_collected: 0,
+          error: 'Nenhuma fonte de newsletter ativa. Ative uma fonte do tipo NEWSLETTER em Configurações > Fontes.'
+        }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
     // Rate limiting por usuário
     if (!rateLimiter.isAllowed(user.id)) {
