@@ -223,9 +223,42 @@ const RadarMain = () => {
   };
 
   const handleDeleteItem = async (itemId: string, title: string) => {
-    console.log('🗑️ Excluindo item:', itemId);
+    console.log('🗑️ Excluindo item permanentemente:', itemId);
+    
+    if (!user) {
+      toast({
+        title: "🔐 Login Necessário",
+        description: "Faça login para excluir conteúdo.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
+      // 1. Buscar link do item antes de excluir
+      const { data: item } = await supabase
+        .from('radar_brasis')
+        .select('link')
+        .eq('id', itemId)
+        .single();
+
+      if (!item) throw new Error('Item não encontrado');
+
+      // 2. Criar tombstone antes de excluir
+      const { error: tombstoneError } = await supabase
+        .from('radar_tombstones')
+        .insert({
+          user_id: user.id,
+          link: item.link,
+          title: title
+        });
+
+      if (tombstoneError) {
+        console.warn('⚠️ Erro ao criar tombstone:', tombstoneError);
+        // Continuar mesmo com erro no tombstone
+      }
+
+      // 3. Excluir item
       const { error } = await supabase
         .from('radar_brasis')
         .delete()
@@ -235,10 +268,9 @@ const RadarMain = () => {
       
       toast({
         title: "✅ Item Excluído",
-        description: `"${title.substring(0, 40)}..." foi excluído permanentemente.`,
+        description: `"${title.substring(0, 40)}..." não será mais coletado.`,
       });
       
-      // Refresh the data
       refetch();
     } catch (error) {
       console.error('❌ Erro ao excluir item:', error);
@@ -253,20 +285,60 @@ const RadarMain = () => {
   const handleBulkDelete = async (status: string) => {
     console.log('🗑️ Excluindo itens em lote:', status);
     
+    if (!user) {
+      toast({
+        title: "🔐 Login Necessário",
+        description: "Faça login para excluir conteúdo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
+      // 1. Buscar todos os itens com esse status
+      const { data: items } = await supabase
+        .from('radar_brasis')
+        .select('id, link, title')
+        .eq('status', status)
+        .eq('user_id', user.id);
+
+      if (!items || items.length === 0) {
+        toast({
+          title: "Nenhum item encontrado",
+          description: `Não há itens com status "${status}".`,
+        });
+        return;
+      }
+
+      // 2. Criar tombstones para cada item
+      const tombstones = items.map(item => ({
+        user_id: user.id,
+        link: item.link,
+        title: item.title
+      }));
+
+      const { error: tombstoneError } = await supabase
+        .from('radar_tombstones')
+        .insert(tombstones);
+
+      if (tombstoneError) {
+        console.warn('⚠️ Erro ao criar tombstones:', tombstoneError);
+      }
+
+      // 3. Excluir itens
       const { error } = await supabase
         .from('radar_brasis')
         .delete()
-        .eq('status', status);
+        .eq('status', status)
+        .eq('user_id', user.id);
       
       if (error) throw error;
       
       toast({
         title: "✅ Itens Excluídos",
-        description: `Todos os itens com status "${status}" foram excluídos.`,
+        description: `${items.length} itens não serão mais coletados.`,
       });
       
-      // Refresh the data
       refetch();
     } catch (error) {
       console.error('❌ Erro ao excluir itens em lote:', error);

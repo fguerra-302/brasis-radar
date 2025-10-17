@@ -190,7 +190,7 @@ serve(async (req) => {
   }
 });
 
-async function searchNewsletters(searchTerms: string, userId: string, supabaseClient: ReturnType<typeof createClient>) {
+async function searchNewsletters(searchTerms: string, userId: string, supabaseClient: ReturnType<typeof createClient>, tombstoneLinks: Set<string>) {
   try {
     // Usar OpenAI para buscar newsletters recentes
     const searchQuery = `Encontre newsletters brasileiras recentes sobre ${searchTerms}. 

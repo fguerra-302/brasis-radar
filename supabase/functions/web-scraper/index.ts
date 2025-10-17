@@ -230,6 +230,26 @@ serve(async (req) => {
 
     console.log(`Iniciando scraping: ${url}`);
 
+    // Carregar user_settings e tombstones
+    const [settingsResult, tombstonesResult] = await Promise.all([
+      supabase
+        .from('user_settings')
+        .select('min_relevance_threshold')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('radar_tombstones')
+        .select('link')
+        .eq('user_id', user.id)
+    ]);
+
+    const minRelevance = settingsResult.data?.min_relevance_threshold || 3;
+    const tombstoneLinks = new Set(
+      tombstonesResult.data?.map((t) => t.link) || []
+    );
+
+    console.log(`Threshold do usuário: ${minRelevance}`);
+
     // Fetch com timeout
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
@@ -255,11 +275,17 @@ serve(async (req) => {
     const results = [];
 
     for (const item of items) {
+      // Pular se foi excluído permanentemente
+      if (tombstoneLinks.has(item.link)) {
+        results.push({ title: item.title, saved: false, reason: 'Excluído anteriormente' });
+        continue;
+      }
+
       // Analisar relevância com IA
       const { relevancia, tags } = await analyzeRelevance(item.title, item.content, editoria);
 
-      // Apenas salvar se relevância >= 3
-      if (relevancia >= 3) {
+      // Aplicar threshold do usuário
+      if (relevancia >= minRelevance) {
         const { data, error } = await supabase
           .from('radar_brasis')
           .insert({

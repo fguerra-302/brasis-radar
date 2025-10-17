@@ -120,6 +120,17 @@ Deno.serve(async (req) => {
 
     console.log(`📡 Processando ${sources.length} fontes RSS para o usuário...`);
     
+    // Carregar tombstones (itens excluídos permanentemente)
+    const { data: tombstones } = await supabase
+      .from('radar_tombstones')
+      .select('link')
+      .eq('user_id', userId);
+
+    const tombstoneLinks = new Set(
+      tombstones?.map((t: { link: string }) => t.link) || []
+    );
+    console.log(`🪦 ${tombstoneLinks.size} links excluídos permanentemente`);
+    
     let totalSavedItems = 0;
     let processedSources = 0;
 
@@ -161,6 +172,12 @@ Deno.serve(async (req) => {
         // Save new items to database
         for (const item of items) {
           try {
+            // Pular se foi excluído permanentemente
+            if (item.link && tombstoneLinks.has(item.link)) {
+              console.log(`⏭️ Pulando item excluído anteriormente: ${item.title.substring(0, 50)}...`);
+              continue;
+            }
+
             // Check if item already exists for this user (avoid duplicates)
             const { data: existing } = await supabase
               .from('radar_brasis')

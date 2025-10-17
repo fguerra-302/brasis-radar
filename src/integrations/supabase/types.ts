@@ -167,6 +167,30 @@ export type Database = {
         }
         Relationships: []
       }
+      radar_tombstones: {
+        Row: {
+          excluded_at: string | null
+          id: string
+          link: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          excluded_at?: string | null
+          id?: string
+          link: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          excluded_at?: string | null
+          id?: string
+          link?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
