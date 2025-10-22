@@ -206,7 +206,7 @@ serve(async (req) => {
       throw new Error('URL inválida ou insegura');
     }
 
-    // Verificar se a fonte está ativa no banco
+    // Verificar se a fonte existe e está ativa
     const { data: sourceCheck } = await supabase
       .from('radar_sources')
       .select('active')
@@ -214,12 +214,14 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (sourceCheck && !sourceCheck.active) {
-      console.log(`⏭️ Fonte desativada: ${sourceName}`);
+    // Bloquear se fonte não existe ou está inativa
+    if (!sourceCheck || !sourceCheck.active) {
+      const reason = !sourceCheck ? 'inexistente' : 'desativada';
+      console.log(`🚫 Fonte ${reason}: ${sourceName} (${url})`);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Esta fonte está desativada. Ative-a em Configurações > Fontes para coletar conteúdo.',
+          error: `Fonte ${reason}. ${!sourceCheck ? 'Cadastre' : 'Ative'} a fonte em Configurações > Fontes antes de coletar conteúdo.`,
         }),
         {
           status: 403,
@@ -227,6 +229,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log(`✅ Fonte validada: ${sourceName}`);
 
     console.log(`Iniciando scraping: ${url}`);
 

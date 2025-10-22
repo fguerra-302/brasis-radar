@@ -190,8 +190,49 @@ serve(async (req) => {
   }
 });
 
-async function searchNewsletters(searchTerms: string, userId: string, supabaseClient: ReturnType<typeof createClient>, tombstoneLinks: Set<string>) {
+async function searchNewsletters(searchTerms: string, userId: string, supabaseClient: ReturnType<typeof createClient>) {
   try {
+    // Carregar fontes NEWSLETTER ativas do usuário
+    const { data: activeSources } = await supabaseClient
+      .from('radar_sources')
+      .select('id, name, url')
+      .eq('type', 'NEWSLETTER')
+      .eq('user_id', userId)
+      .eq('active', true);
+
+    if (!activeSources || activeSources.length === 0) {
+      console.log('🚫 Nenhuma fonte NEWSLETTER ativa encontrada');
+      return {
+        success: false,
+        items_collected: 0,
+        errors: ['Nenhuma fonte de newsletter ativa. Ative uma fonte do tipo NEWSLETTER em Configurações > Fontes.']
+      };
+    }
+
+    // Preparar listas de fontes permitidas
+    const allowedNames = new Set(
+      activeSources.map(s => s.name.toLowerCase().trim())
+    );
+    const allowedDomains = new Set(
+      activeSources.map(s => {
+        try {
+          return new URL(s.url).hostname.toLowerCase();
+        } catch {
+          return '';
+        }
+      }).filter(d => d)
+    );
+
+    console.log(`✅ Fontes permitidas: ${activeSources.length} (${Array.from(allowedNames).join(', ')})`);
+
+    // Carregar tombstones para evitar re-importar itens excluídos
+    const { data: tombstones } = await supabaseClient
+      .from('radar_tombstones')
+      .select('link')
+      .eq('user_id', userId);
+    
+    const tombstoneLinks = new Set(tombstones?.map(t => t.link) || []);
+
     // Usar OpenAI para buscar newsletters recentes
     const searchQuery = `Encontre newsletters brasileiras recentes sobre ${searchTerms}. 
     Procure por newsletters de empresas, mídia e influenciadores do Brasil. 
@@ -268,19 +309,50 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
     }
 
     const processedItems = [];
+    const skippedItems = [];
     
     for (const newsletter of newsletterData.slice(0, 10)) {
+      const itemLink = newsletter.link || `https://newsletter-search.com/query/${encodeURIComponent(searchTerms)}`;
+      const itemSource = newsletter.source || `Newsletter - ${searchTerms}`;
+      
+      // Verificar se foi excluído permanentemente
+      if (tombstoneLinks.has(itemLink)) {
+        skippedItems.push({ title: newsletter.title, reason: 'Excluído anteriormente (tombstone)' });
+        console.log(`⏭️ Item pulado (tombstone): ${newsletter.title}`);
+        continue;
+      }
+
+      // Validar se fonte está permitida
+      const normalizedSource = itemSource.toLowerCase().trim();
+      let isAllowed = allowedNames.has(normalizedSource);
+      
+      // Se não encontrou por nome, tentar por domínio do link
+      if (!isAllowed) {
+        try {
+          const linkDomain = new URL(itemLink).hostname.toLowerCase();
+          isAllowed = allowedDomains.has(linkDomain);
+        } catch {
+          // Link inválido, não é permitido
+        }
+      }
+
+      if (!isAllowed) {
+        skippedItems.push({ title: newsletter.title, source: itemSource, reason: 'Fonte não permitida' });
+        console.log(`🚫 Item bloqueado (fonte não permitida): ${newsletter.title} - ${itemSource}`);
+        continue;
+      }
+
       const item = {
         title: newsletter.title || `Newsletter sobre ${searchTerms}`,
-        link: newsletter.link || `https://newsletter-search.com/query/${encodeURIComponent(searchTerms)}`,
-        source: newsletter.source || `Newsletter - ${searchTerms}`,
+        link: itemLink,
+        source: itemSource,
         pub_date: newsletter.pub_date || new Date().toISOString(),
         editoria: 'Newsletter',
         tags: ['newsletter', 'curadoria', 'brasil', ...searchTerms.split(' ').filter(term => term.length > 2)],
         relevancia: newsletter.relevance || 3,
         status: 'Em aprovação',
         resumo_curado: newsletter.summary || content.substring(0, 500),
-        user_id: userId, // Associar ao usuário logado
+        user_id: userId,
         input_bruto: JSON.stringify({
           search_terms: searchTerms,
           perplexity_response: content,
@@ -299,8 +371,13 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
 
       if (!existing) {
         processedItems.push(item);
+        console.log(`✅ Item aprovado para inserção: ${item.title}`);
+      } else {
+        skippedItems.push({ title: item.title, reason: 'Já existe no sistema' });
       }
     }
+
+    console.log(`📊 Resumo: ${processedItems.length} aprovados, ${skippedItems.length} bloqueados/pulados`);
 
     // Salvar novos itens
     if (processedItems.length > 0) {
@@ -317,7 +394,9 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
     return {
       success: true,
       items_collected: processedItems.length,
+      items_skipped: skippedItems.length,
       search_terms: searchTerms,
+      skipped_details: skippedItems,
       errors: []
     };
 
