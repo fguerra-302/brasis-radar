@@ -271,22 +271,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      emergency_disable_all_rls: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      emergency_disable_rls_brasis: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      emergency_disable_rls_keywords: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      emergency_disable_rls_sources: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      emergency_disable_all_rls: { Args: never; Returns: undefined }
+      emergency_disable_rls_brasis: { Args: never; Returns: undefined }
+      emergency_disable_rls_keywords: { Args: never; Returns: undefined }
+      emergency_disable_rls_sources: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -298,10 +286,7 @@ export type Database = {
         Args: { details?: Json; event_type: string; user_id?: string }
         Returns: undefined
       }
-      source_has_credentials: {
-        Args: { source_id: string }
-        Returns: boolean
-      }
+      source_has_credentials: { Args: { source_id: string }; Returns: boolean }
       update_source_credentials: {
         Args: { new_credentials: Json; source_id: string }
         Returns: undefined
