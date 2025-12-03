@@ -38,7 +38,7 @@ export const AuthPage = () => {
       if (mode === 'signup') {
         return 'Este email já possui uma conta ou a senha não atende aos requisitos. Tente fazer login ou use outra senha.';
       }
-      return 'Email ou senha incorretos. Verifique seus dados ou recupere sua senha.';
+      return 'Email ou senha incorretos. Se você ainda não tem conta, clique em "Cadastro" para criar uma.';
     }
     
     if (errorMessage.includes('User already registered') || errorMessage.includes('user_already_exists')) {
