@@ -70,6 +70,9 @@ export const AuthPage = () => {
   };
 
   const handleAuth = async (mode: 'signin' | 'signup') => {
+    // DEBUG: Log para identificar problema de cadastro
+    console.log('🔐 handleAuth chamado:', { mode, email, passwordLength: password?.length });
+    
     if (!email || !password) {
       toast({
         title: "Campos obrigatórios",
