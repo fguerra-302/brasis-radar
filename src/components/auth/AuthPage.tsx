@@ -29,10 +29,15 @@ export const AuthPage = () => {
     }
   }, [user, navigate]);
 
-  const getErrorMessage = (error: any) => {
+  const getErrorMessage = (error: any, mode: 'signin' | 'signup' = 'signin') => {
     const errorMessage = error?.message || '';
     
+    // No signup com email confirmation desabilitado, Supabase retorna "Invalid login credentials" 
+    // quando o email já existe (ele tenta auto-login). Tratamos esse caso especialmente.
     if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('invalid_credentials')) {
+      if (mode === 'signup') {
+        return 'Este email já possui uma conta ou a senha não atende aos requisitos. Tente fazer login ou use outra senha.';
+      }
       return 'Email ou senha incorretos. Verifique seus dados ou recupere sua senha.';
     }
     
@@ -54,6 +59,10 @@ export const AuthPage = () => {
 
     if (errorMessage.includes('requested path is invalid') || errorMessage.includes('redirect')) {
       return 'Erro de configuração. Configure as URLs no Supabase.';
+    }
+    
+    if (errorMessage.includes('Password should be at least')) {
+      return 'A senha deve ter pelo menos 6 caracteres.';
     }
 
     // Mensagem genérica para outros erros
@@ -87,7 +96,7 @@ export const AuthPage = () => {
         : await signUp(email, password);
 
       if (error) {
-        const friendlyMessage = getErrorMessage(error);
+        const friendlyMessage = getErrorMessage(error, mode);
         
         toast({
           title: mode === 'signin' ? "Erro no Login" : "Erro no Cadastro",
