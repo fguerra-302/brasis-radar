@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, X, Settings, Loader2, Globe, Instagram, Music, BarChart3, Mail, Key } from 'lucide-react';
+import { Plus, X, Settings, Loader2, Globe, Instagram, Music, BarChart3, Mail, Key, AlertTriangle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { BulkSourceUpload } from './BulkSourceUpload';
 import CredentialsModal from './CredentialsModal';
@@ -252,6 +252,29 @@ const SourceManager = () => {
     return ['INSTAGRAM', 'SPOTIFY'].includes(type);
   };
 
+  // Detecta fontes com problemas de URL
+  const getUrlIssue = (source: NewsSource): string | null => {
+    const url = source.url;
+    const type = source.type;
+    
+    // Para RSS/IBGE, URL deve começar com http:// ou https://
+    if ((type === 'RSS' || type === 'IBGE') && !url.match(/^https?:\/\//i)) {
+      return 'URL sem protocolo (http/https)';
+    }
+    
+    // Verificar se URL parece ser um feed RSS válido (não uma página HTML)
+    if (type === 'RSS' && !url.includes('/rss') && !url.includes('/feed') && !url.includes('.xml')) {
+      return 'URL pode não ser um feed RSS válido';
+    }
+    
+    return null;
+  };
+
+  // Conta fontes com problemas
+  const sourcesWithIssues = useMemo(() => {
+    return sources.filter(s => getUrlIssue(s) !== null);
+  }, [sources]);
+
   const openCredentialsModal = (source: NewsSource) => {
     setCredentialsModal({
       isOpen: true,
@@ -300,6 +323,18 @@ const SourceManager = () => {
             </TabsList>
 
             <TabsContent value="list" className="space-y-4">
+              {sourcesWithIssues.length > 0 && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+                  <h4 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    {sourcesWithIssues.length} fonte(s) com possíveis problemas
+                  </h4>
+                  <p className="text-sm text-amber-700">
+                    Remova e recadastre as fontes com URL inválida para corrigir.
+                  </p>
+                </div>
+              )}
+              
               {sources.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -308,16 +343,26 @@ const SourceManager = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {sources.map((source) => (
-                    <div key={source.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
+                  {sources.map((source) => {
+                    const urlIssue = getUrlIssue(source);
+                    return (
+                    <div key={source.id} className={`flex items-center justify-between p-4 border rounded-lg bg-card ${urlIssue ? 'border-amber-300 bg-amber-50/50' : ''}`}>
                       <div className="flex items-center gap-3 flex-1">
                         <div className={`p-2 rounded-lg ${getSourceColor(source.type)}`}>
                           {getSourceIcon(source.type)}
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium">{source.name}</div>
+                          <div className="font-medium flex items-center gap-2">
+                            {source.name}
+                            {urlIssue && (
+                              <span className="text-xs text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                {urlIssue}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-sm text-muted-foreground truncate max-w-md">{source.url}</div>
-                          <div className="flex gap-2 mt-1">
+                          <div className="flex gap-2 mt-1 flex-wrap">
                             <Badge variant="outline" className="text-xs">
                               {source.type}
                             </Badge>
@@ -362,7 +407,8 @@ const SourceManager = () => {
                         </Button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>
