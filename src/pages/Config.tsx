@@ -9,6 +9,7 @@ import { ExternalApiConfig } from '@/components/config/ExternalApiConfig';
 import { AutomationConfig } from '@/components/config/AutomationConfig';
 import { BrandingConfig } from '@/components/config/BrandingConfig';
 import { AINewsletterConfig } from '@/components/config/AINewsletterConfig';
+import { GroupsConfig } from '@/components/config/GroupsConfig';
 
 
 const Config = () => {
@@ -17,6 +18,7 @@ const Config = () => {
       <Routes>
         <Route path="" element={<Navigate to="/config/status" replace />} />
         <Route path="status" element={<SourcesStatus />} />
+        <Route path="groups" element={<GroupsConfig />} />
         <Route path="sources" element={<SourcesConfig />} />
         <Route path="keywords" element={<KeywordsConfig />} />
         <Route path="weights" element={<EditoriaWeights />} />

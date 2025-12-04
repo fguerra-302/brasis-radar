@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      content_groups: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       editorial_weights: {
         Row: {
           created_at: string
@@ -45,6 +72,7 @@ export type Database = {
         Row: {
           created_at: string | null
           editoria: string
+          group_id: string | null
           id: string
           input_bruto: string | null
           link: string
@@ -61,6 +89,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           editoria?: string
+          group_id?: string | null
           id?: string
           input_bruto?: string | null
           link: string
@@ -77,6 +106,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           editoria?: string
+          group_id?: string | null
           id?: string
           input_bruto?: string | null
           link?: string
@@ -90,7 +120,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "radar_brasis_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "content_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       radar_keywords: {
         Row: {
@@ -190,6 +228,45 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      source_group_assignments: {
+        Row: {
+          created_at: string | null
+          group_id: string
+          id: string
+          source_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          group_id: string
+          id?: string
+          source_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          group_id?: string
+          id?: string
+          source_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_group_assignments_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "content_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_group_assignments_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "radar_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
