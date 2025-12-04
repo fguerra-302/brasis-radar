@@ -20,58 +20,60 @@ function getCorsHeaders(req: Request) {
   };
 }
 
-// Rate limiting: simple in-memory store (resets on function restart)
+// Security: generic error messages for client
+function createErrorResponse(
+  corsHeaders: Record<string, string>,
+  userMessage: string,
+  status: number,
+  internalContext?: string,
+  internalError?: unknown
+) {
+  if (internalContext) {
+    console.error(`[newsletter-editor] ${internalContext}:`, internalError || userMessage);
+  }
+  return new Response(
+    JSON.stringify({ error: userMessage }),
+    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// Rate limiting
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_MAX = 10; // 10 requests per minute
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW = 60 * 1000;
 
 function checkRateLimit(userId: string): boolean {
   const now = Date.now();
   const userLimit = rateLimitStore.get(userId);
   
   if (!userLimit || now > userLimit.resetTime) {
-    // First request or window expired
     rateLimitStore.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
     return true;
   }
   
   if (userLimit.count >= RATE_LIMIT_MAX) {
-    return false; // Rate limit exceeded
+    return false;
   }
   
   userLimit.count++;
   return true;
 }
 
-function logSecurityEvent(eventType: string, userId: string, details: any) {
-  console.log(`[SECURITY] ${eventType} - User: ${userId} - Details:`, details);
-}
-
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Verificar autenticação JWT
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      logSecurityEvent('newsletter_editor_no_auth', 'anonymous', {});
-      return new Response(
-        JSON.stringify({ error: 'Authorization header required' }), 
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return createErrorResponse(corsHeaders, 'Autenticação necessária', 401, 'Missing auth header');
     }
 
     const token = authHeader.substring(7);
     
-    // Create authenticated Supabase client using anon key + user JWT (respects RLS)
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
@@ -82,56 +84,27 @@ serve(async (req) => {
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      logSecurityEvent('newsletter_editor_invalid_token', 'anonymous', { error: authError?.message });
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }), 
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return createErrorResponse(corsHeaders, 'Falha na autenticação', 401, 'Auth failed', authError);
     }
 
-    // Rate limiting check
+    // Rate limiting
     if (!checkRateLimit(user.id)) {
-      logSecurityEvent('newsletter_editor_rate_limit', user.id, { limit: RATE_LIMIT_MAX });
-      return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded. Try again in a few moments.' }), 
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return createErrorResponse(corsHeaders, 'Muitas solicitações. Aguarde um momento.', 429, 'Rate limit exceeded');
     }
 
     if (!openAIApiKey) {
-      console.error('OpenAI API key não configurada');
-      return new Response(
-        JSON.stringify({ error: 'OpenAI API key não configurada' }), 
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return createErrorResponse(corsHeaders, 'Serviço temporariamente indisponível', 503, 'OpenAI API key not configured');
     }
 
     const { newsletterText, publicoAlvo, customPrompt } = await req.json();
 
     if (!newsletterText) {
-      return new Response(
-        JSON.stringify({ error: 'Texto da newsletter é obrigatório' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return createErrorResponse(corsHeaders, 'Texto da newsletter é obrigatório', 400);
     }
 
-    console.log('📝 Processando newsletter com IA...');
-    console.log('🎯 Público-alvo:', publicoAlvo || 'Não especificado');
-    console.log('👤 Usuário:', user.id);
+    console.log('[newsletter-editor] Processing newsletter...');
 
-    // Buscar prompt personalizado do usuário se não fornecido
+    // Get custom prompt if not provided
     let finalPrompt = customPrompt;
     
     if (!customPrompt) {
@@ -144,7 +117,7 @@ serve(async (req) => {
       finalPrompt = userSettings?.ai_newsletter_prompt;
     }
 
-    // Prompt base como fallback
+    // Base prompt as fallback
     const basePrompt = `# Nome do GPT  
 Lovable Editor – Texto Corrigido com Storytelling
 
@@ -185,12 +158,11 @@ Lovable Editor – Texto Corrigido com Storytelling
 - Agrupamento lógico por editoria  
 - Adaptação de tom conforme o público informado`;
 
-    // Usar prompt salvo do usuário ou fallback para o base
     if (!finalPrompt) {
       finalPrompt = basePrompt;
     }
     
-    // Adicionar contexto de público-alvo se fornecido
+    // Add audience context if provided
     if (publicoAlvo) {
       finalPrompt += `\n\n## 📂 PÚBLICO_ALVO:\n${publicoAlvo}\n\nAdapte o texto conforme essas diretrizes de público-alvo.`;
     }
@@ -220,22 +192,14 @@ Lovable Editor – Texto Corrigido com Storytelling
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Erro na API OpenAI:', errorData);
-      return new Response(
-        JSON.stringify({ error: 'Erro ao processar com OpenAI' }), 
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      console.error('[newsletter-editor] OpenAI API error:', response.status);
+      return createErrorResponse(corsHeaders, 'Erro ao processar newsletter. Tente novamente.', 500, 'OpenAI API error');
     }
 
     const data = await response.json();
     const refinedText = data.choices[0].message.content;
 
-    console.log('✅ Newsletter refinada com sucesso');
-    logSecurityEvent('newsletter_editor_success', user.id, { length: refinedText.length });
+    console.log('[newsletter-editor] Newsletter refined successfully');
 
     return new Response(
       JSON.stringify({ 
@@ -251,13 +215,7 @@ Lovable Editor – Texto Corrigido com Storytelling
     );
 
   } catch (error) {
-    console.error('Erro na função newsletter-editor:', error);
-    return new Response(
-      JSON.stringify({ error: 'Erro interno do servidor' }), 
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    console.error('[newsletter-editor] Unhandled error:', error);
+    return createErrorResponse(getCorsHeaders(req), 'Erro ao processar solicitação. Tente novamente.', 500, 'Unhandled error', error);
   }
 });
