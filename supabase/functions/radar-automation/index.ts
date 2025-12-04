@@ -14,6 +14,23 @@ function getCorsHeaders(req: Request) {
   };
 }
 
+// Security: generic error messages for client
+function createErrorResponse(
+  corsHeaders: Record<string, string>,
+  userMessage: string,
+  status: number,
+  internalContext?: string,
+  internalError?: unknown
+) {
+  if (internalContext) {
+    console.error(`[radar-automation] ${internalContext}:`, internalError || userMessage);
+  }
+  return new Response(
+    JSON.stringify({ error: userMessage }),
+    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -35,23 +52,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Iniciando coleta automática de RSS...');
+    console.log('[radar-automation] Starting RSS collection...');
     const startTime = Date.now();
     
-    // ⚡ OTIMIZAÇÃO 3: Eliminar JWT redundante - Supabase já valida via verify_jwt=true
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('❌ Token JWT não fornecido');
-      return new Response(
-        JSON.stringify({ error: 'Authorization token required' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401
-        }
-      );
+      return createErrorResponse(corsHeaders, 'Autenticação necessária', 401, 'Missing auth token');
     }
 
-    // Criar client autenticado diretamente (JWT já validado por config.toml)
+    // Create authenticated client
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         detectSessionInUrl: false,
@@ -59,29 +68,21 @@ Deno.serve(async (req) => {
       },
       global: {
         headers: {
-          Authorization: authHeader, // Passar token diretamente
+          Authorization: authHeader,
         },
       },
     });
     
-    // Obter usuário do contexto autenticado (remove 200ms+ de latência)
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.error('❌ Erro de autenticação:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Authentication failed', details: authError?.message }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401
-        }
-      );
+      return createErrorResponse(corsHeaders, 'Falha na autenticação', 401, 'Auth error', authError);
     }
 
     const userId = user.id;
-    console.log(`👤 Processando para usuário: ${userId}`);
+    console.log(`[radar-automation] Processing for user: ${userId}`);
     
-    // Performance: carregar configurações em batch
+    // Load configurations in batch
     const configStart = Date.now();
     const [keywordsResult, weightsResult, settingsResult] = await Promise.all([
       supabase
@@ -103,9 +104,9 @@ Deno.serve(async (req) => {
     const userEditorialWeights = weightsResult.data || [];
     const minThreshold = settingsResult.data?.min_relevance_threshold || 3;
     
-    console.log(`⚡ Config carregada em ${Date.now() - configStart}ms: ${userKeywords.length} categorias, ${userEditorialWeights.length} multiplicadores, threshold ${minThreshold}`);
+    console.log(`[radar-automation] Config loaded in ${Date.now() - configStart}ms`);
 
-    // Fetch user's active RSS sources (excluindo credentials por segurança)
+    // Fetch user's active RSS sources (excluding credentials for security)
     const { data: sources, error: sourcesError } = await supabase
       .from('radar_sources')
       .select('id, name, url, type, active, config, external_api_config, last_sync, created_at, updated_at, user_id')
@@ -114,24 +115,20 @@ Deno.serve(async (req) => {
       .eq('user_id', userId);
 
     if (sourcesError) {
-      console.error('❌ Erro ao buscar fontes:', sourcesError);
-      throw sourcesError;
+      return createErrorResponse(corsHeaders, 'Erro ao carregar fontes', 500, 'Sources fetch error', sourcesError);
     }
 
     if (!sources || sources.length === 0) {
-      console.log('⚠️ Nenhuma fonte RSS ativa encontrada para o usuário');
+      console.log('[radar-automation] No active RSS sources found');
       return new Response(
-        JSON.stringify({ message: 'Nenhuma fonte RSS ativa encontrada para este usuário', processedSources: 0, savedItems: 0 }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
+        JSON.stringify({ message: 'Nenhuma fonte RSS ativa encontrada', processedSources: 0, savedItems: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
-    console.log(`📡 Processando ${sources.length} fontes RSS para o usuário...`);
+    console.log(`[radar-automation] Processing ${sources.length} RSS sources...`);
     
-    // Carregar tombstones (itens excluídos permanentemente)
+    // Load tombstones
     const { data: tombstones } = await supabase
       .from('radar_tombstones')
       .select('link')
@@ -140,7 +137,6 @@ Deno.serve(async (req) => {
     const tombstoneLinks = new Set(
       tombstones?.map((t: { link: string }) => t.link) || []
     );
-    console.log(`🪦 ${tombstoneLinks.size} links excluídos permanentemente`);
     
     let totalSavedItems = 0;
     let processedSources = 0;
@@ -148,18 +144,17 @@ Deno.serve(async (req) => {
     // Process each RSS source
     for (const source of sources) {
       try {
-        console.log(`🔄 Processando fonte: ${source.name} (${source.url})`);
+        console.log(`[radar-automation] Processing: ${source.name}`);
         
-        // Normalize URL - ensure it has protocol
+        // Normalize URL
         let normalizedUrl = source.url.trim();
         if (!normalizedUrl.match(/^https?:\/\//i)) {
           normalizedUrl = `https://${normalizedUrl}`;
-          console.log(`🔗 URL normalizada: ${normalizedUrl}`);
         }
         
-        // SSRF Protection: validate URL
+        // SSRF Protection
         if (!isUrlSafe(normalizedUrl)) {
-          console.error(`🚫 URL rejeitada por política de segurança: ${normalizedUrl}`);
+          console.error(`[radar-automation] URL blocked by security policy: ${source.name}`);
           continue;
         }
         
@@ -171,25 +166,24 @@ Deno.serve(async (req) => {
         });
 
         if (!rssResponse.ok) {
-          console.error(`❌ Erro ao buscar RSS ${source.name}: ${rssResponse.status}`);
+          console.error(`[radar-automation] RSS fetch failed for ${source.name}: ${rssResponse.status}`);
           continue;
         }
 
         const rssText = await rssResponse.text();
         const items = parseRSSFeed(rssText, source.name);
         
-        console.log(`📄 ${items.length} itens encontrados em ${source.name}`);
+        console.log(`[radar-automation] Found ${items.length} items in ${source.name}`);
 
-        // Save new items to database
+        // Save new items
         for (const item of items) {
           try {
-            // Pular se foi excluído permanentemente
+            // Skip if permanently deleted
             if (item.link && tombstoneLinks.has(item.link)) {
-              console.log(`⏭️ Pulando item excluído anteriormente: ${item.title.substring(0, 50)}...`);
               continue;
             }
 
-            // Check if item already exists for this user (avoid duplicates)
+            // Check for duplicates
             const { data: existing } = await supabase
               .from('radar_brasis')
               .select('id')
@@ -198,31 +192,22 @@ Deno.serve(async (req) => {
               .maybeSingle();
 
             if (existing) {
-              console.log(`⏭️ Item já existe: ${item.title.substring(0, 50)}...`);
               continue;
             }
 
             // Extract tags and calculate relevance
             const extractedTags = extractKeywords(item.title + ' ' + item.description);
             const keywordScore = calculateKeywordRelevance(item, extractedTags, userKeywords);
-            
-            // Try to determine editoria from item content
             const editoria = determineEditoria(item);
-            
-            // Apply editorial multiplier
             const multiplier = getEditorialMultiplier(editoria, userEditorialWeights);
             const finalScore = Math.max(1, Math.min(5, keywordScore * multiplier));
             
-            // ⚡ OTIMIZAÇÃO: aplicar filtro antes de qualquer processamento DB
+            // Apply threshold filter
             if (finalScore < minThreshold) {
-              console.log(`⏭️ Item rejeitado por threshold: ${finalScore.toFixed(1)} < ${minThreshold}`);
               continue;
             }
-            
-            console.log(`📝 Item aceito: ${item.title.substring(0, 50)}... | Editoria: ${editoria} | Score: ${finalScore.toFixed(1)}`);
-            
 
-            // Insert new item with correct schema
+            // Insert new item
             const { error: insertError } = await supabase
               .from('radar_brasis')
               .insert({
@@ -239,30 +224,29 @@ Deno.serve(async (req) => {
               });
 
             if (insertError) {
-              console.error(`❌ Erro ao inserir item: ${insertError.message}`);
+              console.error(`[radar-automation] Insert error:`, insertError.message);
             } else {
-              console.log(`✅ Item salvo: ${item.title.substring(0, 50)}...`);
               totalSavedItems++;
             }
           } catch (itemError) {
-            console.error(`❌ Erro ao processar item individual:`, itemError);
+            console.error(`[radar-automation] Item processing error:`, itemError);
           }
         }
 
         processedSources++;
         
-        // Update source last_sync timestamp
+        // Update last_sync timestamp
         await supabase
           .from('radar_sources')
           .update({ last_sync: new Date().toISOString() })
           .eq('id', source.id);
 
       } catch (sourceError) {
-        console.error(`❌ Erro ao processar fonte ${source.name}:`, sourceError);
+        console.error(`[radar-automation] Source error ${source.name}:`, sourceError);
       }
     }
 
-    // Count today's filtered items for reporting
+    // Count today's items
     const { data: todayItems } = await supabase
       .from('radar_brasis')
       .select('id', { count: 'exact' })
@@ -270,9 +254,9 @@ Deno.serve(async (req) => {
       .gte('created_at', new Date().toISOString().split('T')[0] + 'T00:00:00Z');
     
     const todayTotalItems = todayItems?.length || 0;
-    
     const totalTime = Date.now() - startTime;
-    console.log(`✅ Coleta concluída em ${totalTime}ms: ${processedSources} fontes processadas, ${totalSavedItems} novos itens salvos`);
+    
+    console.log(`[radar-automation] Completed in ${totalTime}ms: ${processedSources} sources, ${totalSavedItems} items`);
 
     return new Response(
       JSON.stringify({
@@ -288,23 +272,14 @@ Deno.serve(async (req) => {
         },
         timestamp: new Date().toISOString()
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
 
   } catch (error) {
-    console.error('❌ Erro geral na coleta RSS:', error);
+    console.error('[radar-automation] Unhandled error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Erro interno na coleta RSS',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
+      JSON.stringify({ error: 'Erro ao processar coleta. Tente novamente.' }),
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
@@ -313,7 +288,6 @@ function parseRSSFeed(xmlText: string, sourceName: string): RSSItem[] {
   const items: RSSItem[] = [];
   
   try {
-    // Basic XML parsing for RSS feeds
     const itemMatches = xmlText.match(/<item[^>]*>[\s\S]*?<\/item>/gi) || [];
     
     for (const itemXml of itemMatches) {
@@ -322,7 +296,6 @@ function parseRSSFeed(xmlText: string, sourceName: string): RSSItem[] {
       const description = extractXMLContent(itemXml, 'description') || '';
       const pubDate = extractXMLContent(itemXml, 'pubDate') || new Date().toISOString();
       
-      // Clean HTML from description
       const cleanDescription = description
         .replace(/<[^>]*>/g, '')
         .replace(/&quot;/g, '"')
@@ -340,7 +313,7 @@ function parseRSSFeed(xmlText: string, sourceName: string): RSSItem[] {
       });
     }
   } catch (parseError) {
-    console.error('❌ Erro ao fazer parse do XML RSS:', parseError);
+    console.error('[radar-automation] RSS parse error:', parseError);
   }
   
   return items;
@@ -354,39 +327,48 @@ function extractXMLContent(xml: string, tagName: string): string | null {
 
 function isUrlSafe(url: string): boolean {
   try {
+    // URL length limit
+    if (url.length > 2048) {
+      return false;
+    }
+
     const parsedUrl = new URL(url);
     
-    // Only allow HTTP and HTTPS protocols
+    // Only HTTP/HTTPS
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       return false;
     }
     
-    // Block private/local networks and localhost
+    // Hostname length limit
+    if (parsedUrl.hostname.length > 253) {
+      return false;
+    }
+    
+    // Block private/local networks
     const hostname = parsedUrl.hostname.toLowerCase();
     
-    // Block localhost variations
     if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
       return false;
     }
     
-    // Block private IP ranges (basic check)
     if (hostname.match(/^10\./) || 
         hostname.match(/^192\.168\./) || 
         hostname.match(/^172\.(1[6-9]|2[0-9]|3[01])\./) ||
-        hostname.match(/^169\.254\./) || // Link-local
-        hostname.match(/^fc00:/) || // IPv6 unique local
-        hostname.match(/^fe80:/)) { // IPv6 link-local
+        hostname.match(/^169\.254\./) ||
+        hostname.match(/^fc00:/) ||
+        hostname.match(/^fe80:/) ||
+        hostname.endsWith('.local') ||
+        hostname.endsWith('.internal')) {
       return false;
     }
     
     return true;
   } catch {
-    return false; // Invalid URL
+    return false;
   }
 }
 
 function extractKeywords(text: string): string[] {
-  // Simple keyword extraction - remove common words and extract meaningful terms
   const commonWords = ['o', 'a', 'os', 'as', 'de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos', 'para', 'por', 'com', 'sem', 'sobre', 'entre', 'até', 'desde'];
   
   const words = text
@@ -394,14 +376,14 @@ function extractKeywords(text: string): string[] {
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
     .filter(word => word.length > 3 && !commonWords.includes(word))
-    .slice(0, 10); // Limit to 10 keywords
+    .slice(0, 10);
     
-  return [...new Set(words)]; // Remove duplicates
+  return [...new Set(words)];
 }
 
 function calculateKeywordRelevance(item: RSSItem, extractedTags: string[], userKeywords: any[]): number {
   if (!userKeywords || userKeywords.length === 0) {
-    return 1; // Default relevance if no keywords configured
+    return 1;
   }
   
   const text = `${item.title} ${item.description}`.toLowerCase();
@@ -415,18 +397,10 @@ function calculateKeywordRelevance(item: RSSItem, extractedTags: string[], userK
     
     let categoryMatched = false;
     
-    // Check if any keyword from this category is present
     for (const keyword of categoryKeywords) {
       const keywordLower = keyword.toLowerCase();
       
-      // Check in text content
-      if (text.includes(keywordLower)) {
-        categoryMatched = true;
-        break;
-      }
-      
-      // Check in extracted tags
-      if (tags.some(tag => tag.includes(keywordLower))) {
+      if (text.includes(keywordLower) || tags.some(tag => tag.includes(keywordLower))) {
         categoryMatched = true;
         break;
       }
@@ -437,14 +411,12 @@ function calculateKeywordRelevance(item: RSSItem, extractedTags: string[], userK
     }
   }
   
-  // Return raw score (will be multiplied by editorial weight later)
   return Math.max(1, Math.min(5, totalScore));
 }
 
 function determineEditoria(item: RSSItem): string {
   const text = `${item.title} ${item.description}`.toLowerCase();
   
-  // Simple keyword-based editorial classification
   const editoriaKeywords = {
     'Economia': ['economia', 'mercado', 'investimento', 'negócio', 'empresa', 'financeiro', 'dinheiro', 'lucro'],
     'Política': ['governo', 'presidente', 'ministro', 'política', 'eleição', 'congresso', 'senado', 'deputado'],
@@ -462,10 +434,10 @@ function determineEditoria(item: RSSItem): string {
     }
   }
   
-  return 'Geral'; // Default editoria
+  return 'Geral';
 }
 
 function getEditorialMultiplier(editoria: string, editorialWeights: any[]): number {
   const weight = editorialWeights.find(w => w.editoria === editoria);
-  return weight ? Number(weight.multiplier) : 1.0; // Default multiplier
+  return weight ? Number(weight.multiplier) : 1.0;
 }

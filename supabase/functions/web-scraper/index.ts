@@ -15,32 +15,74 @@ function getCorsHeaders(req: Request) {
   };
 }
 
-// Validação de URL segura
-function isValidUrl(url: string): boolean {
+// Security: generic error messages for client, detailed logs server-side
+function createErrorResponse(
+  corsHeaders: Record<string, string>,
+  userMessage: string,
+  status: number,
+  internalContext?: string,
+  internalError?: unknown
+) {
+  if (internalContext) {
+    console.error(`[web-scraper] ${internalContext}:`, internalError || userMessage);
+  }
+  return new Response(
+    JSON.stringify({ success: false, error: userMessage }),
+    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// Enhanced URL validation with security limits
+function isValidUrl(url: string): { valid: boolean; reason?: string } {
+  // URL length limit (RFC 2616 recommends max 2048)
+  if (url.length > 2048) {
+    return { valid: false, reason: 'URL too long' };
+  }
+
   try {
     const parsed = new URL(url);
-    // Apenas HTTP/HTTPS
+    
+    // Only HTTP/HTTPS
     if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return false;
+      return { valid: false, reason: 'Invalid protocol' };
     }
-    // Bloquear IPs locais/privados
-    const hostname = parsed.hostname;
+    
+    // Hostname length limit (RFC 1035)
+    if (parsed.hostname.length > 253) {
+      return { valid: false, reason: 'Hostname too long' };
+    }
+    
+    // Block local/private IPs
+    const hostname = parsed.hostname.toLowerCase();
     if (
       hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname === '0.0.0.0' ||
       hostname.startsWith('127.') ||
       hostname.startsWith('192.168.') ||
       hostname.startsWith('10.') ||
-      hostname.startsWith('172.')
+      hostname.startsWith('172.16.') ||
+      hostname.startsWith('172.17.') ||
+      hostname.startsWith('172.18.') ||
+      hostname.startsWith('172.19.') ||
+      hostname.startsWith('172.2') ||
+      hostname.startsWith('172.30.') ||
+      hostname.startsWith('172.31.') ||
+      hostname.startsWith('169.254.') ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal')
     ) {
-      return false;
+      return { valid: false, reason: 'Local/private addresses not allowed' };
     }
-    return true;
+    
+    return { valid: true };
   } catch {
-    return false;
+    return { valid: false, reason: 'Invalid URL format' };
   }
 }
 
-// Sanitizar texto
+// Sanitize text - remove scripts and limit size
 function sanitizeText(text: string): string {
   return text
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -50,7 +92,7 @@ function sanitizeText(text: string): string {
     .slice(0, 5000);
 }
 
-// Extrair conteúdo de HTML
+// Extract content from HTML
 async function extractContent(html: string, sourceUrl: string): Promise<{
   title: string;
   items: Array<{ title: string; content: string; link: string }>;
@@ -60,7 +102,7 @@ async function extractContent(html: string, sourceUrl: string): Promise<{
 
   const items: Array<{ title: string; content: string; link: string }> = [];
 
-  // Extrair artigos/seções
+  // Extract articles/sections
   const articleRegex = /<article[^>]*>(.*?)<\/article>/gis;
   const articles = html.match(articleRegex) || [];
 
@@ -75,7 +117,7 @@ async function extractContent(html: string, sourceUrl: string): Promise<{
     const linkMatch = article.match(/<a[^>]*href=["']([^"']+)["'][^>]*>/i);
     let itemLink = linkMatch?.[1] || sourceUrl;
     
-    // Converter URLs relativas em absolutas
+    // Convert relative URLs to absolute
     if (itemLink.startsWith('/')) {
       const baseUrl = new URL(sourceUrl);
       itemLink = `${baseUrl.protocol}//${baseUrl.host}${itemLink}`;
@@ -90,7 +132,7 @@ async function extractContent(html: string, sourceUrl: string): Promise<{
     }
   }
 
-  // Se não encontrou artigos, tentar extrair parágrafos gerais
+  // If no articles found, try extracting general paragraphs
   if (items.length === 0) {
     const h2Regex = /<h2[^>]*>([^<]+)<\/h2>/gi;
     const headers = Array.from(html.matchAll(h2Regex));
@@ -117,7 +159,7 @@ async function extractContent(html: string, sourceUrl: string): Promise<{
   return { title: pageTitle, items };
 }
 
-// Analisar relevância com IA
+// Analyze relevance with AI
 async function analyzeRelevance(
   title: string,
   content: string,
@@ -125,7 +167,7 @@ async function analyzeRelevance(
 ): Promise<{ relevancia: number; tags: string[] }> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   if (!LOVABLE_API_KEY) {
-    console.warn('LOVABLE_API_KEY não configurada, usando relevância padrão');
+    console.warn('[web-scraper] LOVABLE_API_KEY not configured, using default relevance');
     return { relevancia: 3, tags: [editoria] };
   }
 
@@ -158,14 +200,14 @@ Retorne APENAS um JSON válido com:
     });
 
     if (!response.ok) {
-      console.error('Erro na API Lovable AI:', response.status);
+      console.error('[web-scraper] AI API error:', response.status);
       return { relevancia: 3, tags: [editoria] };
     }
 
     const data = await response.json();
     const aiResponse = data.choices?.[0]?.message?.content || '{}';
     
-    // Extrair JSON da resposta (pode vir com markdown)
+    // Extract JSON from response (may come with markdown)
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -177,7 +219,7 @@ Retorne APENAS um JSON válido com:
 
     return { relevancia: 3, tags: [editoria] };
   } catch (error) {
-    console.error('Erro ao analisar relevância:', error);
+    console.error('[web-scraper] Error analyzing relevance:', error);
     return { relevancia: 3, tags: [editoria] };
   }
 }
@@ -192,32 +234,34 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      throw new Error('Autenticação necessária');
+      return createErrorResponse(corsHeaders, 'Autenticação necessária', 401, 'Missing auth header');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verificar autenticação
+    // Verify authentication
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      throw new Error('Usuário não autenticado');
+      return createErrorResponse(corsHeaders, 'Usuário não autenticado', 401, 'Auth failed', authError);
     }
 
     const { url, sourceName, editoria } = await req.json();
 
     if (!url || !sourceName || !editoria) {
-      throw new Error('Parâmetros obrigatórios: url, sourceName, editoria');
+      return createErrorResponse(corsHeaders, 'Parâmetros obrigatórios ausentes', 400);
     }
 
-    if (!isValidUrl(url)) {
-      throw new Error('URL inválida ou insegura');
+    // Enhanced URL validation
+    const urlValidation = isValidUrl(url);
+    if (!urlValidation.valid) {
+      return createErrorResponse(corsHeaders, 'URL inválida', 400, 'URL validation failed', urlValidation.reason);
     }
 
-    // Verificar se a fonte existe e está ativa
+    // Check if source exists and is active
     const { data: sourceCheck } = await supabase
       .from('radar_sources')
       .select('active')
@@ -225,27 +269,19 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    // Bloquear se fonte não existe ou está inativa
     if (!sourceCheck || !sourceCheck.active) {
       const reason = !sourceCheck ? 'inexistente' : 'desativada';
-      console.log(`🚫 Fonte ${reason}: ${sourceName} (${url})`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: `Fonte ${reason}. ${!sourceCheck ? 'Cadastre' : 'Ative'} a fonte em Configurações > Fontes antes de coletar conteúdo.`,
-        }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+      console.log(`[web-scraper] Source ${reason}: ${sourceName}`);
+      return createErrorResponse(
+        corsHeaders,
+        `Fonte ${reason}. ${!sourceCheck ? 'Cadastre' : 'Ative'} a fonte em Configurações > Fontes.`,
+        403
       );
     }
 
-    console.log(`✅ Fonte validada: ${sourceName}`);
+    console.log(`[web-scraper] Starting scrape: ${url}`);
 
-    console.log(`Iniciando scraping: ${url}`);
-
-    // Carregar user_settings e tombstones
+    // Load user_settings and tombstones
     const [settingsResult, tombstonesResult] = await Promise.all([
       supabase
         .from('user_settings')
@@ -263,45 +299,69 @@ serve(async (req) => {
       tombstonesResult.data?.map((t) => t.link) || []
     );
 
-    console.log(`Threshold do usuário: ${minRelevance}`);
-
-    // Fetch com timeout
+    // Fetch with timeout and security options
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
 
     const response = await fetch(url, {
       signal: controller.signal,
+      redirect: 'manual', // Don't follow redirects automatically (SSRF protection)
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; RadarBrasis/1.0)',
       },
     });
     clearTimeout(timeout);
 
+    // Check for redirects (potential SSRF)
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      if (location) {
+        const redirectValidation = isValidUrl(location);
+        if (!redirectValidation.valid) {
+          return createErrorResponse(corsHeaders, 'Redirecionamento não permitido', 403, 'Unsafe redirect', location);
+        }
+      }
+      return createErrorResponse(corsHeaders, 'Redirecionamento não suportado', 400);
+    }
+
     if (!response.ok) {
-      throw new Error(`Erro ao acessar URL: ${response.status}`);
+      return createErrorResponse(corsHeaders, 'Erro ao acessar URL', 502, 'Fetch failed', response.status);
+    }
+
+    // Check content length before reading (memory protection)
+    const contentLength = response.headers.get('content-length');
+    const MAX_HTML_SIZE = 5_000_000; // 5MB limit
+    if (contentLength && parseInt(contentLength) > MAX_HTML_SIZE) {
+      return createErrorResponse(corsHeaders, 'Conteúdo muito grande', 413, 'Content too large', contentLength);
     }
 
     const html = await response.text();
+    
+    // Double-check actual size
+    if (html.length > MAX_HTML_SIZE) {
+      return createErrorResponse(corsHeaders, 'Conteúdo muito grande', 413, 'HTML too large', html.length);
+    }
+
     const { title: pageTitle, items } = await extractContent(html, url);
 
-    console.log(`Extraídos ${items.length} itens de ${pageTitle}`);
+    console.log(`[web-scraper] Extracted ${items.length} items from ${pageTitle}`);
 
     let itemsSaved = 0;
     const results = [];
 
     for (const item of items) {
-      // Pular se foi excluído permanentemente
+      // Skip if permanently deleted
       if (tombstoneLinks.has(item.link)) {
         results.push({ title: item.title, saved: false, reason: 'Excluído anteriormente' });
         continue;
       }
 
-      // Analisar relevância com IA
+      // Analyze relevance with AI
       const { relevancia, tags } = await analyzeRelevance(item.title, item.content, editoria);
 
-      // Aplicar threshold do usuário
+      // Apply user threshold
       if (relevancia >= minRelevance) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('radar_brasis')
           .insert({
             user_id: user.id,
@@ -322,15 +382,15 @@ serve(async (req) => {
           itemsSaved++;
           results.push({ title: item.title, relevancia, saved: true });
         } else {
-          console.error('Erro ao salvar item:', error);
-          results.push({ title: item.title, relevancia, saved: false, error: error.message });
+          console.error('[web-scraper] Error saving item:', error.message);
+          results.push({ title: item.title, relevancia, saved: false, reason: 'Erro ao salvar' });
         }
       } else {
         results.push({ title: item.title, relevancia, saved: false, reason: 'Baixa relevância' });
       }
     }
 
-    console.log(`Salvos ${itemsSaved} de ${items.length} itens`);
+    console.log(`[web-scraper] Saved ${itemsSaved} of ${items.length} items`);
 
     return new Response(
       JSON.stringify({
@@ -345,15 +405,15 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Erro em web-scraper:', error);
+    console.error('[web-scraper] Unhandled error:', error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        error: 'Erro ao processar solicitação. Tente novamente.',
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   }

@@ -16,11 +16,28 @@ function getCorsHeaders(req: Request) {
   };
 }
 
+// Security: generic error messages for client
+function createErrorResponse(
+  corsHeaders: Record<string, string>,
+  userMessage: string,
+  status: number,
+  internalContext?: string,
+  internalError?: unknown
+) {
+  if (internalContext) {
+    console.error(`[newsletter-search] ${internalContext}:`, internalError || userMessage);
+  }
+  return new Response(
+    JSON.stringify({ error: userMessage, success: false, items_collected: 0 }),
+    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Implementar rate limiting real por usuário
+// Rate limiting per user
 const rateLimiter = createRateLimiter();
 
 function createRateLimiter() {
@@ -29,18 +46,17 @@ function createRateLimiter() {
   return {
     isAllowed: (userId: string): boolean => {
       const now = Date.now();
-      const windowStart = now - (60 * 1000); // 1 minuto
+      const windowStart = now - (60 * 1000); // 1 minute
       
       if (!requests.has(userId)) {
         requests.set(userId, []);
       }
       
       const userRequests = requests.get(userId)!;
-      // Remove requisições antigas
       const validRequests = userRequests.filter((time: number) => time > windowStart);
       requests.set(userId, validRequests);
       
-      // Permitir até 10 requisições por minuto por usuário
+      // Allow up to 10 requests per minute per user
       if (validRequests.length >= 10) {
         return false;
       }
@@ -62,7 +78,7 @@ const validateSearchTerms = (searchTerms: string): { isValid: boolean; sanitized
   }
 
   if (searchTerms.length > 100) {
-    return { isValid: false, sanitized: '', error: 'Termo de busca muito longo (máximo 100 caracteres)' };
+    return { isValid: false, sanitized: '', error: 'Termo de busca muito longo' };
   }
 
   // Check for SQL injection attempts
@@ -76,7 +92,6 @@ const validateSearchTerms = (searchTerms: string): { isValid: boolean; sanitized
     return { isValid: false, sanitized: '', error: 'Termo de busca contém caracteres inválidos' };
   }
 
-  // Sanitize the search terms
   const sanitized = searchTerms
     .trim()
     .replace(/[<>'"]/g, '')
@@ -94,7 +109,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('Newsletter search request received');
+  console.log('[newsletter-search] Request received');
 
   try {
     const authorization = req.headers.get('Authorization') ?? '';
@@ -106,19 +121,11 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return createErrorResponse(corsHeaders, 'Autenticação necessária', 401, 'Auth failed', userError);
     }
 
     if (!openaiApiKey) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to Supabase secrets.' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return createErrorResponse(corsHeaders, 'Serviço temporariamente indisponível', 503, 'OpenAI API key not configured');
     }
 
     const requestBody = await req.json();
@@ -127,16 +134,10 @@ serve(async (req) => {
     // Validate and sanitize search terms
     const validation = validateSearchTerms(searchTerms);
     if (!validation.isValid) {
-      return new Response(
-        JSON.stringify({ error: validation.error }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return createErrorResponse(corsHeaders, validation.error || 'Termo de busca inválido', 400);
     }
 
-    // Verificar se há fontes NEWSLETTER ativas para este usuário
+    // Check for active NEWSLETTER sources
     const { data: activeSources } = await supabaseClient
       .from('radar_sources')
       .select('active')
@@ -146,31 +147,19 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!activeSources) {
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          items_collected: 0,
-          error: 'Nenhuma fonte de newsletter ativa. Ative uma fonte do tipo NEWSLETTER em Configurações > Fontes.'
-        }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+      return createErrorResponse(
+        corsHeaders,
+        'Nenhuma fonte de newsletter ativa. Ative uma fonte do tipo NEWSLETTER em Configurações > Fontes.',
+        403
       );
     }
     
-    // Rate limiting por usuário
+    // Rate limiting
     if (!rateLimiter.isAllowed(user.id)) {
-      return new Response(JSON.stringify({ 
-        error: 'Muitas solicitações. Aguarde um minuto antes de tentar novamente.',
-        details: 'Limite de 10 pesquisas por minuto atingido'
-      }), { 
-        status: 429, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return createErrorResponse(corsHeaders, 'Muitas solicitações. Aguarde um minuto.', 429, 'Rate limit exceeded');
     }
     
-    console.log(`🔍 Pesquisando newsletters com termos: ${validation.sanitized}`);
+    console.log(`[newsletter-search] Searching: ${validation.sanitized}`);
 
     try {
       const result = await searchNewsletters(validation.sanitized, user.id, supabaseClient);
@@ -180,30 +169,18 @@ serve(async (req) => {
       });
 
     } catch (error) {
-      console.error('Erro na busca de newsletters:', error);
-      return new Response(JSON.stringify({
-        success: false,
-        items_collected: 0,
-        errors: [error.message]
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error('[newsletter-search] Search error:', error);
+      return createErrorResponse(corsHeaders, 'Erro ao processar busca. Tente novamente.', 500, 'Search error', error);
     }
   } catch (authError) {
-    console.error('Authentication error:', authError);
-    return new Response(JSON.stringify({ 
-      error: 'Authentication failed' 
-    }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    console.error('[newsletter-search] Auth error:', authError);
+    return createErrorResponse(corsHeaders, 'Falha na autenticação', 401, 'Auth error', authError);
   }
 });
 
 async function searchNewsletters(searchTerms: string, userId: string, supabaseClient: ReturnType<typeof createClient>) {
   try {
-    // Carregar fontes NEWSLETTER ativas do usuário
+    // Load active NEWSLETTER sources
     const { data: activeSources } = await supabaseClient
       .from('radar_sources')
       .select('id, name, url')
@@ -212,15 +189,15 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
       .eq('active', true);
 
     if (!activeSources || activeSources.length === 0) {
-      console.log('🚫 Nenhuma fonte NEWSLETTER ativa encontrada');
+      console.log('[newsletter-search] No active NEWSLETTER sources');
       return {
         success: false,
         items_collected: 0,
-        errors: ['Nenhuma fonte de newsletter ativa. Ative uma fonte do tipo NEWSLETTER em Configurações > Fontes.']
+        errors: ['Nenhuma fonte de newsletter ativa.']
       };
     }
 
-    // Preparar listas de fontes permitidas
+    // Prepare allowed sources
     const allowedNames = new Set(
       activeSources.map(s => s.name.toLowerCase().trim())
     );
@@ -234,9 +211,9 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
       }).filter(d => d)
     );
 
-    console.log(`✅ Fontes permitidas: ${activeSources.length} (${Array.from(allowedNames).join(', ')})`);
+    console.log(`[newsletter-search] Allowed sources: ${activeSources.length}`);
 
-    // Carregar tombstones para evitar re-importar itens excluídos
+    // Load tombstones
     const { data: tombstones } = await supabaseClient
       .from('radar_tombstones')
       .select('link')
@@ -244,7 +221,7 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
     
     const tombstoneLinks = new Set(tombstones?.map(t => t.link) || []);
 
-    // Usar OpenAI para buscar newsletters recentes
+    // Use OpenAI for newsletter search
     const searchQuery = `Encontre newsletters brasileiras recentes sobre ${searchTerms}. 
     Procure por newsletters de empresas, mídia e influenciadores do Brasil. 
     Retorne informações específicas sobre conteúdo publicado nas últimas 2 semanas.
@@ -292,30 +269,29 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('[newsletter-search] OpenAI API error:', response.status);
+      throw new Error('Serviço de busca indisponível');
     }
 
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
     
     if (!content) {
-      throw new Error('Nenhum conteúdo retornado pela OpenAI API');
+      throw new Error('Nenhum resultado encontrado');
     }
 
-    console.log('Resposta da OpenAI:', content);
+    console.log('[newsletter-search] OpenAI response received');
 
     let newsletterData;
     try {
-      // Tentar extrair JSON da resposta
       const jsonMatch = content.match(/\[.*\]/s);
       if (jsonMatch) {
         newsletterData = JSON.parse(jsonMatch[0]);
       } else {
-        // Se não encontrar JSON estruturado, criar manualmente
         newsletterData = parseNewsletterContent(content, searchTerms);
       }
     } catch (parseError) {
-      console.log('Erro ao fazer parse do JSON, criando estrutura manual:', parseError);
+      console.log('[newsletter-search] JSON parse failed, using manual extraction');
       newsletterData = parseNewsletterContent(content, searchTerms);
     }
 
@@ -326,30 +302,27 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
       const itemLink = newsletter.link || `https://newsletter-search.com/query/${encodeURIComponent(searchTerms)}`;
       const itemSource = newsletter.source || `Newsletter - ${searchTerms}`;
       
-      // Verificar se foi excluído permanentemente
+      // Check tombstones
       if (tombstoneLinks.has(itemLink)) {
-        skippedItems.push({ title: newsletter.title, reason: 'Excluído anteriormente (tombstone)' });
-        console.log(`⏭️ Item pulado (tombstone): ${newsletter.title}`);
+        skippedItems.push({ title: newsletter.title, reason: 'Excluído anteriormente' });
         continue;
       }
 
-      // Validar se fonte está permitida
+      // Validate source is allowed
       const normalizedSource = itemSource.toLowerCase().trim();
       let isAllowed = allowedNames.has(normalizedSource);
       
-      // Se não encontrou por nome, tentar por domínio do link
       if (!isAllowed) {
         try {
           const linkDomain = new URL(itemLink).hostname.toLowerCase();
           isAllowed = allowedDomains.has(linkDomain);
         } catch {
-          // Link inválido, não é permitido
+          // Invalid link
         }
       }
 
       if (!isAllowed) {
         skippedItems.push({ title: newsletter.title, source: itemSource, reason: 'Fonte não permitida' });
-        console.log(`🚫 Item bloqueado (fonte não permitida): ${newsletter.title} - ${itemSource}`);
         continue;
       }
 
@@ -366,13 +339,12 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
         user_id: userId,
         input_bruto: JSON.stringify({
           search_terms: searchTerms,
-          perplexity_response: content,
           newsletter_data: newsletter,
           search_timestamp: new Date().toISOString()
         })
       };
 
-      // Verificar se já existe um item similar
+      // Check for duplicates
       const { data: existing } = await supabaseClient
         .from('radar_brasis')
         .select('id')
@@ -382,23 +354,23 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
 
       if (!existing) {
         processedItems.push(item);
-        console.log(`✅ Item aprovado para inserção: ${item.title}`);
+        console.log(`[newsletter-search] Item approved: ${item.title.substring(0, 50)}...`);
       } else {
-        skippedItems.push({ title: item.title, reason: 'Já existe no sistema' });
+        skippedItems.push({ title: item.title, reason: 'Já existe' });
       }
     }
 
-    console.log(`📊 Resumo: ${processedItems.length} aprovados, ${skippedItems.length} bloqueados/pulados`);
+    console.log(`[newsletter-search] Summary: ${processedItems.length} approved, ${skippedItems.length} skipped`);
 
-    // Salvar novos itens
+    // Save new items
     if (processedItems.length > 0) {
       const { error } = await supabaseClient
         .from('radar_brasis')
         .insert(processedItems);
 
       if (error) {
-        console.error('Erro ao salvar itens:', error);
-        throw error;
+        console.error('[newsletter-search] Insert error:', error.message);
+        throw new Error('Erro ao salvar itens');
       }
     }
 
@@ -412,17 +384,16 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
     };
 
   } catch (error) {
-    console.error('Erro na busca de newsletters:', error);
+    console.error('[newsletter-search] Error:', error);
     return {
       success: false,
       items_collected: 0,
-      errors: [error.message]
+      errors: ['Erro ao processar busca. Tente novamente.']
     };
   }
 }
 
 function parseNewsletterContent(content: string, searchTerms: string) {
-  // Função para extrair informações quando não há JSON estruturado
   const lines = content.split('\n').filter(line => line.trim().length > 0);
   const newsletters = [];
   
@@ -432,7 +403,6 @@ function parseNewsletterContent(content: string, searchTerms: string) {
   for (const line of lines) {
     const cleanLine = line.trim();
     
-    // Detectar possíveis títulos (linhas com maiúsculas ou números)
     if (cleanLine.match(/^\d+\.|^[A-Z].*newsletter|^[A-Z].*report|^[A-Z].*weekly/i)) {
       if (Object.keys(currentNewsletter).length > 0) {
         newsletters.push(currentNewsletter);
@@ -446,7 +416,6 @@ function parseNewsletterContent(content: string, searchTerms: string) {
       };
       newsletterCount++;
     } else if (cleanLine.length > 20 && Object.keys(currentNewsletter).length > 0) {
-      // Adicionar conteúdo ao resumo
       if (!currentNewsletter.summary) {
         currentNewsletter.summary = cleanLine;
       } else {
@@ -454,16 +423,13 @@ function parseNewsletterContent(content: string, searchTerms: string) {
       }
     }
     
-    // Limitar a 5 newsletters
     if (newsletterCount >= 5) break;
   }
   
-  // Adicionar a última newsletter
   if (Object.keys(currentNewsletter).length > 0) {
     newsletters.push(currentNewsletter);
   }
   
-  // Se não encontrou newsletters estruturadas, criar uma baseada no conteúdo
   if (newsletters.length === 0) {
     newsletters.push({
       title: `Pesquisa sobre ${searchTerms} em newsletters`,
