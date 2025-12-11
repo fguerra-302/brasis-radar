@@ -2,7 +2,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const ALLOWED_ORIGINS = [
   'https://3d99c837-5852-4c57-9505-d2ca60666732.lovableproject.com',
-  'https://vlsirftmzvmilugalbpr.supabase.co'
+  'https://vlsirftmzvmilugalbpr.supabase.co',
+  'http://localhost:5173',
+  'http://localhost:3000'
 ];
 
 function getCorsHeaders(req: Request) {
