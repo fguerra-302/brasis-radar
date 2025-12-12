@@ -4,7 +4,7 @@ project_id = "vlsirftmzvmilugalbpr"
 verify_jwt = true
 
 [functions.radar-automation]
-verify_jwt = true
+verify_jwt = false
 
 [functions.newsletter-editor]
 verify_jwt = true
