@@ -145,18 +145,33 @@ const updateFavicon = (faviconUrl: string): void => {
   document.head.appendChild(link);
 };
 
-// Inicializar branding ao carregar
+// Inicializar branding ao carregar - defer to avoid hydration issues
 export const initializeBranding = (): void => {
   if (typeof window === "undefined") return;
   
-  const config = getBrandingConfig();
-  applyCSSVariables(config);
+  // Defer branding initialization to avoid blocking initial render
+  // This prevents hydration mismatch by applying branding after React mounts
+  const applyBranding = () => {
+    try {
+      const config = getBrandingConfig();
+      applyCSSVariables(config);
+      
+      // Atualizar título da página
+      document.title = config.metaTitle;
+      
+      // Atualizar favicon se existir
+      if (config.faviconUrl) {
+        updateFavicon(config.faviconUrl);
+      }
+    } catch (error) {
+      console.error("Erro ao inicializar branding:", error);
+    }
+  };
   
-  // Atualizar título da página
-  document.title = config.metaTitle;
-  
-  // Atualizar favicon se existir
-  if (config.faviconUrl) {
-    updateFavicon(config.faviconUrl);
+  // Use requestAnimationFrame to defer after initial render
+  if (document.readyState === 'complete') {
+    requestAnimationFrame(applyBranding);
+  } else {
+    window.addEventListener('load', () => requestAnimationFrame(applyBranding), { once: true });
   }
 };
