@@ -383,10 +383,10 @@ const RadarMain = () => {
         description: `${data?.processedSources || 0} fontes processadas, ${data?.savedItems || 0} novos itens coletados${data?.minThreshold ? ` (filtro: ≥${data.minThreshold})` : ''}.`,
       });
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Erro na coleta:', error);
       
-      const isSessionExpired = error?.message?.includes('Authentication required') || 
+      const isSessionExpired = (error as Error)?.message?.includes('Authentication required') ||
                                error?.status === 403 || 
                                error?.message?.includes('JWT');
       

@@ -10,8 +10,7 @@ export enum ContentStatus {
   FOR_SOCIAL = "Para Redes Sociais",
   FOR_BOTH = "Para Newsletter e Redes",
   IN_NEWSLETTER = "Na Newsletter",
-  IN_EDITING = "Em edição", 
-  IMPORTED = "Coletado",
+  IN_EDITING = "Em edição",
   PUBLISHED = "Publicado"
 }
 

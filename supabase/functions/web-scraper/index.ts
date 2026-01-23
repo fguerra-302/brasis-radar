@@ -54,25 +54,20 @@ function isValidUrl(url: string): { valid: boolean; reason?: string } {
     
     // Block local/private IPs
     const hostname = parsed.hostname.toLowerCase();
-    if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '::1' ||
-      hostname === '0.0.0.0' ||
-      hostname.startsWith('127.') ||
-      hostname.startsWith('192.168.') ||
-      hostname.startsWith('10.') ||
-      hostname.startsWith('172.16.') ||
-      hostname.startsWith('172.17.') ||
-      hostname.startsWith('172.18.') ||
-      hostname.startsWith('172.19.') ||
-      hostname.startsWith('172.2') ||
-      hostname.startsWith('172.30.') ||
-      hostname.startsWith('172.31.') ||
-      hostname.startsWith('169.254.') ||
-      hostname.endsWith('.local') ||
-      hostname.endsWith('.internal')
-    ) {
+    const localPatterns = [
+        /^localhost$/,
+        /^127\./,
+        /^192\.168\./,
+        /^10\./,
+        /^172\.(1[6-9]|2[0-9]|3[01])\./,
+        /^169\.254\./,
+        /^::1$/,
+        /^0\.0\.0\.0$/,
+        /\.local$/,
+        /\.internal$/,
+    ];
+
+    if (localPatterns.some(pattern => pattern.test(hostname))) {
       return { valid: false, reason: 'Local/private addresses not allowed' };
     }
     
@@ -322,6 +317,10 @@ serve(async (req) => {
         }
       }
       return createErrorResponse(corsHeaders, 'Redirecionamento não suportado', 400);
+    }
+
+    if (!response.ok) {
+      return createErrorResponse(corsHeaders, 'Erro ao acessar URL', 502, 'Fetch failed', response.status);
     }
 
     if (!response.ok) {

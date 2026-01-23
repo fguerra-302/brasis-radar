@@ -26,7 +26,7 @@ export const useExternalApi = () => {
       if (!source) {
         throw new Error('Fonte não encontrada');
       }
-      return ExternalApiService.syncSource(source as any);
+      return ExternalApiService.syncSource(source);
     },
     onSuccess: (result, sourceId) => {
       if (result.success) {
@@ -90,7 +90,7 @@ export const useExternalApi = () => {
       if (!source) {
         throw new Error('Fonte não encontrada');
       }
-      return ExternalApiService.testSource(source as any);
+      return ExternalApiService.testSource(source);
     },
     onSuccess: (result) => {
       if (result.success) {

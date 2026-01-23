@@ -17,7 +17,7 @@ export class SecureApiClient {
     };
   }
 
-  async invokeFunction(functionName: string, body?: any) {
+  async invokeFunction(functionName: string, body?: Record<string, unknown>) {
     try {
       const headers = await this.getAuthHeaders();
       

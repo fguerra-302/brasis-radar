@@ -66,7 +66,7 @@ export const useRadarBrasis = () => {
     enabled: true, // Sempre habilitado, mas com verificação interna de auth
     staleTime: 2 * 60 * 1000, // 2 minutos - mais agressivo para dados reais
     gcTime: 5 * 60 * 1000, // 5 minutos - garbage collection
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: Error & { code?: string }) => {
       // Retry se for erro de rede, mas não se for erro de auth
       if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
         return false; // Não retry em erros de RLS
@@ -78,7 +78,7 @@ export const useRadarBrasis = () => {
 };
 
 // Função helper para mapear dados do Supabase para CuratedContent
-const mapToContent = (data: any[]): CuratedContent[] => {
+const mapToContent = (data: { [key: string]: any }[]): CuratedContent[] => {
   return data.map(item => ({
     id: item.id,
     title: item.title,
@@ -197,7 +197,7 @@ export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
     enabled: true,
     staleTime: 2 * 60 * 1000, // 2 minutos para dados reais
     gcTime: 5 * 60 * 1000, // 5 minutos GC
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: Error & { code?: string }) => {
       if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
         return false;
       }

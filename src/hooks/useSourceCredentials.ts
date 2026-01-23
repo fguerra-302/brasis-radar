@@ -32,7 +32,7 @@ export const useUpdateSourceCredentials = () => {
       credentials 
     }: { 
       sourceId: string; 
-      credentials: Record<string, any>;
+      credentials: Record<string, string>;
     }) => {
       const { error } = await supabase.rpc('update_source_credentials', {
         source_id: sourceId,

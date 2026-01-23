@@ -126,11 +126,11 @@ const CredentialsModal: React.FC<CredentialsModalProps> = ({
 
       onSuccess();
       handleClose();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao salvar credenciais:', error);
       toast({
         title: "Erro ao salvar credenciais",
-        description: error.message || "Falha ao configurar credenciais.",
+        description: (error as Error).message || "Falha ao configurar credenciais.",
         variant: "destructive",
       });
     } finally {

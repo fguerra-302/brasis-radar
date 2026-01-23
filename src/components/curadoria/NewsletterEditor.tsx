@@ -27,8 +27,13 @@ export const NewsletterEditor = () => {
     },
   });
 
+  type Item = {
+    id: string;
+    [key: string]: any;
+  };
+
   const updateItemMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+    mutationFn: async ({ id, payload }: { id: string; payload: { [key: string]: string | Date } }) => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .update(payload)
@@ -44,7 +49,7 @@ export const NewsletterEditor = () => {
     },
   });
 
-  const handleAddToNewsletter = async (item: any) => {
+  const handleAddToNewsletter = async (item: Item) => {
     try {
       await updateItemMutation.mutateAsync({
         id: item.id,
@@ -66,7 +71,7 @@ export const NewsletterEditor = () => {
     }
   };
 
-  const handleReject = async (item: any) => {
+  const handleReject = async (item: Item) => {
     try {
       await updateItemMutation.mutateAsync({
         id: item.id,
@@ -85,7 +90,7 @@ export const NewsletterEditor = () => {
     }
   };
 
-  const handleSendToSocial = async (item: any) => {
+  const handleSendToSocial = async (item: Item) => {
     try {
       await updateItemMutation.mutateAsync({
         id: item.id,

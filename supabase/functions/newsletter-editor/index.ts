@@ -98,8 +98,12 @@ serve(async (req) => {
 
     const { newsletterText, publicoAlvo, customPrompt } = await req.json();
 
-    if (!newsletterText) {
-      return createErrorResponse(corsHeaders, 'Texto da newsletter é obrigatório', 400);
+    if (!newsletterText || typeof newsletterText !== 'string' || newsletterText.length < 10) {
+      return createErrorResponse(corsHeaders, 'Texto da newsletter é obrigatório e deve ter pelo menos 10 caracteres', 400);
+    }
+
+    if (newsletterText.length > 20000) {
+      return createErrorResponse(corsHeaders, 'Texto da newsletter muito longo (máximo 20000 caracteres)', 413);
     }
 
     console.log('[newsletter-editor] Processing newsletter...');
@@ -107,7 +111,14 @@ serve(async (req) => {
     // Get custom prompt if not provided
     let finalPrompt = customPrompt;
     
-    if (!customPrompt) {
+    if (customPrompt) {
+      if (typeof customPrompt !== 'string' || customPrompt.length > 5000) {
+        return createErrorResponse(corsHeaders, 'Prompt personalizado inválido ou muito longo (máximo 5000 caracteres)', 400);
+      }
+      finalPrompt = customPrompt.replace(/<[^>]*>/g, '').trim();
+    }
+
+    if (!finalPrompt) {
       const { data: userSettings } = await supabase
         .from('user_settings')
         .select('ai_newsletter_prompt')
@@ -164,7 +175,11 @@ Lovable Editor – Texto Corrigido com Storytelling
     
     // Add audience context if provided
     if (publicoAlvo) {
-      finalPrompt += `\n\n## 📂 PÚBLICO_ALVO:\n${publicoAlvo}\n\nAdapte o texto conforme essas diretrizes de público-alvo.`;
+      if (typeof publicoAlvo !== 'string' || publicoAlvo.length > 500) {
+        return createErrorResponse(corsHeaders, 'Público-alvo inválido ou muito longo (máximo 500 caracteres)', 400);
+      }
+      const sanitizedPublicoAlvo = publicoAlvo.replace(/<[^>]*>/g, '').trim();
+      finalPrompt += `\n\n## 📂 PÚBLICO_ALVO:\n${sanitizedPublicoAlvo}\n\nAdapte o texto conforme essas diretrizes de público-alvo.`;
     }
 
     finalPrompt += `\n\n---\n\nAGORA, refine o seguinte conteúdo de newsletter:\n\n${newsletterText}`;

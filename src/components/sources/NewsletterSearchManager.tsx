@@ -31,10 +31,10 @@ export const NewsletterSearchManager = () => {
         description: `${data.items_collected} newsletters encontradas sobre "${searchTerms}".`,
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('Erro na busca:', error);
       
-      if (error.message?.includes('OPENAI_API_KEY')) {
+      if ((error as Error).message?.includes('OPENAI_API_KEY')) {
         toast({
           title: "⚙️ Configuração Necessária",
           description: "API Key do OpenAI não configurada. Configure nas secrets do Supabase.",

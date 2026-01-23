@@ -108,8 +108,8 @@ export const BulkSourceUpload = () => {
             active: true
           });
           successCount++;
-        } catch (error: any) {
-          errors.push(`${source.name}: ${error.message || 'Erro desconhecido'}`);
+        } catch (error) {
+          errors.push(`${source.name}: ${(error as Error).message || 'Erro desconhecido'}`);
         }
       }
 
@@ -130,10 +130,10 @@ export const BulkSourceUpload = () => {
         });
       }
 
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro no upload",
-        description: error.message || "Erro ao processar arquivo",
+        description: (error as Error).message || "Erro ao processar arquivo",
         variant: "destructive",
       });
     } finally {
