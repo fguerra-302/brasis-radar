@@ -31,7 +31,7 @@ export const CuradoriaNewsletter = () => {
   });
 
   const updateItemMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+    mutationFn: async ({ id, payload }: { id: string; payload: { [key: string]: string | Date } }) => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .update(payload)

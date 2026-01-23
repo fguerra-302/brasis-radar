@@ -28,8 +28,8 @@ interface NewsSource {
   created_at?: string;
   updated_at?: string;
   user_id?: string;
-  credentials?: any;
-  config?: any;
+  credentials?: { [key: string]: string };
+  config?: { [key: string]: string };
 }
 
 interface SourceFormData {
@@ -159,11 +159,11 @@ const SourceManager = () => {
       const result = await createSourceMutation.mutateAsync({
         name: newSource.name.trim(),
         url: newSource.url.trim(),
-        type: newSource.type as any,
+        type: newSource.type,
         active: true,
         // Remove credentials from creation - will be configured separately
         config: newSource.config
-      } as any);
+      });
 
       console.log('✅ Fonte criada com sucesso:', result);
       const createdName = newSource.name;
@@ -172,7 +172,7 @@ const SourceManager = () => {
         title: "✅ Fonte Adicionada",
         description: `${createdName} foi adicionada às suas fontes.`,
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error('❌ Erro ao adicionar fonte:', err);
       
       // Tratamento específico para erro de constraint única

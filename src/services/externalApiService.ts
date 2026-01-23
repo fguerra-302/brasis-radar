@@ -12,7 +12,7 @@ export interface ExternalApiSource {
 export interface ExternalApiResult {
   success: boolean;
   message?: string;
-  data?: any[];
+  data?: unknown[];
   error?: string;
 }
 

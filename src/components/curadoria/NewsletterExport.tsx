@@ -163,10 +163,10 @@ export const NewsletterExport = () => {
         description: `Texto aprimorado com ${data.promptUsed === 'saved' ? 'seu prompt personalizado' : 'prompt padrão'}.`,
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Erro no refinamento:', error);
       
-      const isSessionExpired = error?.message?.includes('Authentication required') || 
+      const isSessionExpired = (error as Error)?.message?.includes('Authentication required') ||
                                error?.status === 403 || 
                                error?.message?.includes('JWT');
       

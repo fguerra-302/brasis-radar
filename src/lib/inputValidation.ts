@@ -116,7 +116,7 @@ export const validateEditoria = (editoria: string): string => {
 };
 
 // Enhanced tags validation with security
-export const validateTags = (tags: any): string[] => {
+export const validateTags = (tags: string[]): string[] => {
   if (!Array.isArray(tags)) return [];
   
   return tags
@@ -131,7 +131,7 @@ export const validateTags = (tags: any): string[] => {
 };
 
 // Enhanced score validation
-export const validateScore = (score: any): number => {
+export const validateScore = (score: number): number => {
   const numScore = Number(score);
   if (isNaN(numScore)) return 1;
   return Math.max(1, Math.min(5, Math.floor(numScore)));
@@ -203,9 +203,9 @@ export const createRateLimiter = (maxRequests: number, windowMs: number) => {
 };
 
 // Comprehensive validation for radar content
-export const validateRadarContent = (content: any): { isValid: boolean; errors: string[]; sanitized?: any } => {
+export const validateRadarContent = (content: { [key: string]: string | string[] }): { isValid: boolean; errors: string[]; sanitized?: { [key: string]: string | string[] } } => {
   const errors: string[] = [];
-  const sanitized: any = {};
+  const sanitized: { [key: string]: string | string[] } = {};
 
   // Validate title
   const titleValidation = validateTitle(content.title);

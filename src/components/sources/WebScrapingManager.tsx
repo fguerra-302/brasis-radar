@@ -99,10 +99,10 @@ export const WebScrapingManager = () => {
       } else {
         throw new Error(data.error);
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro no teste",
-        description: error.message || "Falha ao fazer scraping do site.",
+        description: (error as Error).message || "Falha ao fazer scraping do site.",
         variant: "destructive",
       });
     } finally {

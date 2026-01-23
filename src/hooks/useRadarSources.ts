@@ -36,8 +36,8 @@ export const useCreateRadarSource = () => {
       url: string;
       type: 'RSS' | 'INSTAGRAM' | 'SPOTIFY' | 'IBGE' | 'NEWSLETTER';
       active: boolean;
-      credentials?: Record<string, any>;
-      config?: Record<string, any>;
+      credentials?: Record<string, string>;
+      config?: Record<string, string>;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -60,7 +60,7 @@ export const useCreateRadarSource = () => {
       
       if (error) {
         console.error('❌ Erro ao criar fonte:', error);
-        const msg = (error as any)?.message || (error as any)?.error_description || 'Erro ao criar fonte de dados';
+        const msg = (error as { message: string; error_description: string })?.message || (error as { message: string; error_description: string })?.error_description || 'Erro ao criar fonte de dados';
         toast.error(msg);
         throw error;
       }
@@ -88,8 +88,8 @@ export const useUpdateRadarSource = () => {
         url: string;
         type: 'RSS' | 'INSTAGRAM' | 'SPOTIFY' | 'IBGE' | 'NEWSLETTER';
         active: boolean;
-        credentials: Record<string, any>;
-        config: Record<string, any>;
+        credentials: Record<string, string>;
+        config: Record<string, string>;
       }>;
     }) => {
       const { data, error } = await supabase

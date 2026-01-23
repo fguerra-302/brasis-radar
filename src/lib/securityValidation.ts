@@ -91,7 +91,7 @@ export const SecurityValidator = {
   /**
    * Valida dados de entrada de formulários
    */
-  validateFormData: (data: Record<string, any>): { isValid: boolean; errors: string[] } => {
+  validateFormData: (data: Record<string, string>): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
 
     // Verificar cada campo

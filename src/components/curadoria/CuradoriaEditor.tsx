@@ -36,8 +36,13 @@ export const CuradoriaEditor = () => {
     },
   });
 
+  type Item = {
+    id: string;
+    [key: string]: any;
+  };
+
   const updateItemMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+    mutationFn: async ({ id, payload }: { id: string; payload: { [key: string]: string | Date } }) => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .update(payload)
@@ -54,7 +59,7 @@ export const CuradoriaEditor = () => {
     },
   });
 
-  const handleGenerateContent = (item: any) => {
+  const handleGenerateContent = (item: Item) => {
     // Sanitize all input data before generating content
     const sanitizedTitle = sanitizeString(item.title, 200);
     const sanitizedSummary = sanitizeString(item.resumo_curado || item.title, 2000);
@@ -113,7 +118,7 @@ Informação da ${sanitizedSource}`;
     });
   };
 
-  const handleFinishEditing = async (item: any) => {
+  const handleFinishEditing = async (item: Item) => {
     try {
       await updateItemMutation.mutateAsync({
         id: item.id,

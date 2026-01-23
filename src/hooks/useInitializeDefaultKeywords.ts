@@ -61,9 +61,9 @@ export const useInitializeDefaultKeywords = () => {
       // Recarregar a página para atualizar os dados
       window.location.reload();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao inicializar categorias padrão:', error);
-      toast.error('Erro ao criar categorias padrão: ' + (error.message || 'Erro desconhecido'));
+      toast.error('Erro ao criar categorias padrão: ' + ((error as Error).message || 'Erro desconhecido'));
     } finally {
       setIsInitializing(false);
     }

@@ -30,7 +30,7 @@ export function SourcesStatus() {
       queryClient.invalidateQueries({ queryKey: ['radar-sources'] });
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('❌ Erro na coleta:', error);
       toast({
         title: "❌ Erro na Coleta",
@@ -43,7 +43,7 @@ export function SourcesStatus() {
   const activeSources = sources.filter(s => s.active);
   const inactiveSources = sources.filter(s => !s.active);
 
-  const getStatusBadge = (source: any) => {
+  const getStatusBadge = (source: { last_sync: string | null }) => {
     if (!source.last_sync) {
       return <Badge variant="secondary" className="text-xs">Nunca sincronizado</Badge>;
     }

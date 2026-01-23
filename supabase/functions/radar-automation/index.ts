@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
 });
 
 // Process RSS for a single user
-async function processUserRSS(supabase: any, userId: string, corsHeaders: Record<string, string>) {
+async function processUserRSS(supabase: ReturnType<typeof createClient>, userId: string, corsHeaders: Record<string, string>) {
   // Load configurations in batch
   const [keywordsResult, weightsResult, settingsResult] = await Promise.all([
     supabase
@@ -381,9 +381,9 @@ function parseRSSFeed(xmlText: string, sourceName: string): RSSItem[] {
         .trim();
 
       items.push({
-        title: title.trim(),
+        title: sanitizeText(title.trim()),
         link: link.trim(),
-        description: cleanDescription,
+        description: sanitizeText(cleanDescription),
         pubDate,
         source: sourceName
       });
@@ -396,7 +396,7 @@ function parseRSSFeed(xmlText: string, sourceName: string): RSSItem[] {
 }
 
 function extractXMLContent(xml: string, tagName: string): string | null {
-  const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\/${tagName}>`, 'i');
+  const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)</${tagName}>`, 'i');
   const match = xml.match(regex);
   return match ? match[1].trim() : null;
 }
@@ -457,7 +457,7 @@ function extractKeywords(text: string): string[] {
   return [...new Set(words)];
 }
 
-function calculateKeywordRelevance(item: RSSItem, extractedTags: string[], userKeywords: any[]): number {
+function calculateKeywordRelevance(item: RSSItem, extractedTags: string[], userKeywords: { category_name: string; keywords: string[]; weight: number }[]): number {
   if (!userKeywords || userKeywords.length === 0) {
     return 1;
   }
@@ -513,7 +513,16 @@ function determineEditoria(item: RSSItem): string {
   return 'Geral';
 }
 
-function getEditorialMultiplier(editoria: string, editorialWeights: any[]): number {
+function getEditorialMultiplier(editoria: string, editorialWeights: { editoria: string; multiplier: number }[]): number {
   const weight = editorialWeights.find(w => w.editoria === editoria);
   return weight ? Number(weight.multiplier) : 1.0;
+}
+
+function sanitizeText(text: string): string {
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 5000);
 }

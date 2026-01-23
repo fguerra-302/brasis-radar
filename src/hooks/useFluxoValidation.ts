@@ -17,7 +17,7 @@ export const useFluxoValidation = () => {
         .then(result => {
           if (result.error) throw result.error;
           
-          const counts = result.data.reduce((acc: any, item: any) => {
+          const counts = result.data.reduce((acc: { [key: string]: number }, item: { status: string }) => {
             acc[item.status] = (acc[item.status] || 0) + 1;
             return acc;
           }, {});
@@ -28,7 +28,7 @@ export const useFluxoValidation = () => {
       if (error) throw error;
 
       const validation = {
-        totalItems: Object.values(statusCount).reduce((a: any, b: any) => a + b, 0),
+        totalItems: Object.values(statusCount).reduce((a: number, b: number) => a + b, 0),
         statusDistribution: statusCount,
         warnings: [] as string[]
       };

@@ -136,6 +136,7 @@ serve(async (req) => {
     if (!validation.isValid) {
       return createErrorResponse(corsHeaders, validation.error || 'Termo de busca inválido', 400);
     }
+    const sanitizedSearchTerms = validation.sanitized;
 
     // Check for active NEWSLETTER sources
     const { data: activeSources } = await supabaseClient
@@ -159,10 +160,10 @@ serve(async (req) => {
       return createErrorResponse(corsHeaders, 'Muitas solicitações. Aguarde um minuto.', 429, 'Rate limit exceeded');
     }
     
-    console.log(`[newsletter-search] Searching: ${validation.sanitized}`);
+    console.log(`[newsletter-search] Searching: ${sanitizedSearchTerms}`);
 
     try {
-      const result = await searchNewsletters(validation.sanitized, user.id, supabaseClient);
+      const result = await searchNewsletters(sanitizedSearchTerms, user.id, supabaseClient);
       
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -327,15 +328,15 @@ async function searchNewsletters(searchTerms: string, userId: string, supabaseCl
       }
 
       const item = {
-        title: newsletter.title || `Newsletter sobre ${searchTerms}`,
+        title: sanitizeText(newsletter.title || `Newsletter sobre ${searchTerms}`),
         link: itemLink,
-        source: itemSource,
+        source: sanitizeText(itemSource),
         pub_date: newsletter.pub_date || new Date().toISOString(),
         editoria: 'Newsletter',
         tags: ['newsletter', 'curadoria', 'brasil', ...searchTerms.split(' ').filter(term => term.length > 2)],
         relevancia: newsletter.relevance || 3,
         status: 'Em aprovação',
-        resumo_curado: newsletter.summary || content.substring(0, 500),
+        resumo_curado: sanitizeText(newsletter.summary || content.substring(0, 500)),
         user_id: userId,
         input_bruto: JSON.stringify({
           search_terms: searchTerms,
@@ -408,7 +409,7 @@ function parseNewsletterContent(content: string, searchTerms: string) {
         newsletters.push(currentNewsletter);
       }
       currentNewsletter = {
-        title: cleanLine.replace(/^\d+\.|\*|\-/g, '').trim(),
+        title: cleanLine.replace(/^\d+\.|\*|-/g, '').trim(),
         source: `Newsletter sobre ${searchTerms}`,
         summary: '',
         relevance: 3,
@@ -442,4 +443,13 @@ function parseNewsletterContent(content: string, searchTerms: string) {
   }
   
   return newsletters;
+}
+
+function sanitizeText(text: string): string {
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 5000);
 }
