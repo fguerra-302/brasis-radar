@@ -15,21 +15,24 @@ const RadarHeader = () => {
   const { brandingConfig } = useBranding();
   
   return (
-    <div className="text-center space-y-6 py-8">
-      <div className="flex items-center justify-center gap-4">
+    <div className="text-center space-y-6 py-10">
+      {/* Hero Title */}
+      <div className="flex items-center justify-center gap-5">
         {brandingConfig.logoUrl ? (
           <img 
             src={brandingConfig.logoUrl} 
             alt={`${brandingConfig.companyName} Logo`}
-            className="h-12 w-12 object-contain"
+            className="h-14 w-14 object-contain"
           />
         ) : (
-          <Bot className="h-10 w-10 text-primary" />
+          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Bot className="h-7 w-7 text-primary" />
+          </div>
         )}
-        <h1 className="text-5xl font-bold text-primary font-brasis">
+        <h1 className="text-5xl font-black tracking-tight font-display brasis-text-gradient">
           {brandingConfig.companyName}
         </h1>
-        <Sparkles className="h-10 w-10 text-secondary" />
+        <Sparkles className="h-8 w-8 text-accent" />
       </div>
       
       {/* Configuration Status Alert */}
@@ -41,9 +44,9 @@ const RadarHeader = () => {
       {validacao?.warnings && validacao.warnings.length > 0 && (
         <div className="max-w-4xl mx-auto space-y-2 mt-4">
           {validacao.warnings.map((warning, index) => (
-            <Alert key={index} className="border-orange-200 bg-orange-50">
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-800">
+            <Alert key={index} className="border-primary/30 bg-primary/5">
+              <AlertTriangle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-foreground">
                 {warning}
               </AlertDescription>
             </Alert>
@@ -51,16 +54,20 @@ const RadarHeader = () => {
         </div>
       )}
       
-      <div className="relative">
-        <div className="absolute inset-0 bg-brasis-beige rounded-2xl"></div>
-        <p className="text-xl text-foreground max-w-4xl mx-auto relative z-10 py-6 px-8 font-medium">
-          {brandingConfig.companyDescription}
-        </p>
+      {/* Description Card */}
+      <div className="relative max-w-4xl mx-auto">
+        <div className="brasis-card rounded-2xl py-6 px-8">
+          <p className="text-lg text-foreground font-sans font-medium leading-relaxed">
+            {brandingConfig.companyDescription}
+          </p>
+        </div>
       </div>
-      <div className="flex justify-center items-center gap-6 pt-6">
+
+      {/* Action Buttons */}
+      <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
         <Button 
           onClick={() => navigate('/curadoria')}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3 rounded-lg"
+          className="brasis-button-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl border-0"
         >
           <Edit3 className="h-5 w-5 mr-2" />
           Área de Curadoria
@@ -68,18 +75,18 @@ const RadarHeader = () => {
         <Button 
           onClick={() => navigate('/config')}
           variant="outline"
-          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold px-6 py-3"
+          className="border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground font-semibold px-6 py-3 rounded-xl"
         >
           Configurações
         </Button>
         <Button 
           onClick={() => navigate('/config/sources')}
           variant="outline"
-          className="border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground font-semibold px-6 py-3"
+          className="border-accent text-accent hover:bg-accent hover:text-accent-foreground font-semibold px-6 py-3 rounded-xl"
         >
           Adicionar Fontes
         </Button>
-        <div className="ml-4">
+        <div className="ml-2">
           <UserMenu />
         </div>
       </div>
