@@ -1,4 +1,4 @@
-import { Eye, CheckCircle, Edit3, BarChart3, FileText, User, Target } from "lucide-react";
+import { CheckCircle, Edit3, BarChart3, FileText, User, Target } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -27,26 +27,33 @@ export function CuradoriaSidebar() {
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
 
-  const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
+    isActive
+      ? "bg-primary/10 text-primary font-semibold border-l-3 border-primary rounded-lg"
+      : "text-sidebar-foreground hover:bg-muted/60 hover:text-primary transition-colors rounded-lg";
 
   return (
     <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
-      <SidebarContent>
+      <SidebarContent className="bg-sidebar pt-2">
+        {/* Brasis branding stripe */}
+        {!collapsed && (
+          <div className="mx-3 mb-2 h-1 rounded-full brasis-pattern opacity-60" />
+        )}
         <SidebarGroup>
-          <SidebarGroupLabel>Fluxo de Edição & Distribuição</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-display text-xs uppercase tracking-wider text-muted-foreground">
+            Fluxo de Edição
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {curadoriaItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="mr-2 h-4 w-4" />
+                      <item.icon className="mr-2 h-4 w-4 shrink-0" />
                       {!collapsed && (
-                        <div className="flex flex-col">
-                          <span>{item.title}</span>
-                          <span className="text-xs text-muted-foreground">{item.description}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-sans">{item.title}</span>
+                          <span className="text-[11px] text-muted-foreground font-sans leading-tight">{item.description}</span>
                         </div>
                       )}
                     </NavLink>
