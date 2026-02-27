@@ -32,5 +32,5 @@ ORDER BY created_at DESC LIMIT 10;
 ## Componentes críticos
 - [ ] CuradoriaReview - puxar "A curar"
 - [ ] CuradoriaApproval - puxar "Em aprovação"  
-- [ ] CuradoriaNewsletter - puxar "Para Newsletter"
+- [ ] NewsletterExport - puxar "Para Newsletter"
 - [ ] RadarMain handleAprovar - enviar para "Em aprovação"
