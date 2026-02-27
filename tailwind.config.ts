@@ -19,43 +19,9 @@ export default {
     	},
     	extend: {
     		fontFamily: {
-    			brasis: [
-    				'Nunito',
-    				'sans-serif'
-    			],
-    			sans: [
-    				'Source Sans Pro',
-    				'ui-sans-serif',
-    				'system-ui',
-    				'-apple-system',
-    				'BlinkMacSystemFont',
-    				'Segoe UI',
-    				'Roboto',
-    				'Helvetica Neue',
-    				'Arial',
-    				'Noto Sans',
-    				'sans-serif'
-    			],
-    			serif: [
-    				'Source Serif Pro',
-    				'ui-serif',
-    				'Georgia',
-    				'Cambria',
-    				'Times New Roman',
-    				'Times',
-    				'serif'
-    			],
-    			mono: [
-    				'Source Code Pro',
-    				'ui-monospace',
-    				'SFMono-Regular',
-    				'Menlo',
-    				'Monaco',
-    				'Consolas',
-    				'Liberation Mono',
-    				'Courier New',
-    				'monospace'
-    			]
+    			display: ['Favela', 'Georgia', 'serif'],
+    			sans: ['Montserrat', 'system-ui', '-apple-system', 'sans-serif'],
+    			brasis: ['Favela', 'Georgia', 'serif'],
     		},
     		colors: {
     			border: 'hsl(var(--border))',
@@ -92,14 +58,17 @@ export default {
     				foreground: 'hsl(var(--card-foreground))'
     			},
     			brasis: {
+    				orange: 'hsl(var(--primary))',
     				yellow: 'hsl(var(--brasis-yellow))',
     				'yellow-foreground': 'hsl(var(--brasis-yellow-foreground))',
-    				pink: 'hsl(var(--brasis-pink))',
-    				'pink-foreground': 'hsl(var(--brasis-pink-foreground))',
     				red: 'hsl(var(--brasis-red))',
     				'red-foreground': 'hsl(var(--brasis-red-foreground))',
+    				pink: 'hsl(var(--brasis-pink))',
+    				'pink-foreground': 'hsl(var(--brasis-pink-foreground))',
     				beige: 'hsl(var(--brasis-beige))',
-    				'beige-foreground': 'hsl(var(--brasis-beige-foreground))'
+    				'beige-foreground': 'hsl(var(--brasis-beige-foreground))',
+    				blue: 'hsl(var(--secondary))',
+    				green: 'hsl(var(--accent))',
     			},
     			sidebar: {
     				DEFAULT: 'hsl(var(--sidebar-background))',
@@ -135,20 +104,12 @@ export default {
     		},
     		keyframes: {
     			'accordion-down': {
-    				from: {
-    					height: '0'
-    				},
-    				to: {
-    					height: 'var(--radix-accordion-content-height)'
-    				}
+    				from: { height: '0' },
+    				to: { height: 'var(--radix-accordion-content-height)' }
     			},
     			'accordion-up': {
-    				from: {
-    					height: 'var(--radix-accordion-content-height)'
-    				},
-    				to: {
-    					height: '0'
-    				}
+    				from: { height: 'var(--radix-accordion-content-height)' },
+    				to: { height: '0' }
     			}
     		},
     		animation: {
