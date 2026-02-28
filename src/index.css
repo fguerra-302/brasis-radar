@@ -78,13 +78,13 @@
   :root,
   body {
     --background: 42 50% 89%;
-    --foreground: 0 0% 7%;
+    --foreground: 217 73% 30%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 217 73% 30%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 217 73% 30%;
 
     --primary: 29 97% 47%;
     --primary-foreground: 0 0% 100%;
@@ -96,19 +96,19 @@
     --accent-foreground: 0 0% 100%;
 
     --brasis-yellow: 47 92% 49%;
-    --brasis-yellow-foreground: 0 0% 7%;
+    --brasis-yellow-foreground: 217 73% 30%;
 
     --brasis-pink: 324 72% 78%;
-    --brasis-pink-foreground: 0 0% 7%;
+    --brasis-pink-foreground: 217 73% 30%;
 
     --brasis-red: 357 83% 48%;
     --brasis-red-foreground: 0 0% 100%;
 
     --brasis-beige: 42 50% 89%;
-    --brasis-beige-foreground: 0 0% 7%;
+    --brasis-beige-foreground: 217 73% 30%;
 
     --muted: 42 20% 90%;
-    --muted-foreground: 0 0% 35%;
+    --muted-foreground: 217 50% 45%;
 
     --destructive: 357 83% 48%;
     --destructive-foreground: 0 0% 100%;
@@ -127,7 +127,7 @@
     --shadow-warm: 0 4px 20px hsl(var(--brasis-yellow) / 0.2);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 7%;
+    --sidebar-foreground: 217 73% 30%;
     --sidebar-primary: 29 97% 47%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 73% 44%;
