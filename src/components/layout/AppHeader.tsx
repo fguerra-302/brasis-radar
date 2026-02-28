@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bot, Sparkles, Edit3, AlertTriangle } from 'lucide-react';
+import { Sparkles, Edit3, AlertTriangle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { UserMenu } from '@/components/UserMenu';
 import { useFluxoValidation } from '@/hooks/useFluxoValidation';
 import { useBranding } from '@/hooks/useBranding';
 import { ConfigurationAlert } from '@/components/ConfigurationAlert';
+import brasIsLogo from '@/assets/BRASIS_AZUL.png';
 
 const RadarHeader = () => {
   const navigate = useNavigate();
@@ -18,21 +19,14 @@ const RadarHeader = () => {
     <div className="text-center space-y-6 py-10">
       {/* Hero Title */}
       <div className="flex items-center justify-center gap-5">
-        {brandingConfig.logoUrl ? (
-          <img 
-            src={brandingConfig.logoUrl} 
-            alt={`${brandingConfig.companyName} Logo`}
-            className="h-14 w-14 object-contain"
-          />
-        ) : (
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Bot className="h-7 w-7 text-primary" />
-          </div>
-        )}
-        <h1 className="text-5xl font-black tracking-tight font-display brasis-text-gradient">
+        <img 
+          src={brandingConfig.logoUrl || brasIsLogo} 
+          alt={`${brandingConfig.companyName} Logo`}
+          className="h-16 w-auto object-contain"
+        />
+        <h1 className="text-5xl font-black tracking-tight font-display text-secondary">
           {brandingConfig.companyName}
         </h1>
-        <Sparkles className="h-8 w-8 text-accent" />
       </div>
       
       {/* Configuration Status Alert */}
@@ -56,7 +50,7 @@ const RadarHeader = () => {
       
       {/* Description Card */}
       <div className="relative max-w-4xl mx-auto">
-        <div className="brasis-card rounded-2xl py-6 px-8">
+        <div className="bg-card rounded-2xl py-6 px-8 border border-border shadow-sm">
           <p className="text-lg text-foreground font-sans font-medium leading-relaxed">
             {brandingConfig.companyDescription}
           </p>
@@ -67,7 +61,7 @@ const RadarHeader = () => {
       <div className="flex flex-wrap justify-center items-center gap-4 pt-4">
         <Button 
           onClick={() => navigate('/curadoria')}
-          className="brasis-button-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl border-0"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 py-3 rounded-xl border-0 shadow-md"
         >
           <Edit3 className="h-5 w-5 mr-2" />
           Área de Curadoria

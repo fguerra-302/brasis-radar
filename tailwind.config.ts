@@ -81,11 +81,7 @@ export default {
     				ring: 'hsl(var(--sidebar-ring))'
     			}
     		},
-    		backgroundImage: {
-    			'gradient-brasis': 'var(--gradient-brasis)',
-    			'gradient-warm': 'var(--gradient-warm)',
-    			'gradient-tropical': 'var(--gradient-tropical)'
-    		},
+    		backgroundImage: {},
     		boxShadow: {
     			brasis: 'var(--shadow-brasis)',
     			warm: 'var(--shadow-warm)',
