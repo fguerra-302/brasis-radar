@@ -19,13 +19,13 @@ export const ConfigLayout = ({ children }: ConfigLayoutProps) => {
           <header className="h-14 flex items-center justify-between border-b border-brasis-beige/40 bg-background px-6">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-primary hover:text-brasis-orange transition-colors" />
-              <h1 className="text-lg font-display brasis-text-gradient tracking-tight">
+              <h1 className="text-lg font-display text-secondary tracking-tight">
                 Configurações do {brandingConfig.companyName}
               </h1>
             </div>
             <BackButton to="/" label="Voltar ao Radar" />
           </header>
-          <main className="flex-1 p-6 bg-brasis-beige/10">
+          <main className="flex-1 p-6 bg-background">
             {children}
           </main>
         </div>

@@ -92,9 +92,9 @@ export const PasswordRecovery = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-warm p-4">
+    <div className="min-h-screen flex items-center justify-center bg-secondary p-4">
       <div className="w-full max-w-md">
-        <Card className="brasis-card backdrop-blur-sm border-white/20">
+        <Card className="bg-card border-border shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />

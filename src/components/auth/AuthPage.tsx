@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Radar, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import brasIsLogoBranco from '@/assets/BRASIS_BRANCO.png';
 
 
 export const AuthPage = () => {
@@ -32,8 +32,6 @@ export const AuthPage = () => {
   const getErrorMessage = (error: any, mode: 'signin' | 'signup' = 'signin') => {
     const errorMessage = error?.message || '';
     
-    // No signup com email confirmation desabilitado, Supabase retorna "Invalid login credentials" 
-    // quando o email já existe (ele tenta auto-login). Tratamos esse caso especialmente.
     if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('invalid_credentials')) {
       if (mode === 'signup') {
         return 'Este email já possui uma conta ou a senha não atende aos requisitos. Tente fazer login ou use outra senha.';
@@ -65,30 +63,19 @@ export const AuthPage = () => {
       return 'A senha deve ter pelo menos 6 caracteres.';
     }
 
-    // Mensagem genérica para outros erros
     return 'Erro na autenticação. Verifique seus dados e tente novamente.';
   };
 
   const handleAuth = async (mode: 'signin' | 'signup') => {
-    // DEBUG: Log para identificar problema de cadastro
     console.log('🔐 handleAuth chamado:', { mode, email, passwordLength: password?.length });
     
     if (!email || !password) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha email e senha.",
-        variant: "destructive",
-      });
+      toast({ title: "Campos obrigatórios", description: "Por favor, preencha email e senha.", variant: "destructive" });
       return;
     }
 
-    // Validação básica de email
     if (!email.includes('@') || !email.includes('.')) {
-      toast({
-        title: "Email inválido",
-        description: "Por favor, digite um email válido.",
-        variant: "destructive",
-      });
+      toast({ title: "Email inválido", description: "Por favor, digite um email válido.", variant: "destructive" });
       return;
     }
 
@@ -101,57 +88,30 @@ export const AuthPage = () => {
       if (error) {
         const friendlyMessage = getErrorMessage(error, mode);
         
-        toast({
-          title: mode === 'signin' ? "Erro no Login" : "Erro no Cadastro",
-          description: friendlyMessage,
-          variant: "destructive",
-        });
-
-        // Se o erro for de configuração, mostrar link para setup
+        toast({ title: mode === 'signin' ? "Erro no Login" : "Erro no Cadastro", description: friendlyMessage, variant: "destructive" });
+        
         if (error.message.includes('requested path is invalid') || error.message.includes('redirect')) {
           setTimeout(() => {
             toast({
               title: "Precisa configurar o Supabase?",
               description: "Use nosso assistente para configurar as URLs automaticamente.",
-              action: <Button 
-                size="sm" 
-                onClick={() => window.location.href = '/setup'}
-              >
-                Configurar Agora
-              </Button>
+              action: <Button size="sm" onClick={() => window.location.href = '/setup'}>Configurar Agora</Button>
             });
           }, 1000);
         }
-
-        // Se o erro for de usuário já existente no cadastro, sugerir login
+        
         if (mode === 'signup' && (error.message.includes('User already registered') || error.message.includes('user_already_exists'))) {
-          setTimeout(() => {
-            toast({
-              title: "Dica",
-              description: "Clique em 'Login' para acessar sua conta existente.",
-            });
-          }, 2000);
+          setTimeout(() => { toast({ title: "Dica", description: "Clique em 'Login' para acessar sua conta existente." }); }, 2000);
         }
       } else if (mode === 'signup') {
-        toast({
-          title: "Cadastro realizado!",
-          description: "Verifique seu email para confirmar a conta.",
-        });
+        toast({ title: "Cadastro realizado!", description: "Verifique seu email para confirmar a conta." });
       } else {
-        toast({
-          title: "Login realizado!",
-          description: "Bem-vindo ao sistema.",
-        });
-        // Redirect to curadoria after successful login
+        toast({ title: "Login realizado!", description: "Bem-vindo ao sistema." });
         navigate('/curadoria', { replace: true });
       }
     } catch (error: any) {
       console.error('Auth error:', error);
-      toast({
-        title: "Erro",
-        description: "Falha na conexão. Verifique sua internet e tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Falha na conexão. Verifique sua internet e tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -159,20 +119,12 @@ export const AuthPage = () => {
 
   const handleMagicLink = async () => {
     if (!email) {
-      toast({
-        title: "Email obrigatório",
-        description: "Por favor, digite seu email para receber o link de acesso.",
-        variant: "destructive",
-      });
+      toast({ title: "Email obrigatório", description: "Por favor, digite seu email para receber o link de acesso.", variant: "destructive" });
       return;
     }
 
     if (!email.includes('@') || !email.includes('.')) {
-      toast({
-        title: "Email inválido",
-        description: "Por favor, digite um email válido.",
-        variant: "destructive",
-      });
+      toast({ title: "Email inválido", description: "Por favor, digite um email válido.", variant: "destructive" });
       return;
     }
 
@@ -186,25 +138,13 @@ export const AuthPage = () => {
       });
 
       if (error) {
-        const friendlyMessage = getErrorMessage(error);
-        toast({
-          title: "Erro",
-          description: friendlyMessage,
-          variant: "destructive",
-        });
+        toast({ title: "Erro", description: getErrorMessage(error), variant: "destructive" });
       } else {
-        toast({
-          title: "Link enviado!",
-          description: "Verifique seu email e clique no link para acessar.",
-        });
+        toast({ title: "Link enviado!", description: "Verifique seu email e clique no link para acessar." });
       }
     } catch (error: any) {
       console.error('Magic link error:', error);
-      toast({
-        title: "Erro",
-        description: "Falha ao enviar link de acesso. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Falha ao enviar link de acesso. Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -212,20 +152,12 @@ export const AuthPage = () => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      toast({
-        title: "Email obrigatório",
-        description: "Por favor, digite seu email para recuperar a senha.",
-        variant: "destructive",
-      });
+      toast({ title: "Email obrigatório", description: "Por favor, digite seu email para recuperar a senha.", variant: "destructive" });
       return;
     }
 
     if (!email.includes('@') || !email.includes('.')) {
-      toast({
-        title: "Email inválido",
-        description: "Por favor, digite um email válido.",
-        variant: "destructive",
-      });
+      toast({ title: "Email inválido", description: "Por favor, digite um email válido.", variant: "destructive" });
       return;
     }
 
@@ -236,55 +168,37 @@ export const AuthPage = () => {
       });
 
       if (error) {
-        const friendlyMessage = getErrorMessage(error);
-        toast({
-          title: "Erro",
-          description: friendlyMessage,
-          variant: "destructive",
-        });
+        toast({ title: "Erro", description: getErrorMessage(error), variant: "destructive" });
       } else {
-        toast({
-          title: "Email enviado!",
-          description: "Verifique sua caixa de entrada para redefinir sua senha.",
-        });
+        toast({ title: "Email enviado!", description: "Verifique sua caixa de entrada para redefinir sua senha." });
         setShowForgotPassword(false);
       }
     } catch (error: any) {
       console.error('Password reset error:', error);
-      toast({
-        title: "Erro",
-        description: "Falha ao enviar email de recuperação. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Falha ao enviar email de recuperação. Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-warm p-4">
+    <div className="min-h-screen flex items-center justify-center bg-secondary p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <Radar className="h-10 w-10 text-white" />
-            <h1 className="text-3xl font-bold text-white font-brasis">RADAR BRASIS</h1>
+            <img src={brasIsLogoBranco} alt="Brasis Logo" className="h-12 w-auto object-contain" />
+            <h1 className="text-3xl font-bold text-secondary-foreground font-display">RADAR BRASIS</h1>
           </div>
-          <p className="text-white/90 text-lg font-medium">
+          <p className="text-secondary-foreground/90 text-lg font-medium">
             Sistema de curadoria de conteúdo para o DNA Brasis
           </p>
         </div>
 
-
-        <Card className="brasis-card backdrop-blur-sm border-white/20">
+        <Card className="bg-card border-border shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-secondary">
               {showForgotPassword && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowForgotPassword(false)}
-                  className="p-0 h-auto"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setShowForgotPassword(false)} className="p-0 h-auto">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               )}
@@ -296,27 +210,13 @@ export const AuthPage = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="forgot-email">Email</Label>
-                  <Input
-                    id="forgot-email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+                  <Input id="forgot-email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
-                
-                <Button 
-                  onClick={handleForgotPassword}
-                  disabled={loading}
-                  className="w-full"
-                >
+                <Button onClick={handleForgotPassword} disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                   {loading ? "Enviando..." : "Enviar Link de Recuperação"}
                 </Button>
-                
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Digite seu email para receber o link de recuperação de senha.
-                  </p>
+                  <p className="text-sm text-muted-foreground">Digite seu email para receber o link de recuperação de senha.</p>
                 </div>
               </div>
             ) : (
@@ -330,96 +230,40 @@ export const AuthPage = () => {
                 <TabsContent value="signin" className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
+                    <Input id="signin-email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="signin-password">Senha</Label>
                     <div className="relative">
-                      <Input
-                        id="signin-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Sua senha"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAuth('signin')}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                      <Input id="signin-password" type={showPassword ? "text" : "password"} placeholder="Sua senha" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAuth('signin')} />
+                      <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
 
-                  <Button 
-                    onClick={() => handleAuth('signin')} 
-                    disabled={loading}
-                    className="w-full"
-                  >
+                  <Button onClick={() => handleAuth('signin')} disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                     {loading ? "Entrando..." : "Entrar"}
                   </Button>
 
                   <div className="text-center">
-                    <Button
-                      variant="link"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-muted-foreground hover:text-primary"
-                    >
-                      Esqueci minha senha
-                    </Button>
+                    <Button variant="link" onClick={() => setShowForgotPassword(true)} className="text-sm text-muted-foreground hover:text-primary">Esqueci minha senha</Button>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="signup" className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
+                    <Input id="signup-email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Senha</Label>
                     <div className="relative">
-                      <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Crie uma senha segura"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAuth('signup')}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                      <Input id="signup-password" type={showPassword ? "text" : "password"} placeholder="Crie uma senha segura" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAuth('signup')} />
+                      <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
@@ -429,11 +273,7 @@ export const AuthPage = () => {
                     <p>• Combine letras e números</p>
                   </div>
 
-                  <Button 
-                    onClick={() => handleAuth('signup')} 
-                    disabled={loading}
-                    className="w-full"
-                  >
+                  <Button onClick={() => handleAuth('signup')} disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                     {loading ? "Cadastrando..." : "Criar Conta"}
                   </Button>
                 </TabsContent>
@@ -441,27 +281,15 @@ export const AuthPage = () => {
                 <TabsContent value="magic" className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="magic-email">Email</Label>
-                    <Input
-                      id="magic-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
+                    <Input id="magic-email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
 
-                  <Button 
-                    onClick={handleMagicLink} 
-                    disabled={loading}
-                    className="w-full"
-                  >
+                  <Button onClick={handleMagicLink} disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                     {loading ? "Enviando..." : "Enviar Link de Acesso"}
                   </Button>
 
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">
-                      Receba um link de acesso direto no seu email
-                    </p>
+                    <p className="text-sm text-muted-foreground">Receba um link de acesso direto no seu email</p>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -470,23 +298,20 @@ export const AuthPage = () => {
         </Card>
 
         <div className="text-center space-y-3">
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-secondary-foreground/70">
             Sistema seguro com autenticação obrigatória
           </p>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-            <p className="text-sm text-white/90 mb-3 font-medium">
+          <div className="bg-secondary-foreground/10 rounded-lg p-4 border border-secondary-foreground/20">
+            <p className="text-sm text-secondary-foreground/90 mb-3 font-medium">
               🔧 Precisando de ajuda com a configuração?
             </p>
             <Button 
               onClick={() => window.location.href = '/setup'}
-              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30"
+              className="w-full bg-secondary-foreground/20 hover:bg-secondary-foreground/30 text-secondary-foreground border border-secondary-foreground/30"
               size="sm"
             >
               Assistente de Configuração
             </Button>
-            <p className="text-xs text-white/60 mt-2">
-              Configure automaticamente as URLs do Supabase
-            </p>
           </div>
         </div>
       </div>
