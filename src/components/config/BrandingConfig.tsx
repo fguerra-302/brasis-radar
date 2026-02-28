@@ -6,10 +6,32 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Palette, Type, Image, Upload, RotateCcw } from 'lucide-react';
+import { AlertCircle, Palette, Type, Image, Upload, RotateCcw, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useBranding } from '@/hooks/useBranding';
 import { useToast } from '@/hooks/use-toast';
+
+import logoAzul from '@/assets/BRASIS_AZUL.png';
+import logoBranco from '@/assets/BRASIS_BRANCO.png';
+import logoLaranja from '@/assets/BRASIS_LARANJA.png';
+import logoAmarelo from '@/assets/BRASIS_AMARELO.png';
+import logoFendi from '@/assets/BRASIS_FENDI.png';
+import logoPreto from '@/assets/BRASIS_PRETO.png';
+import logoRosa from '@/assets/BRASIS_ROSA.png';
+import logoVerde from '@/assets/BRASIS_VERDE.png';
+import logoVermelho from '@/assets/BRASIS_VERMELHO.png';
+
+const logoPresets = [
+  { name: 'Azul', src: logoAzul, bg: 'bg-card' },
+  { name: 'Branco', src: logoBranco, bg: 'bg-secondary' },
+  { name: 'Laranja', src: logoLaranja, bg: 'bg-card' },
+  { name: 'Amarelo', src: logoAmarelo, bg: 'bg-card' },
+  { name: 'Fendi', src: logoFendi, bg: 'bg-card' },
+  { name: 'Preto', src: logoPreto, bg: 'bg-card' },
+  { name: 'Rosa', src: logoRosa, bg: 'bg-card' },
+  { name: 'Verde', src: logoVerde, bg: 'bg-card' },
+  { name: 'Vermelho', src: logoVermelho, bg: 'bg-card' },
+];
 
 export const BrandingConfig = () => {
   const { brandingConfig, updateBrandingConfig, resetBrandingConfig } = useBranding();
@@ -152,21 +174,52 @@ export const BrandingConfig = () => {
         </CardContent>
       </Card>
 
-      {/* Logos e Imagens */}
+      {/* Logos Oficiais */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Image className="h-5 w-5" />
-            Logos e Imagens
+            Logo Oficial Brasis
           </CardTitle>
           <CardDescription>
-            Carregue seu logo e favicon personalizados
+            Selecione uma variação do logo oficial ou faça upload de um personalizado
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Label>Variações do Logo</Label>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+            {logoPresets.map((preset) => {
+              const isSelected = brandingConfig.logoUrl === preset.src;
+              return (
+                <button
+                  key={preset.name}
+                  onClick={() => {
+                    updateBrandingConfig({ logoUrl: preset.src });
+                    toast({ title: "Logo atualizado", description: `Logo ${preset.name} selecionado.` });
+                  }}
+                  className={`relative flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${
+                    isSelected
+                      ? 'border-primary ring-2 ring-primary/30'
+                      : 'border-border hover:border-primary/40'
+                  } ${preset.bg}`}
+                >
+                  {isSelected && (
+                    <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                      <Check className="h-3 w-3" />
+                    </div>
+                  )}
+                  <img src={preset.src} alt={`Logo ${preset.name}`} className="h-10 w-auto object-contain" />
+                  <span className="text-xs text-muted-foreground font-medium">{preset.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <Separator />
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label htmlFor="logo">Logo da Empresa</Label>
+              <Label htmlFor="logo">Upload Logo Personalizado</Label>
               <div className="mt-2 space-y-2">
                 <Input
                   id="logo"
@@ -182,7 +235,7 @@ export const BrandingConfig = () => {
                       alt="Logo preview" 
                       className="h-12 w-12 object-contain border rounded"
                     />
-                    <Badge variant="secondary">Logo carregado</Badge>
+                    <Badge variant="secondary">Logo ativo</Badge>
                   </div>
                 )}
               </div>
