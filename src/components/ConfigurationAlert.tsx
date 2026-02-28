@@ -13,22 +13,20 @@ export const ConfigurationAlert = ({ showOnSuccess = false, className = "" }: Co
   const { status, loading } = useConfigStatus();
 
   if (loading) return null;
-
-  // Show success state only if explicitly requested
   if (status.isConfigured && !showOnSuccess) return null;
 
   return (
-    <Alert className={`${status.isConfigured ? 'border-emerald-200 bg-emerald-50' : 'border-orange-200 bg-orange-50'} ${className}`}>
+    <Alert className={`${status.isConfigured ? 'border-accent/30 bg-accent/5' : 'border-primary/30 bg-primary/5'} ${className}`}>
       {status.isConfigured ? (
-        <CheckCircle className="h-4 w-4 text-emerald-600" />
+        <CheckCircle className="h-4 w-4 text-accent" />
       ) : (
-        <AlertTriangle className="h-4 w-4 text-orange-600" />
+        <AlertTriangle className="h-4 w-4 text-primary" />
       )}
-      <AlertDescription className={status.isConfigured ? 'text-emerald-800' : 'text-orange-800'}>
+      <AlertDescription className={`font-sans ${status.isConfigured ? 'text-foreground' : 'text-foreground'}`}>
         {status.isConfigured ? (
           <div className="flex items-center justify-between">
             <span>✓ Configuração validada com sucesso!</span>
-            <span className="text-xs text-emerald-600">
+            <span className="text-xs text-muted-foreground">
               Verificado em {status.lastChecked.toLocaleTimeString()}
             </span>
           </div>
@@ -36,26 +34,16 @@ export const ConfigurationAlert = ({ showOnSuccess = false, className = "" }: Co
           <div className="space-y-3">
             <div>
               <strong>⚠️ Configuração do Supabase necessária</strong>
-              <p className="text-sm mt-1">
+              <p className="text-sm mt-1 text-muted-foreground">
                 As URLs de autenticação precisam ser configuradas no Supabase para que o login funcione corretamente.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => window.location.href = '/setup'}
-                className="border-orange-300 text-orange-700 hover:bg-orange-100"
-              >
+              <Button size="sm" variant="outline" onClick={() => window.location.href = '/setup'} className="border-primary/30 text-primary hover:bg-primary/10">
                 <Settings className="h-3 w-3 mr-1" />
                 Assistente de Configuração
               </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => window.open('https://supabase.com/dashboard/project/vlsirftmzvmilugalbpr/auth/url-configuration', '_blank')}
-                className="border-orange-300 text-orange-700 hover:bg-orange-100"
-              >
+              <Button size="sm" variant="outline" onClick={() => window.open('https://supabase.com/dashboard/project/vlsirftmzvmilugalbpr/auth/url-configuration', '_blank')} className="border-primary/30 text-primary hover:bg-primary/10">
                 <ExternalLink className="h-3 w-3 mr-1" />
                 Supabase Dashboard
               </Button>
