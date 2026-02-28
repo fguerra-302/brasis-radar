@@ -13,19 +13,22 @@ export const ConfigLayout = ({ children }: ConfigLayoutProps) => {
   
   return (
     <SidebarProvider>
-      <header className="h-12 flex items-center justify-between border-b bg-background px-4">
-        <div className="flex items-center">
-          <SidebarTrigger className="mr-4" />
-          <h1 className="text-lg font-semibold">Configurações do {brandingConfig.companyName}</h1>
-        </div>
-        <BackButton to="/" label="Voltar ao Radar" />
-      </header>
-
-      <div className="flex min-h-screen w-full">
+      <div className="min-h-screen flex w-full">
         <ConfigSidebar />
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+        <div className="flex-1 flex flex-col">
+          <header className="h-14 flex items-center justify-between border-b border-brasis-beige/40 bg-background px-6">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="text-primary hover:text-brasis-orange transition-colors" />
+              <h1 className="text-lg font-display brasis-text-gradient tracking-tight">
+                Configurações do {brandingConfig.companyName}
+              </h1>
+            </div>
+            <BackButton to="/" label="Voltar ao Radar" />
+          </header>
+          <main className="flex-1 p-6 bg-brasis-beige/10">
+            {children}
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );
