@@ -9,42 +9,30 @@ interface RadarDebugInfoProps {
 const RadarDebugInfo = ({ error, supabaseItemsCount }: RadarDebugInfoProps) => {
   if (error) {
     return (
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              <strong>Info de Debug:</strong> Erro no Supabase - {error.message}. Usando dados de exemplo.
-            </p>
-          </div>
-        </div>
+      <div className="bg-brasis-yellow/10 border-l-4 border-brasis-yellow p-4 rounded-r-lg">
+        <p className="text-sm text-foreground font-sans">
+          <strong>Info de Debug:</strong> Erro no Supabase - {error.message}. Usando dados de exemplo.
+        </p>
       </div>
     );
   }
 
   if (supabaseItemsCount === 0) {
     return (
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="text-sm text-blue-700">
-              <strong>Informação:</strong> Nenhum dado encontrado no Supabase. Exibindo dados de exemplo.
-            </p>
-          </div>
-        </div>
+      <div className="bg-secondary/5 border-l-4 border-secondary p-4 rounded-r-lg">
+        <p className="text-sm text-foreground font-sans">
+          <strong>Informação:</strong> Nenhum dado encontrado no Supabase. Exibindo dados de exemplo.
+        </p>
       </div>
     );
   }
 
   if (supabaseItemsCount > 0) {
     return (
-      <div className="bg-green-50 border-l-4 border-green-400 p-4">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="text-sm text-green-700">
-              <strong>Sucesso:</strong> Conectado ao Supabase with {supabaseItemsCount} itens carregados.
-            </p>
-          </div>
-        </div>
+      <div className="bg-accent/5 border-l-4 border-accent p-4 rounded-r-lg">
+        <p className="text-sm text-foreground font-sans">
+          <strong>Sucesso:</strong> Conectado ao Supabase com {supabaseItemsCount} itens carregados.
+        </p>
       </div>
     );
   }
