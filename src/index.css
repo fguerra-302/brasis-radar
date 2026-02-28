@@ -67,154 +67,152 @@
  * Typography: Favela (display/titles) + Montserrat (body text)
  */
 
-@layer base {
-  :root {
-    /* Background & Foreground */
-    --background: 42 50% 96%;
-    --foreground: 0 0% 7%;
+:root {
+  /* Background & Foreground */
+  --background: 42 50% 96% !important;
+  --foreground: 0 0% 7% !important;
 
-    --card: 42 40% 98%;
-    --card-foreground: 0 0% 7%;
+  --card: 42 40% 98% !important;
+  --card-foreground: 0 0% 7% !important;
 
-    --popover: 42 40% 97%;
-    --popover-foreground: 0 0% 7%;
+  --popover: 42 40% 97% !important;
+  --popover-foreground: 0 0% 7% !important;
 
-    /* Primary: Brasis Orange #ed7703 → hsl(29, 97%, 47%) */
-    --primary: 29 97% 47%;
-    --primary-foreground: 0 0% 100%;
+  /* Primary: Brasis Orange #ed7703 */
+  --primary: 29 97% 47% !important;
+  --primary-foreground: 0 0% 100% !important;
 
-    /* Secondary: Brasis Blue #1e5fc2 → hsl(217, 73%, 44%) */
-    --secondary: 217 73% 44%;
-    --secondary-foreground: 0 0% 100%;
+  /* Secondary: Brasis Blue #1e5fc2 */
+  --secondary: 217 73% 44% !important;
+  --secondary-foreground: 0 0% 100% !important;
 
-    /* Accent: Brasis Green #0a9955 → hsl(152, 82%, 31%) */
-    --accent: 152 82% 31%;
-    --accent-foreground: 0 0% 100%;
+  /* Accent: Brasis Green #0a9955 */
+  --accent: 152 82% 31% !important;
+  --accent-foreground: 0 0% 100% !important;
 
-    /* Brasis Yellow #eec00c → hsl(47, 92%, 49%) */
-    --brasis-yellow: 47 92% 49%;
-    --brasis-yellow-foreground: 0 0% 7%;
+  /* Brasis Yellow #eec00c */
+  --brasis-yellow: 47 92% 49% !important;
+  --brasis-yellow-foreground: 0 0% 7% !important;
 
-    /* Brasis Pink #ef9dce → hsl(324, 72%, 78%) */
-    --brasis-pink: 324 72% 78%;
-    --brasis-pink-foreground: 0 0% 7%;
+  /* Brasis Pink #ef9dce */
+  --brasis-pink: 324 72% 78% !important;
+  --brasis-pink-foreground: 0 0% 7% !important;
 
-    /* Brasis Red #e4131e → hsl(357, 83%, 48%) */
-    --brasis-red: 357 83% 48%;
-    --brasis-red-foreground: 0 0% 100%;
+  /* Brasis Red #e4131e */
+  --brasis-red: 357 83% 48% !important;
+  --brasis-red-foreground: 0 0% 100% !important;
 
-    /* Brasis Beige #efe8d5 → hsl(42, 50% 89%) */
-    --brasis-beige: 42 50% 89%;
-    --brasis-beige-foreground: 0 0% 7%;
+  /* Brasis Beige #efe8d5 */
+  --brasis-beige: 42 50% 89% !important;
+  --brasis-beige-foreground: 0 0% 7% !important;
 
-    --muted: 42 20% 90%;
-    --muted-foreground: 0 0% 35%;
+  --muted: 42 20% 90% !important;
+  --muted-foreground: 0 0% 35% !important;
 
-    --destructive: 357 83% 48%;
-    --destructive-foreground: 0 0% 100%;
+  --destructive: 357 83% 48% !important;
+  --destructive-foreground: 0 0% 100% !important;
 
-    --border: 42 20% 85%;
-    --input: 42 20% 85%;
-    --ring: 29 97% 47%;
+  --border: 42 20% 85% !important;
+  --input: 42 20% 85% !important;
+  --ring: 29 97% 47% !important;
 
-    --radius: 0.75rem;
+  --radius: 0.75rem !important;
 
-    /* Gradients */
-    --gradient-brasis: linear-gradient(135deg, hsl(29, 97%, 47%), hsl(217, 73%, 44%));
-    --gradient-warm: linear-gradient(135deg, hsl(47, 92%, 49%), hsl(29, 97%, 47%));
-    --gradient-tropical: linear-gradient(135deg, hsl(152, 82%, 31%), hsl(47, 92%, 49%));
+  /* Gradients */
+  --gradient-brasis: linear-gradient(135deg, hsl(29, 97%, 47%), hsl(217, 73%, 44%)) !important;
+  --gradient-warm: linear-gradient(135deg, hsl(47, 92%, 49%), hsl(29, 97%, 47%)) !important;
+  --gradient-tropical: linear-gradient(135deg, hsl(152, 82%, 31%), hsl(47, 92%, 49%)) !important;
 
-    /* Shadows */
-    --shadow-brasis: 0 10px 30px -10px hsl(29 97% 47% / 0.3);
-    --shadow-warm: 0 4px 20px hsl(47 92% 49% / 0.2);
+  /* Shadows */
+  --shadow-brasis: 0 10px 30px -10px hsl(29 97% 47% / 0.3) !important;
+  --shadow-warm: 0 4px 20px hsl(47 92% 49% / 0.2) !important;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 7%;
-    --sidebar-primary: 29 97% 47%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 73% 44%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 42 20% 85%;
-    --sidebar-ring: 29 97% 47%;
+  --sidebar-background: 0 0% 98% !important;
+  --sidebar-foreground: 0 0% 7% !important;
+  --sidebar-primary: 29 97% 47% !important;
+  --sidebar-primary-foreground: 0 0% 100% !important;
+  --sidebar-accent: 217 73% 44% !important;
+  --sidebar-accent-foreground: 0 0% 100% !important;
+  --sidebar-border: 42 20% 85% !important;
+  --sidebar-ring: 29 97% 47% !important;
 
-    --chart-1: 29 97% 47%;
-    --chart-2: 47 92% 49%;
-    --chart-3: 152 82% 31%;
-    --chart-4: 217 73% 44%;
-    --chart-5: 357 83% 48%;
+  --chart-1: 29 97% 47% !important;
+  --chart-2: 47 92% 49% !important;
+  --chart-3: 152 82% 31% !important;
+  --chart-4: 217 73% 44% !important;
+  --chart-5: 357 83% 48% !important;
 
-    --sidebar: 42 40% 98%;
+  --sidebar: 42 40% 98% !important;
 
-    --font-display: 'Favela', 'Georgia', serif;
-    --font-sans: 'Montserrat', system-ui, -apple-system, sans-serif;
+  --font-display: 'Favela', 'Georgia', serif !important;
+  --font-sans: 'Montserrat', system-ui, -apple-system, sans-serif !important;
 
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-    --tracking-normal: 0em;
-    --spacing: 0.25rem;
-  }
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05) !important;
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05) !important;
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25) !important;
+  --tracking-normal: 0em !important;
+  --spacing: 0.25rem !important;
+}
 
-  .dark {
-    --background: 0 0% 7%;
-    --foreground: 42 50% 96%;
+.dark {
+  --background: 0 0% 7% !important;
+  --foreground: 42 50% 96% !important;
 
-    --card: 0 0% 11%;
-    --card-foreground: 42 50% 96%;
+  --card: 0 0% 11% !important;
+  --card-foreground: 42 50% 96% !important;
 
-    --popover: 0 0% 14%;
-    --popover-foreground: 42 50% 96%;
+  --popover: 0 0% 14% !important;
+  --popover-foreground: 42 50% 96% !important;
 
-    --primary: 29 97% 52%;
-    --primary-foreground: 0 0% 100%;
+  --primary: 29 97% 52% !important;
+  --primary-foreground: 0 0% 100% !important;
 
-    --secondary: 217 73% 52%;
-    --secondary-foreground: 0 0% 100%;
+  --secondary: 217 73% 52% !important;
+  --secondary-foreground: 0 0% 100% !important;
 
-    --muted: 0 0% 20%;
-    --muted-foreground: 42 20% 70%;
+  --muted: 0 0% 20% !important;
+  --muted-foreground: 42 20% 70% !important;
 
-    --accent: 152 82% 38%;
-    --accent-foreground: 0 0% 100%;
+  --accent: 152 82% 38% !important;
+  --accent-foreground: 0 0% 100% !important;
 
-    --destructive: 357 83% 55%;
-    --destructive-foreground: 0 0% 100%;
+  --destructive: 357 83% 55% !important;
+  --destructive-foreground: 0 0% 100% !important;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 29 97% 52%;
+  --border: 0 0% 20% !important;
+  --input: 0 0% 20% !important;
+  --ring: 29 97% 52% !important;
 
-    --sidebar-background: 0 0% 9%;
-    --sidebar-foreground: 42 50% 96%;
-    --sidebar-primary: 29 97% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 73% 52%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 29 97% 52%;
+  --sidebar-background: 0 0% 9% !important;
+  --sidebar-foreground: 42 50% 96% !important;
+  --sidebar-primary: 29 97% 52% !important;
+  --sidebar-primary-foreground: 0 0% 100% !important;
+  --sidebar-accent: 217 73% 52% !important;
+  --sidebar-accent-foreground: 0 0% 100% !important;
+  --sidebar-border: 0 0% 20% !important;
+  --sidebar-ring: 29 97% 52% !important;
 
-    --chart-1: 29 97% 52%;
-    --chart-2: 47 92% 55%;
-    --chart-3: 152 82% 38%;
-    --chart-4: 217 73% 52%;
-    --chart-5: 357 83% 55%;
+  --chart-1: 29 97% 52% !important;
+  --chart-2: 47 92% 55% !important;
+  --chart-3: 152 82% 38% !important;
+  --chart-4: 217 73% 52% !important;
+  --chart-5: 357 83% 55% !important;
 
-    --sidebar: 0 0% 11%;
+  --sidebar: 0 0% 11% !important;
 
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-  }
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05) !important;
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05) !important;
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1) !important;
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25) !important;
 }
 
 @layer base {
@@ -224,11 +222,11 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+    font-family: 'Montserrat', system-ui, -apple-system, sans-serif !important;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Favela', 'Georgia', serif;
+    font-family: 'Favela', 'Georgia', serif !important;
   }
 
   /* Brasis Design Components */
