@@ -52,7 +52,7 @@ const RadarHeader = () => {
       {/* Description Card */}
       <div className="relative max-w-4xl mx-auto">
         <div className="bg-card rounded-2xl py-6 px-8 border border-border shadow-sm">
-          <p className="text-lg text-foreground font-sans font-medium leading-relaxed">
+          <p className="text-lg text-foreground font-sans font-medium leading-relaxed text-center">
             {brandingConfig.companyDescription}
           </p>
         </div>
