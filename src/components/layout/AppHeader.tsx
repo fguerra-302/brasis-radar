@@ -16,17 +16,18 @@ const RadarHeader = () => {
   const { brandingConfig } = useBranding();
   
   return (
-    <div className="text-center space-y-6 py-10">
-      {/* Hero Title */}
-      <div className="flex items-center justify-center gap-4">
-        <h1 className="text-5xl font-black tracking-tight font-display text-accent">
-          Brasis IA
-        </h1>
+    <div className="space-y-6 py-10">
+      {/* Header with Logo */}
+      <div className="flex items-center justify-between px-4">
         <img 
           src={brandingConfig.logoUrl || brasIsLogo} 
           alt={`${brandingConfig.companyName} Logo`}
-          className="h-10 w-auto object-contain"
+          className="h-4 w-auto object-contain"
         />
+        <h1 className="text-5xl font-black tracking-tight font-display text-accent text-center flex-1">
+          Brasis IA
+        </h1>
+        <div className="w-4" /> {/* Spacer for centering */}
       </div>
       
       {/* Configuration Status Alert */}
