@@ -18,15 +18,15 @@ const RadarHeader = () => {
   return (
     <div className="text-center space-y-6 py-10">
       {/* Hero Title */}
-      <div className="flex items-center justify-center gap-5">
+      <div className="flex items-center justify-center gap-4">
+        <h1 className="text-5xl font-black tracking-tight font-display text-accent">
+          Brasis IA
+        </h1>
         <img 
           src={brandingConfig.logoUrl || brasIsLogo} 
           alt={`${brandingConfig.companyName} Logo`}
-          className="h-16 w-auto object-contain"
+          className="h-10 w-auto object-contain"
         />
-        <h1 className="text-5xl font-black tracking-tight font-display text-secondary">
-          {brandingConfig.companyName}
-        </h1>
       </div>
       
       {/* Configuration Status Alert */}
