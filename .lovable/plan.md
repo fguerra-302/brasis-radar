@@ -1,67 +1,108 @@
 
 
-## Plano: Refatoracao Visual Completa - Padrao Brasis
+# Auditoria Completa para Go Live -- 20 Usuários Internos
 
-### Analise do Site de Referencia (brasis.lovable.app)
+## Veredicto Geral
 
-O site oficial usa:
-- **Fundo dominante**: Azul escuro (#1e5fc2) no hero, beige (#efe8d5) nas secoes internas
-- **Titulos**: Fonte Favela Black, cor branca sobre azul, ou azul sobre beige
-- **Botoes CTA**: Laranja solido (#ed7703) com bordas arredondadas, sem gradiente
-- **Logo**: Imagem PNG do logo BRASIS (nao texto)
-- **Cards**: Fundo branco limpo sobre beige
-- **Navegacao**: Fundo azul escuro com texto branco
-- **Sem gradientes nos textos ou botoes**
+**O sistema PODE ir ao ar para 20 usuários internos**, com 3 ações obrigatórias no Supabase Dashboard e 2 correções recomendadas no código. Não há bloqueadores críticos de código.
 
-### Problemas Atuais vs Referencia
+---
 
-1. Fundo `--background` ainda e beige muito claro (96% lightness), deveria ser beige real (89%)
-2. `.brasis-text-gradient` aplica gradiente nos titulos - deveria ser azul solido
-3. `.brasis-button-primary` usa gradiente - deveria ser laranja solido
-4. `.brasis-card` usa gradiente de fundo - deveria ser branco limpo
-5. Pagina de login usa `bg-gradient-warm` generico - deveria usar azul escuro (#1e5fc2) como o hero do site
-6. Icone Bot generico no header - substituir pelo logo oficial BRASIS_AZUL.png
-7. Header nao segue o padrao visual do site (nav azul escuro)
+## 1. SEGURANÇA -- Estado Atual
 
-### Implementacao
+### 1.1 RLS (Row Level Security) -- OK
+Todas as 8 tabelas têm RLS ativo com políticas por `user_id = auth.uid()`. Cada usuário só vê seus próprios dados. A tabela `user_roles` usa `has_role()` SECURITY DEFINER para evitar recursão. Sem falhas.
 
-**Passo 1 - Copiar logos para o projeto**
-- Copiar `BRASIS_AZUL.png` para `src/assets/` (uso principal no header sobre beige)
-- Copiar `BRASIS_BRANCO.png` para `src/assets/` (uso na pagina de login sobre azul)
-- Copiar `BRASIS_LARANJA.png` para `src/assets/` (uso alternativo)
+### 1.2 Credenciais JSONB -- ACEITÁVEL
+Os campos `credentials` e `external_api_config` em `radar_sources` têm SELECT revogado para roles `anon`/`authenticated`. Acesso somente via funções SECURITY DEFINER com validação de tamanho (10KB) e estrutura. Para 20 usuários internos confiáveis, é suficiente.
 
-**Passo 2 - Reescrever tokens CSS em `src/index.css`**
-- `--background`: beige real `42 50% 89%` (era 96%)
-- `--card`: branco `0 0% 100%`
-- Remover `.brasis-text-gradient` (substituir por classe simples `text-secondary`)
-- `.brasis-button-primary`: `background: hsl(var(--primary))` solido, sem gradiente
-- `.brasis-card`: `background: white`, borda sutil, sem gradiente
-- Remover gradientes `--gradient-brasis`, `--gradient-warm` etc
+### 1.3 Validação de Entrada -- OK
+`inputValidation.ts` tem detecção de SQL injection, sanitização XSS, validação de URL (bloqueia localhost/IPs privados). Edge functions têm rate limiting (10 req/min).
 
-**Passo 3 - Atualizar `AuthPage.tsx`**
-- Trocar `bg-gradient-warm` por `bg-secondary` (azul escuro solido)
-- Usar logo BRASIS_BRANCO.png no lugar de icone Radar
-- Titulo branco sobre azul, sem classe gradient
-- Card branco com cantos arredondados
+### 1.4 Autenticação -- ATENÇÃO
+- `/config/*` e `/curadoria/*` estão protegidos por `AuthGuard`.
+- **A rota `/` (Index/Radar) NÃO tem AuthGuard.** O componente `RadarMain` usa `useAuth()` e as queries dependem de RLS (que exige auth), então dados ficam protegidos. Mas a página renderiza sem login, mostrando o header e UI vazia. Isso é funcional mas pode confundir novos usuários.
 
-**Passo 4 - Atualizar `AppHeader.tsx`**
-- Usar logo BRASIS_AZUL.png (import do src/assets) no lugar de icone Bot
-- Titulo em `text-secondary` (azul solido) sem `.brasis-text-gradient`
-- Botao CTA: `bg-primary text-white` (laranja solido) sem `.brasis-button-primary`
+---
 
-**Passo 5 - Atualizar layouts (ConfigLayout, CuradoriaLayout)**
-- Trocar `brasis-text-gradient` por `text-secondary` nos titulos
-- Trocar `bg-brasis-beige/10` por `bg-background` (ja sera beige real)
+## 2. AÇÕES OBRIGATÓRIAS NO SUPABASE DASHBOARD
 
-**Passo 6 - Varrer todos os componentes restantes**
-- Substituir toda ocorrencia de `brasis-text-gradient` por `text-secondary`
-- Substituir `brasis-button-primary` por `bg-primary text-white`
-- Substituir `brasis-card` por `bg-white` ou `bg-card`
-- Componentes: RadarLiveStats, RadarRecentActions, RadarAutomationStatus, RadarEmpty, RadarDebugInfo, RadarStats, ContentCard, ContentFilters, ContentList, BulkActions, ConfigurationAlert, CuradoriaSidebar, OnboardingTour
+Estas 3 pendências são **warn** do linter e devem ser resolvidas antes do go-live para 20 pessoas:
 
-**Passo 7 - Limpar tailwind.config.ts**
-- Remover `backgroundImage` com gradientes obsoletos
+| Item | Onde resolver | Prioridade |
+|------|--------------|------------|
+| **Leaked Password Protection** | Auth > Settings > Password | Alta |
+| **MFA (TOTP)** | Auth > Providers > habilitar TOTP | Média |
+| **Postgres Upgrade** | Settings > Database > Upgrade | Alta |
 
-### Resultado Esperado
-- Visual identico ao site brasis.lovable.app: azul nos titulos, laranja nos CTAs, beige no fundo, cards brancos, logo oficial, zero gradientes
+Nenhuma dessas requer mudança de código.
+
+---
+
+## 3. CORREÇÕES RECOMENDADAS NO CÓDIGO
+
+### 3.1 Proteger rota `/` com AuthGuard (Recomendado)
+A página principal mostra UI sem login. Com 20 usuários, todos deverão estar autenticados. Envolver a rota `/` com `AuthGuard` garante que ninguém veja a interface sem estar logado.
+
+```
+Arquivo: src/App.tsx
+Mudança: <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
+```
+
+### 3.2 Remover console.logs de produção (Opcional)
+Há ~10 console.log espalhados em `RadarMain`, `Index`, `RadarBrasis`, `App.tsx` que expõem lógica interna. Para 20 usuários internos confiáveis, o risco é baixo. Pode ser feito via `vite.config.ts`:
+
+```typescript
+esbuild: {
+  drop: ['console', 'debugger']
+}
+```
+
+---
+
+## 4. REAL-TIME (CHANNEL_ERROR)
+
+O real-time está falhando (37+ erros CHANNEL_ERROR). Isso já foi aceito como limitação -- usuários precisam dar refresh manual. Para 20 usuários não é bloqueante, mas o badge "Ao vivo" é enganoso. Recomendo remover ou trocar por "Atualizar" manual.
+
+---
+
+## 5. GAPS FUNCIONAIS CONHECIDOS
+
+Documentados e não-bloqueantes para o fluxo core (Coletado > Selecionado > News Pronta):
+- Persona config sem persistência backend
+- AutomationConfig switches não salvam em `user_settings`
+- External API Config sem backend funcional
+
+---
+
+## 6. PERFORMANCE para 20 Usuários
+
+- Supabase Free/Pro suporta facilmente 20 usuários simultâneos
+- Queries têm índices para RLS
+- Rate limiting de 10 req/min por usuário é adequado
+- Sem problemas de escala previstos
+
+---
+
+## Resumo Executivo
+
+```text
++---------------------------+----------+------------------+
+| Item                      | Status   | Ação Necessária  |
++---------------------------+----------+------------------+
+| RLS em todas tabelas      | OK       | Nenhuma          |
+| Credenciais protegidas    | OK       | Nenhuma          |
+| Validação de entrada      | OK       | Nenhuma          |
+| Auth nas rotas protegidas | OK       | Nenhuma          |
+| Rota "/" sem AuthGuard    | ATENÇÃO  | Adicionar guard  |
+| Leaked password protect.  | WARN     | Dashboard        |
+| MFA                       | WARN     | Dashboard        |
+| Postgres upgrade          | WARN     | Dashboard        |
+| Console.logs produção     | INFO     | Opcional         |
+| Real-time                 | WARN     | Aceito/ignorado  |
+| Performance 20 users      | OK       | Nenhuma          |
++---------------------------+----------+------------------+
+```
+
+**Recomendação**: Resolva os 3 itens do Dashboard + adicione AuthGuard na rota `/`, e o sistema está pronto para go live com 20 usuários internos.
 
