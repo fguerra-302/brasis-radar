@@ -44,7 +44,7 @@ const App = () => {
                   {React.createElement(React.lazy(() => import("./pages/Setup")))}
                 </Suspense>
               } />
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/config/*" element={<AuthGuard><Config /></AuthGuard>} />
               <Route path="/curadoria/*" element={<AuthGuard><Curadoria /></AuthGuard>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
