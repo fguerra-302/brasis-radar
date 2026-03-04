@@ -142,6 +142,11 @@
     --chart-4: 217 73% 44%;
     --chart-5: 357 83% 48%;
 
+    --brasis-terracotta: 16 65% 45%;
+    --brasis-terracotta-foreground: 0 0% 100%;
+    --brasis-sage: 140 20% 45%;
+    --brasis-sage-foreground: 0 0% 100%;
+
     --font-display: 'Favela', 'Georgia', serif;
     --font-sans: 'Montserrat', system-ui, -apple-system, sans-serif;
 

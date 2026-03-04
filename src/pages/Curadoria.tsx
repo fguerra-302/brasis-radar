@@ -5,6 +5,7 @@ import { CuradoriaApproval } from '@/components/curadoria/CuradoriaApproval';
 import { NewsletterExport } from '@/components/curadoria/NewsletterExport';
 import { CuradoriaEditor } from '@/components/curadoria/CuradoriaEditor';
 import { CuradoriaPersona } from '@/components/curadoria/CuradoriaPersona';
+import { BrasisEditor } from '@/components/curadoria/BrasisEditor';
 import { KeywordsConfig } from '@/components/config/KeywordsConfig';
 
 const Curadoria = () => {
@@ -15,6 +16,7 @@ const Curadoria = () => {
         <Route path="approval" element={<CuradoriaApproval />} />
         <Route path="newsletter" element={<NewsletterExport />} />
         <Route path="editor" element={<CuradoriaEditor />} />
+        <Route path="brasis-editor" element={<BrasisEditor />} />
         <Route path="categorias" element={<KeywordsConfig />} />
         <Route path="persona" element={<CuradoriaPersona />} />
       </Routes>
