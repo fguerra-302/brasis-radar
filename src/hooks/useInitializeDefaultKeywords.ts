@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { DEFAULT_KEYWORD_CATEGORIES } from '@/utils/defaultKeywordCategories';
 
 export const useInitializeDefaultKeywords = () => {
@@ -10,68 +9,81 @@ export const useInitializeDefaultKeywords = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user?.id && !isInitialized) {
-      setIsInitialized(true);
-    }
-  }, [user?.id, isInitialized]);
-
-  const initializeDefaultKeywords = async () => {
-    if (!user?.id) {
-      toast.error('Usuário não autenticado');
-      return;
-    }
-
-    setIsInitializing(true);
-
-    try {
-      // Verificar se já existem categorias
-      const { data: existingKeywords, error: fetchError } = await supabase
-        .from('radar_keywords')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1);
-
-      if (fetchError) {
-        console.error('Erro ao verificar palavras-chave existentes:', fetchError);
-        throw fetchError;
-      }
-
-      if (existingKeywords && existingKeywords.length > 0) {
-        toast.info('Categorias já existem para este usuário');
+    const initializeDefaultKeywords = async () => {
+      if (!user?.id) {
+        setIsInitialized(false);
         return;
       }
 
-      // Inserir categorias padrão
-      const categoriesForUser = DEFAULT_KEYWORD_CATEGORIES.map(category => ({
-        ...category,
-        user_id: user.id
-      }));
+      try {
+        console.log('🔄 Inicializando keywords padrão para usuário:', user.id);
 
-      const { error: insertError } = await supabase
-        .from('radar_keywords')
-        .insert(categoriesForUser);
+        const { data: existingKeywords, error: checkError } = await supabase
+          .from('radar_keywords')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
 
-      if (insertError) {
-        console.error('Erro ao inserir categorias padrão:', insertError);
-        throw insertError;
+        if (checkError) {
+          console.error('❌ Erro ao verificar keywords existentes:', checkError);
+          setIsInitialized(false);
+          return;
+        }
+
+        if (existingKeywords && existingKeywords.length > 0) {
+          console.log('✅ Usuário já possui keywords configuradas');
+          setIsInitialized(true);
+          return;
+        }
+
+        console.log('📝 Inserindo keywords padrão...');
+
+        const categoriesForUser = DEFAULT_KEYWORD_CATEGORIES.map(category => ({
+          ...category,
+          user_id: user.id
+        }));
+
+        const { error: insertError } = await supabase
+          .from('radar_keywords')
+          .insert(categoriesForUser);
+
+        if (insertError) {
+          console.error('❌ Erro ao inserir keywords padrão:', insertError);
+          setIsInitialized(false);
+          return;
+        }
+
+        console.log(`✅ ${DEFAULT_KEYWORD_CATEGORIES.length} keywords padrão inicializadas para ${user.email}`);
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('❌ Erro na inicialização das keywords padrão:', error);
+        setIsInitialized(false);
       }
+    };
 
-      toast.success(`${DEFAULT_KEYWORD_CATEGORIES.length} categorias padrão criadas com sucesso!`);
-      
-      // Recarregar a página para atualizar os dados
-      window.location.reload();
+    initializeDefaultKeywords();
+  }, [user]);
 
-    } catch (error: any) {
-      console.error('Erro ao inicializar categorias padrão:', error);
-      toast.error('Erro ao criar categorias padrão: ' + (error.message || 'Erro desconhecido'));
+  const initializeDefaultKeywords = async () => {
+    // Manual trigger - just refetch
+    setIsInitializing(true);
+    try {
+      const { data } = await supabase
+        .from('radar_keywords')
+        .select('id')
+        .eq('user_id', user?.id || '')
+        .limit(1);
+      if (!data || data.length === 0) {
+        const categoriesForUser = DEFAULT_KEYWORD_CATEGORIES.map(category => ({
+          ...category,
+          user_id: user!.id
+        }));
+        await supabase.from('radar_keywords').insert(categoriesForUser);
+      }
     } finally {
       setIsInitializing(false);
     }
   };
 
-  return {
-    isInitialized,
-    isInitializing,
-    initializeDefaultKeywords
-  };
+  return { isInitialized, isInitializing, initializeDefaultKeywords };
 };
