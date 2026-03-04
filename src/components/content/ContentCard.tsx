@@ -76,7 +76,7 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, 
         <Card className="bg-card shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-3">
-              <CardTitle className="text-lg font-display text-foreground leading-tight">
+              <CardTitle className="text-lg font-sans font-semibold text-foreground leading-tight">
                 {item.title}
               </CardTitle>
               <div className="flex items-center gap-1">
@@ -134,7 +134,7 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, 
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle className="font-display">Excluir item</AlertDialogTitle>
+                      <AlertDialogTitle className="font-sans font-semibold">Excluir item</AlertDialogTitle>
                       <AlertDialogDescription className="font-sans">
                         Tem certeza que deseja excluir permanentemente este item? Esta ação não pode ser desfeita.
                       </AlertDialogDescription>
@@ -185,7 +185,7 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, 
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle className="font-display">Excluir item</AlertDialogTitle>
+              <AlertDialogTitle className="font-sans font-semibold">Excluir item</AlertDialogTitle>
               <AlertDialogDescription className="font-sans">
                 Tem certeza que deseja excluir permanentemente "{item.title}"? Esta ação não pode ser desfeita.
               </AlertDialogDescription>
