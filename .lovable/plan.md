@@ -1,143 +1,81 @@
 
 
-# Auditoria Completa do Radar Brasis
+# Review End-to-End: Brasis.IA -- Pronta para o time?
 
-## Visao Geral - O que encontrei
+## Veredicto: NAO ESTA PRONTA
 
-Analisei cada arquivo do projeto, cruzando com o que sei sobre a Brasis (identidade visual, fluxo editorial, pipeline de curadoria). Abaixo organizo em 3 blocos: o que funciona, o que tem redundancia/lixo, e o que precisa de ajuste.
-
----
-
-## 1. CODIGO MORTO E REDUNDANCIAS (para remover)
-
-### 1.1 CuradoriaConfig.tsx - LIXO COMPLETO
-- Componente com campos de NewsAPI Key e OpenAI Key hardcoded em estado local
-- Lista de fontes fixa (G1, Folha, etc.) que nao conecta com nada
-- Intervalo de curadoria que nao salva em lugar nenhum
-- **Nao e usado por nenhuma rota** -- esta importado em lugar nenhum
-- **Acao:** Deletar `src/components/CuradoriaConfig.tsx`
-
-### 1.2 GPTClient.tsx - MORTO
-- Classe que tenta chamar `/api/ai-enhance` (rota que nao existe)
-- Usa `process.env.OPENAI_API_KEY` que nao funciona no browser
-- Nunca e importado por nenhum componente
-- **Acao:** Deletar `src/lib/gptClient.ts`
-
-### 1.3 ContentStatus enum duplicado e confuso
-- O enum tem 11 valores, 4 sao "legacy" mas ainda usados no codigo real
-- `COLLECTED` e `IMPORTED` apontam para o mesmo valor `"Coletado"`
-- O radar insere com `"Em aprovacao"` mas o enum define `SELECTED = "Selecionado"` e `NEWS_READY = "News Pronta"` que nao sao usados em nenhum lugar
-- **Problema real:** CuradoriaApproval filtra `status = 'Em aprovacao'`, CuradoriaEditor filtra `status = 'Em edicao'`, Newsletter filtra `status = 'Para Newsletter'` -- os status "novos" (COLLECTED, SELECTED, NEWS_READY) nunca sao gravados
-- **Acao:** Limpar o enum, manter apenas os status realmente usados
-
-### 1.4 Migrations excessivas
-- 56 migrations, muitas conflitantes (criando e recriando as mesmas policies)
-- 4 migrations nos ultimos dias tentando corrigir o mesmo problema de RLS RESTRICTIVE
-- **Acao:** Nao impacta funcionalidade, mas vale consolidar no futuro
+Existem 3 bloqueios criticos e 5 problemas de usabilidade que impediriam um usuario novo de usar o sistema com sucesso.
 
 ---
 
-## 2. PROBLEMA CRITICO: RLS AINDA RESTRICTIVE
+## BLOQUEIO 1: NADA SALVA NO BANCO (CRITICO)
 
-Toda a conversa anterior tentou corrigir isso com 4 migrations, mas **as policies no banco ainda estao RESTRICTIVE** segundo o schema reportado. Isso significa:
-- **brasis_content** (Editor Brasis): nao salva, nao carrega
-- **Todas as outras tabelas**: mesmo problema potencial
+**Todas as 13 tabelas** ainda tem politicas RLS marcadas como `Permissive: No` (RESTRICTIVE). Isso significa que quando ha mais de uma policy no mesmo comando (ex: SELECT), o Postgres exige que TODAS sejam verdadeiras ao mesmo tempo. Na pratica:
 
-**Acao:** Uma migration definitiva que:
-1. `DROP POLICY IF EXISTS` de cada policy existente
-2. Recria como `PERMISSIVE` (sem a keyword RESTRICTIVE)
+- Editor Brasis: nao salva conteudo
+- Persona: nao salva personas
+- Radar: nao carrega itens
+- Keywords, Sources, Settings: inacessiveis
 
----
-
-## 3. FLUXO DE STATUS - RECOMENDACAO
-
-Baseado no que sei do fluxo operacional Brasis (mapeamento por IA -> selecao humana -> texto newsletter por IA -> aprovacao final):
-
-**Fluxo recomendado (5 status):**
-
-```text
-Coletado --> Em aprovacao --> Para Newsletter --> Publicado
-                |                  |
-                +--> Ignorado      +--> Em edicao (redes sociais)
-```
-
-**Remover:** `Selecionado`, `News Pronta`, `Para Redes Sociais`, `Para Newsletter e Redes`, `Na Newsletter` -- nenhum deles e usado no codigo real.
-
-**Manter:**
-- `Coletado` (radar-automation insere)
-- `Em aprovacao` (RadarMain envia para revisao)
-- `Para Newsletter` (CuradoriaApproval envia)
-- `Em edicao` (CuradoriaApproval envia para redes sociais)
-- `Ignorado` (rejeicao)
-- `Publicado` (finalizacao)
+**As 4 migrations anteriores tentaram corrigir mas nao funcionaram.** A correcao definitiva precisa:
+1. DROP de cada policy por nome exato (os nomes existentes no banco)
+2. Recriar com `CREATE POLICY ... AS PERMISSIVE` (o Postgres 15+ exige a keyword explicitamente se voce quer garantir)
 
 ---
 
-## 4. PERSONA NAO PERSISTE
+## BLOQUEIO 2: LOGIN REDIRECIONA PARA LUGAR ERRADO
 
-- CuradoriaPersona.tsx salva tudo em `useState` -- perde ao recarregar
-- "Personas Salvas" mostra 2 cards hardcoded que nao vem do banco
-- A funcao "Gerar Amostra" so concatena strings, nao usa IA
+- AuthPage no login bem-sucedido: `navigate('/curadoria')` (linha 110)
+- AuthPage quando usuario ja logado: `navigate('/curadoria')` (linha 29)
+- Mas a rota `/` (Index) mostra o Radar, que e a tela principal
+- **Resultado para usuario novo:** faz login e cai direto na Curadoria (que esta vazia), sem nunca ver o Radar onde o conteudo e coletado. Confuso.
 
-**Acao:**
-- Criar tabela `personas` no Supabase (user_id, name, tone, style, target_audience, key_values, communication_style, examples)
-- Conectar Lovable AI para gerar amostras de teste reais
-- Remover cards hardcoded
+**Recomendacao:** Login deve ir para `/` (Radar) que e o hub central.
 
 ---
 
-## 5. EDITOR BRASIS - CONEXAO COM RADAR
+## BLOQUEIO 3: ONBOARDING NAO ENSINA O FLUXO COMPLETO
 
-Voce confirmou que o Editor Brasis deve funcionar tanto para conteudo original quanto para transformar itens do radar. Hoje ele so faz conteudo original (formulario vazio).
+O tour tem 4 passos genericos (Bem-vindo, Itens, Fontes, IA). Faltam:
+- Como executar a coleta (botao "Executar Curadoria")
+- Como ir da coleta para aprovacao
+- Como usar o Editor Brasis
+- Como exportar newsletter
 
-**Acao:**
-- Adicionar botao "Importar do Radar" que busca itens com status `Para Newsletter` ou `Em aprovacao`
-- Pre-preenche o titulo e bloco de Observacao com o titulo/resumo do item do radar
-- O usuario transforma no formato dos 4 blocos
-
----
-
-## 6. INCONSISTENCIAS VISUAIS
-
-- CuradoriaApproval, CuradoriaEditor e NewsletterExport usam `text-slate-800`, `bg-slate-50`, `bg-blue-50` -- cores do Tailwind padrao, nao da identidade Brasis (bege, azul escuro, laranja)
-- O Editor Brasis usa corretamente `brasis-terracotta` e `brasis-sage`
-- O header da CuradoriaLayout usa `font-display` e cores Brasis corretamente
-
-**Acao:** Padronizar os 3 componentes legados (Approval, Editor, Newsletter) para usar as cores do design system Brasis
+**Para um time novo, o tour precisa ser um guia do fluxo operacional**, nao uma lista de conceitos.
 
 ---
 
-## 7. TOASTER DUPLICADO
+## PROBLEMAS DE USABILIDADE
 
-- RadarMain renderiza `<Toaster />` dentro do componente
-- App.tsx ja renderiza `<Toaster />` e `<Sonner />`
-- O projeto mistura dois sistemas de toast: `useToast` (radix) e `toast` do Sonner
-- **Resultado:** Possivel toast duplicado ou inconsistente
+### U1: Radar mostra "Modo Demonstracao" mesmo logado
+Linha 141 de RadarMain: `if (!user)` mostra banner de demo. Mas como AuthGuard ja bloqueia usuarios nao-logados, esse banner nunca aparece. E codigo morto que confunde na leitura.
 
-**Acao:** Escolher um sistema (Sonner e mais moderno e ja usado no Editor Brasis) e migrar os componentes antigos
+### U2: Nao ha como voltar do Curadoria para o Radar facilmente
+O item "Voltar ao Radar" esta no fim da sidebar (posicao 7 de 7). Deveria ser o primeiro ou ter destaque visual. O BackButton no header tambem existe, entao ha redundancia.
+
+### U3: Tela vazia sem orientacao
+Quando CuradoriaApproval, CuradoriaEditor ou NewsletterExport estao vazias, mostram apenas icone + texto generico. Nao orientam o usuario sobre o que fazer para preenche-las (ex: "Va ao Radar e envie itens para aprovacao").
+
+### U4: Editor Social gera conteudo local, nao salva
+CuradoriaEditor gera texto para LinkedIn/Instagram/Video, mas nao persiste. Se o usuario fecha o dialog, perde tudo. Deveria ao menos ter um "rascunho salvo" ou warning antes de fechar.
+
+### U5: Persona precisa estar preenchida para testar, mas nao ha selecao de persona salva na aba Testar
+O usuario tem que ir na aba Configurar, preencher/editar uma persona, depois ir na aba Testar. Se ele so quer testar uma persona salva, nao tem como selecionar direto.
 
 ---
 
-## 8. CONSOLE.LOG EXCESSIVO
+## PLANO DE EXECUCAO
 
-- 20+ `console.log` com emojis espalhados pelo codigo de producao
-- RadarMain, useRadarBrasis, App.tsx, etc.
-- **Acao:** Remover todos exceto logs de erro reais
+| # | Item | O que fazer |
+|---|------|-------------|
+| 1 | **Fix RLS definitivo** | Migration que dropa TODAS as policies por nome e recria como PERMISSIVE. Verificar com query no banco antes e depois. |
+| 2 | **Corrigir redirect pos-login** | AuthPage deve navegar para `/` (Radar) apos login, nao `/curadoria` |
+| 3 | **Reescrever onboarding** | Tour com 5-6 passos que ensinem o fluxo real: Coletar > Aprovar > Newsletter/Redes/Editor Brasis |
+| 4 | **Estados vazios informativos** | Cada tela vazia deve orientar o usuario pro passo anterior do pipeline |
+| 5 | **Selector de persona na aba Testar** | Dropdown que carrega personas salvas direto na aba de teste |
+| 6 | **Remover banner demo morto** | Tirar o bloco `!user` do RadarMain (ja protegido por AuthGuard) |
+| 7 | **Mover "Voltar ao Radar" para topo da sidebar** | Primeiro item, com icone diferenciado |
 
----
-
-## PLANO DE EXECUCAO (por prioridade)
-
-| # | Acao | Impacto |
-|---|------|---------|
-| 1 | Fix RLS definitivo (migration unica para TODAS as tabelas) | CRITICO - nada funciona sem isso |
-| 2 | Deletar CuradoriaConfig.tsx e gptClient.ts | Limpeza |
-| 3 | Limpar ContentStatus enum (remover 5 status mortos) | Clareza |
-| 4 | Criar tabela `personas` e conectar CuradoriaPersona ao Supabase | Funcionalidade |
-| 5 | Adicionar "Importar do Radar" no Editor Brasis | Funcionalidade |
-| 6 | Padronizar cores Brasis nos componentes de curadoria | Visual |
-| 7 | Unificar sistema de toast (Sonner) e remover Toaster duplicado | Limpeza |
-| 8 | Remover console.logs de producao | Limpeza |
-
-Posso executar todos esses itens ou voce quer priorizar alguns primeiro?
+Os itens 1-4 sao obrigatorios antes de liberar para o time. Os itens 5-7 sao melhorias de experiencia recomendadas.
 
