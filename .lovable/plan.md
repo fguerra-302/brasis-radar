@@ -1,108 +1,85 @@
 
 
-# Auditoria Completa para Go Live -- 20 Usuários Internos
+# Banco Unificado de Fontes + Pastas por Projeto
 
-## Veredicto Geral
+## Conceito
 
-**O sistema PODE ir ao ar para 20 usuários internos**, com 3 ações obrigatórias no Supabase Dashboard e 2 correções recomendadas no código. Não há bloqueadores críticos de código.
+Hoje cada usuário tem suas próprias fontes (`radar_sources.user_id`). A proposta é criar um **catálogo compartilhado** de fontes visível a todos, e cada usuário monta **pastas de projeto** selecionando fontes desse catálogo.
 
----
-
-## 1. SEGURANÇA -- Estado Atual
-
-### 1.1 RLS (Row Level Security) -- OK
-Todas as 8 tabelas têm RLS ativo com políticas por `user_id = auth.uid()`. Cada usuário só vê seus próprios dados. A tabela `user_roles` usa `has_role()` SECURITY DEFINER para evitar recursão. Sem falhas.
-
-### 1.2 Credenciais JSONB -- ACEITÁVEL
-Os campos `credentials` e `external_api_config` em `radar_sources` têm SELECT revogado para roles `anon`/`authenticated`. Acesso somente via funções SECURITY DEFINER com validação de tamanho (10KB) e estrutura. Para 20 usuários internos confiáveis, é suficiente.
-
-### 1.3 Validação de Entrada -- OK
-`inputValidation.ts` tem detecção de SQL injection, sanitização XSS, validação de URL (bloqueia localhost/IPs privados). Edge functions têm rate limiting (10 req/min).
-
-### 1.4 Autenticação -- ATENÇÃO
-- `/config/*` e `/curadoria/*` estão protegidos por `AuthGuard`.
-- **A rota `/` (Index/Radar) NÃO tem AuthGuard.** O componente `RadarMain` usa `useAuth()` e as queries dependem de RLS (que exige auth), então dados ficam protegidos. Mas a página renderiza sem login, mostrando o header e UI vazia. Isso é funcional mas pode confundir novos usuários.
-
----
-
-## 2. AÇÕES OBRIGATÓRIAS NO SUPABASE DASHBOARD
-
-Estas 3 pendências são **warn** do linter e devem ser resolvidas antes do go-live para 20 pessoas:
-
-| Item | Onde resolver | Prioridade |
-|------|--------------|------------|
-| **Leaked Password Protection** | Auth > Settings > Password | Alta |
-| **MFA (TOTP)** | Auth > Providers > habilitar TOTP | Média |
-| **Postgres Upgrade** | Settings > Database > Upgrade | Alta |
-
-Nenhuma dessas requer mudança de código.
-
----
-
-## 3. CORREÇÕES RECOMENDADAS NO CÓDIGO
-
-### 3.1 Proteger rota `/` com AuthGuard (Recomendado)
-A página principal mostra UI sem login. Com 20 usuários, todos deverão estar autenticados. Envolver a rota `/` com `AuthGuard` garante que ninguém veja a interface sem estar logado.
-
-```
-Arquivo: src/App.tsx
-Mudança: <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
-```
-
-### 3.2 Remover console.logs de produção (Opcional)
-Há ~10 console.log espalhados em `RadarMain`, `Index`, `RadarBrasis`, `App.tsx` que expõem lógica interna. Para 20 usuários internos confiáveis, o risco é baixo. Pode ser feito via `vite.config.ts`:
-
-```typescript
-esbuild: {
-  drop: ['console', 'debugger']
-}
-```
-
----
-
-## 4. REAL-TIME (CHANNEL_ERROR)
-
-O real-time está falhando (37+ erros CHANNEL_ERROR). Isso já foi aceito como limitação -- usuários precisam dar refresh manual. Para 20 usuários não é bloqueante, mas o badge "Ao vivo" é enganoso. Recomendo remover ou trocar por "Atualizar" manual.
-
----
-
-## 5. GAPS FUNCIONAIS CONHECIDOS
-
-Documentados e não-bloqueantes para o fluxo core (Coletado > Selecionado > News Pronta):
-- Persona config sem persistência backend
-- AutomationConfig switches não salvam em `user_settings`
-- External API Config sem backend funcional
-
----
-
-## 6. PERFORMANCE para 20 Usuários
-
-- Supabase Free/Pro suporta facilmente 20 usuários simultâneos
-- Queries têm índices para RLS
-- Rate limiting de 10 req/min por usuário é adequado
-- Sem problemas de escala previstos
-
----
-
-## Resumo Executivo
+## Arquitetura de Dados
 
 ```text
-+---------------------------+----------+------------------+
-| Item                      | Status   | Ação Necessária  |
-+---------------------------+----------+------------------+
-| RLS em todas tabelas      | OK       | Nenhuma          |
-| Credenciais protegidas    | OK       | Nenhuma          |
-| Validação de entrada      | OK       | Nenhuma          |
-| Auth nas rotas protegidas | OK       | Nenhuma          |
-| Rota "/" sem AuthGuard    | ATENÇÃO  | Adicionar guard  |
-| Leaked password protect.  | WARN     | Dashboard        |
-| MFA                       | WARN     | Dashboard        |
-| Postgres upgrade          | WARN     | Dashboard        |
-| Console.logs produção     | INFO     | Opcional         |
-| Real-time                 | WARN     | Aceito/ignorado  |
-| Performance 20 users      | OK       | Nenhuma          |
-+---------------------------+----------+------------------+
+┌─────────────────────────┐
+│   shared_sources        │  ← Catálogo global (sem user_id)
+│   id, name, url, type   │
+│   active, config, ...   │
+└──────────┬──────────────┘
+           │ 1:N
+┌──────────┴──────────────┐
+│  project_folders        │  ← Pasta/projeto do usuário
+│  id, user_id, name,     │
+│  description             │
+└──────────┬──────────────┘
+           │ N:M
+┌──────────┴──────────────┐
+│  project_source_links   │  ← Junction table
+│  id, folder_id,         │
+│  source_id, user_id     │
+└─────────────────────────┘
 ```
 
-**Recomendação**: Resolva os 3 itens do Dashboard + adicione AuthGuard na rota `/`, e o sistema está pronto para go live com 20 usuários internos.
+## Mudanças no Banco (Migrações)
+
+### 1. Tabela `shared_sources`
+Nova tabela sem `user_id` no RLS de leitura -- todos autenticados podem ver. Apenas admins (ou qualquer autenticado, a definir) podem inserir/editar.
+
+- Colunas: `id`, `name`, `url`, `type`, `active`, `config`, `created_at`, `updated_at`
+- RLS SELECT: qualquer `authenticated` pode ler
+- RLS INSERT/UPDATE/DELETE: qualquer `authenticated` pode gerenciar (time pequeno e confiável)
+
+### 2. Tabela `project_folders`
+Pastas criadas por cada usuário para organizar fontes por projeto.
+
+- Colunas: `id`, `user_id`, `name`, `description`, `created_at`, `updated_at`
+- RLS: CRUD restrito a `user_id = auth.uid()`
+
+### 3. Tabela `project_source_links`
+Junction table ligando fontes compartilhadas a pastas.
+
+- Colunas: `id`, `folder_id`, `source_id`, `user_id`, `created_at`
+- RLS: CRUD restrito a `user_id = auth.uid()`
+
+### 4. Migração de dados
+- Copiar fontes existentes de `radar_sources` para `shared_sources` (deduplicando por URL+type)
+- Manter `radar_sources` funcionando para não quebrar edge functions existentes
+
+## Mudanças no Código
+
+### Hooks novos
+- `useSharedSources()` -- lê catálogo compartilhado
+- `useProjectFolders()` -- CRUD de pastas do usuário
+- `useProjectSourceLinks()` -- adicionar/remover fontes de uma pasta
+
+### UI -- Configuração de Fontes (SourceManager)
+- Nova aba **"Catálogo"** mostrando todas as fontes compartilhadas com busca/filtro
+- Nova aba **"Meus Projetos"** com lista de pastas do usuário
+- Dentro de cada pasta: lista de fontes selecionadas + botão "Adicionar do catálogo"
+- Qualquer usuário pode adicionar novas fontes ao catálogo compartilhado
+
+### Edge Functions
+- `radar-automation` precisará ser atualizado para buscar fontes de `shared_sources` filtradas pelas pastas/projetos ativos do usuário, em vez de ler diretamente `radar_sources`
+
+## Escopo e Riscos
+
+- **Compatibilidade**: Manter `radar_sources` em paralelo até migrar completamente as edge functions
+- **Deduplicação**: Ao migrar, fontes com mesma URL+type de diferentes usuários viram uma entrada só
+- **Credenciais**: Fontes que precisam de credenciais (Instagram, Spotify) terão credenciais no nível do catálogo compartilhado, já que é um time interno confiável
+
+## Sequência de Implementação
+
+1. Criar as 3 tabelas com RLS via migração
+2. Migrar dados existentes de `radar_sources` para `shared_sources`
+3. Criar hooks (`useSharedSources`, `useProjectFolders`, `useProjectSourceLinks`)
+4. Atualizar UI do SourceManager com abas de catálogo e pastas
+5. Atualizar edge functions para consultar a nova estrutura
 
