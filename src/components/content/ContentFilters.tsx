@@ -35,12 +35,12 @@ const RadarFilters = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
+              <SelectItem value="Coletado">Coletado</SelectItem>
               <SelectItem value="Em aprovação">Em aprovação</SelectItem>
               <SelectItem value="selecionados">Selecionados (Curadoria)</SelectItem>
               <SelectItem value="Para Newsletter">Para Newsletter</SelectItem>
-              <SelectItem value="Na Newsletter">Na Newsletter</SelectItem>
-              <SelectItem value="Para Redes Sociais">Para Redes Sociais</SelectItem>
               <SelectItem value="Em edição">Em edição</SelectItem>
+              <SelectItem value="Publicado">Publicado</SelectItem>
               <SelectItem value="Ignorado">Rejeitado</SelectItem>
             </SelectContent>
           </Select>

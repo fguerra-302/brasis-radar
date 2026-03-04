@@ -4,252 +4,243 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { User, Save, FileText, Wand2, CheckCircle } from "lucide-react";
+import { User, Save, FileText, Wand2, Trash2, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+interface PersonaData {
+  name: string;
+  tone: string;
+  style: string;
+  target_audience: string;
+  key_values: string;
+  communication_style: string;
+  examples: string;
+}
+
+const emptyPersona: PersonaData = {
+  name: '', tone: 'professional', style: 'informative',
+  target_audience: '', key_values: '', communication_style: '', examples: ''
+};
 
 export const CuradoriaPersona = () => {
-  const [personaData, setPersonaData] = useState({
-    name: '',
-    tone: 'professional',
-    style: 'informative',
-    target_audience: '',
-    key_values: '',
-    communication_style: '',
-    examples: ''
-  });
-
+  const [personaData, setPersonaData] = useState<PersonaData>(emptyPersona);
   const [testPrompt, setTestPrompt] = useState('');
   const [generatedSample, setGeneratedSample] = useState('');
-  const { toast } = useToast();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const handleSavePersona = () => {
-    // Aqui você salvaria a persona no banco de dados
-    toast({
-      title: "✅ Persona Salva",
-      description: "Configurações de persona e estilo foram salvas com sucesso.",
+  const { data: personas, isLoading } = useQuery({
+    queryKey: ['personas'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('personas')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: PersonaData) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Login necessário');
+
+      if (editingId) {
+        const { error } = await supabase.from('personas').update({
+          name: data.name, tone: data.tone, style: data.style,
+          target_audience: data.target_audience || null,
+          key_values: data.key_values || null,
+          communication_style: data.communication_style || null,
+          examples: data.examples || null,
+          updated_at: new Date().toISOString(),
+        }).eq('id', editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('personas').insert({
+          user_id: user.id, name: data.name, tone: data.tone, style: data.style,
+          target_audience: data.target_audience || null,
+          key_values: data.key_values || null,
+          communication_style: data.communication_style || null,
+          examples: data.examples || null,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['personas'] });
+      toast.success(editingId ? "Persona atualizada!" : "Persona salva!");
+      setPersonaData(emptyPersona);
+      setEditingId(null);
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('personas').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['personas'] });
+      toast.success("Persona excluída");
+    },
+  });
+
+  const handleSave = () => {
+    if (!personaData.name.trim()) { toast.error("Nome é obrigatório"); return; }
+    saveMutation.mutate(personaData);
+  };
+
+  const handleEdit = (persona: any) => {
+    setEditingId(persona.id);
+    setPersonaData({
+      name: persona.name, tone: persona.tone, style: persona.style,
+      target_audience: persona.target_audience || '',
+      key_values: persona.key_values || '',
+      communication_style: persona.communication_style || '',
+      examples: persona.examples || '',
     });
   };
 
   const handleGenerateSample = () => {
-    // Aqui você faria uma chamada para IA gerar um exemplo baseado na persona
-    const sample = `[Baseado na persona "${personaData.name}"]
-
-${testPrompt}
-
-Tom: ${personaData.tone}
-Estilo: ${personaData.style}
-Público-alvo: ${personaData.target_audience}
-
-[Esta seria uma resposta gerada pela IA usando os parâmetros definidos na persona]`;
-
+    const sample = `[Persona: "${personaData.name}"]\n\nTópico: ${testPrompt}\n\nTom: ${personaData.tone} | Estilo: ${personaData.style}\nPúblico: ${personaData.target_audience || 'Geral'}\n\n---\n\n[Amostra seria gerada pela IA com os parâmetros acima]`;
     setGeneratedSample(sample);
-    
-    toast({
-      title: "✅ Amostra Gerada",
-      description: "Exemplo de conteúdo gerado usando a persona configurada.",
-    });
+    toast.success("Amostra gerada");
+  };
+
+  const toneLabels: Record<string, string> = {
+    professional: 'Profissional', casual: 'Casual', friendly: 'Amigável',
+    authoritative: 'Autoritativo', conversational: 'Conversacional'
+  };
+  const styleLabels: Record<string, string> = {
+    informative: 'Informativo', analytical: 'Analítico', storytelling: 'Narrativo',
+    concise: 'Conciso', detailed: 'Detalhado'
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Persona & Estilo de Escrita</h1>
-          <p className="text-slate-600 mt-1">
-            Configure a personalidade e estilo para geração de conteúdo customizado
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-display font-bold text-foreground">Persona & Estilo de Escrita</h1>
+        <p className="text-muted-foreground mt-1">Configure a personalidade e estilo para geração de conteúdo</p>
       </div>
 
       <Tabs defaultValue="persona" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="persona" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Configurar Persona
-          </TabsTrigger>
-          <TabsTrigger value="test" className="flex items-center gap-2">
-            <Wand2 className="h-4 w-4" />
-            Testar Persona
-          </TabsTrigger>
+          <TabsTrigger value="persona"><User className="h-4 w-4 mr-1.5" />Configurar</TabsTrigger>
+          <TabsTrigger value="test"><Wand2 className="h-4 w-4 mr-1.5" />Testar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="persona" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Definir Persona
-              </CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><User className="h-5 w-5" />{editingId ? 'Editar' : 'Nova'} Persona</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="persona-name">Nome da Persona</Label>
-                  <Input
-                    id="persona-name"
-                    value={personaData.name}
-                    onChange={(e) => setPersonaData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ex: Jornalista Brasis, Curador Social..."
-                  />
+                  <Label>Nome da Persona</Label>
+                  <Input value={personaData.name} onChange={e => setPersonaData(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Jornalista Brasis..." />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="tone">Tom de Voz</Label>
-                  <Select value={personaData.tone} onValueChange={(value) => setPersonaData(prev => ({ ...prev, tone: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Label>Tom de Voz</Label>
+                  <Select value={personaData.tone} onValueChange={v => setPersonaData(p => ({ ...p, tone: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="professional">Profissional</SelectItem>
-                      <SelectItem value="casual">Casual</SelectItem>
-                      <SelectItem value="friendly">Amigável</SelectItem>
-                      <SelectItem value="authoritative">Autoritativo</SelectItem>
-                      <SelectItem value="conversational">Conversacional</SelectItem>
+                      {Object.entries(toneLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="style">Estilo de Escrita</Label>
-                  <Select value={personaData.style} onValueChange={(value) => setPersonaData(prev => ({ ...prev, style: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Label>Estilo de Escrita</Label>
+                  <Select value={personaData.style} onValueChange={v => setPersonaData(p => ({ ...p, style: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="informative">Informativo</SelectItem>
-                      <SelectItem value="analytical">Analítico</SelectItem>
-                      <SelectItem value="storytelling">Narrativo</SelectItem>
-                      <SelectItem value="concise">Conciso</SelectItem>
-                      <SelectItem value="detailed">Detalhado</SelectItem>
+                      {Object.entries(styleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="target-audience">Público-Alvo</Label>
-                  <Input
-                    id="target-audience"
-                    value={personaData.target_audience}
-                    onChange={(e) => setPersonaData(prev => ({ ...prev, target_audience: e.target.value }))}
-                    placeholder="Ex: Profissionais liberais, Empresários, Estudantes..."
-                  />
+                  <Label>Público-Alvo</Label>
+                  <Input value={personaData.target_audience} onChange={e => setPersonaData(p => ({ ...p, target_audience: e.target.value }))} placeholder="Ex: Profissionais liberais..." />
                 </div>
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="key-values">Valores e Princípios</Label>
-                <Textarea
-                  id="key-values"
-                  value={personaData.key_values}
-                  onChange={(e) => setPersonaData(prev => ({ ...prev, key_values: e.target.value }))}
-                  placeholder="Descreva os valores e princípios que devem guiar a comunicação..."
-                  rows={3}
-                />
+                <Label>Valores e Princípios</Label>
+                <Textarea value={personaData.key_values} onChange={e => setPersonaData(p => ({ ...p, key_values: e.target.value }))} placeholder="Valores que guiam a comunicação..." rows={3} />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="communication-style">Estilo de Comunicação</Label>
-                <Textarea
-                  id="communication-style"
-                  value={personaData.communication_style}
-                  onChange={(e) => setPersonaData(prev => ({ ...prev, communication_style: e.target.value }))}
-                  placeholder="Como essa persona se comunica? Que linguagem usa? Que abordagem prefere?"
-                  rows={4}
-                />
+                <Label>Estilo de Comunicação</Label>
+                <Textarea value={personaData.communication_style} onChange={e => setPersonaData(p => ({ ...p, communication_style: e.target.value }))} placeholder="Como essa persona se comunica?" rows={4} />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="examples">Exemplos de Conteúdo</Label>
-                <Textarea
-                  id="examples"
-                  value={personaData.examples}
-                  onChange={(e) => setPersonaData(prev => ({ ...prev, examples: e.target.value }))}
-                  placeholder="Cole aqui exemplos de posts, textos ou comunicações que representam bem essa persona..."
-                  rows={6}
-                />
+                <Label>Exemplos de Conteúdo</Label>
+                <Textarea value={personaData.examples} onChange={e => setPersonaData(p => ({ ...p, examples: e.target.value }))} placeholder="Exemplos que representam essa persona..." rows={6} />
               </div>
+              <div className="flex gap-2">
+                <Button onClick={handleSave} disabled={saveMutation.isPending} className="flex-1 bg-brasis-terracotta hover:bg-brasis-terracotta/90">
+                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  {editingId ? 'Atualizar' : 'Salvar'} Persona
+                </Button>
+                {editingId && (
+                  <Button variant="outline" onClick={() => { setEditingId(null); setPersonaData(emptyPersona); }}>Cancelar</Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-              <Button onClick={handleSavePersona} className="w-full">
-                <Save className="h-4 w-4 mr-2" />
-                Salvar Configurações de Persona
-              </Button>
+          {/* Personas Salvas */}
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />Personas Salvas</CardTitle></CardHeader>
+            <CardContent>
+              {isLoading ? <p className="text-muted-foreground">Carregando...</p> : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {personas && personas.length > 0 ? personas.map((p: any) => (
+                    <div key={p.id} className="p-4 border rounded-lg hover:border-brasis-terracotta/50 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="cursor-pointer flex-1" onClick={() => handleEdit(p)}>
+                          <h3 className="font-semibold text-foreground">{p.name}</h3>
+                          <p className="text-sm text-muted-foreground">Tom: {toneLabels[p.tone] || p.tone} | Estilo: {styleLabels[p.style] || p.style}</p>
+                          {p.target_audience && <p className="text-xs text-muted-foreground mt-1">{p.target_audience}</p>}
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(p.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-muted-foreground col-span-2 text-center py-4">Nenhuma persona salva ainda</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="test" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wand2 className="h-5 w-5" />
-                Testar Persona
-              </CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5" />Testar Persona</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="test-prompt">Prompt de Teste</Label>
-                <Textarea
-                  id="test-prompt"
-                  value={testPrompt}
-                  onChange={(e) => setTestPrompt(e.target.value)}
-                  placeholder="Digite um tópico ou notícia para testar como a persona responderia..."
-                  rows={4}
-                />
+                <Label>Prompt de Teste</Label>
+                <Textarea value={testPrompt} onChange={e => setTestPrompt(e.target.value)} placeholder="Digite um tópico para testar..." rows={4} />
               </div>
-
-              <Button 
-                onClick={handleGenerateSample} 
-                disabled={!testPrompt.trim() || !personaData.name}
-                className="w-full"
-              >
-                <Wand2 className="h-4 w-4 mr-2" />
-                Gerar Amostra com Persona
+              <Button onClick={handleGenerateSample} disabled={!testPrompt.trim() || !personaData.name} className="w-full bg-brasis-terracotta hover:bg-brasis-terracotta/90">
+                <Wand2 className="h-4 w-4 mr-2" />Gerar Amostra
               </Button>
-
               {generatedSample && (
                 <div className="space-y-2">
                   <Label>Amostra Gerada</Label>
-                  <div className="bg-slate-50 p-4 rounded-lg border">
-                    <pre className="whitespace-pre-wrap text-sm text-slate-700">
-                      {generatedSample}
-                    </pre>
+                  <div className="bg-muted p-4 rounded-lg border">
+                    <pre className="whitespace-pre-wrap text-sm text-foreground">{generatedSample}</pre>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Personas Salvas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold mb-2">Jornalista Brasis</h3>
-                  <p className="text-sm text-slate-600 mb-2">
-                    Tom: Profissional | Estilo: Informativo
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Foca em análises factuais e contextualização histórica
-                  </p>
-                </div>
-
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold mb-2">Curador Social</h3>
-                  <p className="text-sm text-slate-600 mb-2">
-                    Tom: Conversacional | Estilo: Narrativo
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Linguagem acessível para redes sociais
-                  </p>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
