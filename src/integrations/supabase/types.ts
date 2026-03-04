@@ -68,6 +68,72 @@ export type Database = {
         }
         Relationships: []
       }
+      project_folders: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      project_source_links: {
+        Row: {
+          created_at: string | null
+          folder_id: string
+          id: string
+          source_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          folder_id: string
+          id?: string
+          source_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          folder_id?: string
+          id?: string
+          source_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_source_links_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_source_links_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "shared_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       radar_brasis: {
         Row: {
           created_at: string | null
@@ -226,6 +292,42 @@ export type Database = {
           link?: string
           title?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      shared_sources: {
+        Row: {
+          active: boolean | null
+          config: Json | null
+          created_at: string | null
+          credentials: Json | null
+          id: string
+          name: string
+          type: string | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          active?: boolean | null
+          config?: Json | null
+          created_at?: string | null
+          credentials?: Json | null
+          id?: string
+          name: string
+          type?: string | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          active?: boolean | null
+          config?: Json | null
+          created_at?: string | null
+          credentials?: Json | null
+          id?: string
+          name?: string
+          type?: string | null
+          updated_at?: string | null
+          url?: string
         }
         Relationships: []
       }
