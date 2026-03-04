@@ -1,5 +1,4 @@
 import React, { Suspense, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,23 +15,17 @@ import { PasswordRecovery } from "@/components/auth/PasswordRecovery";
 const queryClient = new QueryClient();
 
 const App = () => {
-  console.log('🚀 App inicializando - Preview deve aparecer agora');
-  
-  // Check for password recovery on app load
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const type = urlParams.get('type');
-    
     if (type === 'recovery') {
-      console.log('🔐 Password recovery detected in URL');
       sessionStorage.setItem('password-recovery', 'true');
     }
   }, []);
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
         <Sonner />
         <AuthProvider>
           <PasswordRecovery />
@@ -47,7 +40,6 @@ const App = () => {
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/config/*" element={<AuthGuard><Config /></AuthGuard>} />
               <Route path="/curadoria/*" element={<AuthGuard><Curadoria /></AuthGuard>} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

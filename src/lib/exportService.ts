@@ -98,7 +98,7 @@ export class ExportService {
   }
 
   private static exportToSocial(contents: CuratedContent[]): string {
-    const socialContents = contents.filter(c => c.status === ContentStatus.FOR_SOCIAL);
+    const socialContents = contents.filter(c => c.status === ContentStatus.IN_EDITING);
     
     return socialContents.map(content => {
       const hashtags = content.tags.map(tag => `#${tag.replace(/\s+/g, '')}`).join(' ');

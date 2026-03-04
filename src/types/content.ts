@@ -1,17 +1,9 @@
 export enum ContentStatus {
-  // Fluxo simplificado: Coletado → Selecionado → News Pronta
   COLLECTED = "Coletado",
-  SELECTED = "Selecionado",
-  NEWS_READY = "News Pronta",
-  REJECTED = "Ignorado",
-  // Legacy para compatibilidade
-  REVIEWING = "Em aprovação", 
+  REVIEWING = "Em aprovação",
   FOR_NEWSLETTER = "Para Newsletter",
-  FOR_SOCIAL = "Para Redes Sociais",
-  FOR_BOTH = "Para Newsletter e Redes",
-  IN_NEWSLETTER = "Na Newsletter",
-  IN_EDITING = "Em edição", 
-  IMPORTED = "Coletado",
+  IN_EDITING = "Em edição",
+  REJECTED = "Ignorado",
   PUBLISHED = "Publicado"
 }
 

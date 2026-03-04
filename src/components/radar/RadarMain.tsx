@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from "@/hooks/use-toast";
-import { Toaster } from "@/components/ui/toaster";
 import { Bot, Info } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
@@ -9,6 +7,7 @@ import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
 import { secureApi } from '@/lib/api';
 import { useInitializeDefaultSources } from '@/hooks/useInitializeDefaultSources';
+import { toast } from 'sonner';
 import RadarLiveStats from './RadarLiveStats';
 import RadarRecentActions from './RadarRecentActions';
 import ContentList from '../content/ContentList';
@@ -17,233 +16,128 @@ import { RadarAutomationStatus } from './RadarAutomationStatus';
 import { OnboardingTour } from '@/components/tour/OnboardingTour';
 
 const RadarMain = () => {
-  console.log('🎯 RadarMain iniciando - versão sem autenticação');
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [showTour, setShowTour] = useState(false);
-  const { toast } = useToast();
   const { user } = useAuth();
 
-  // Inicializar fontes RSS padrão
   const { isInitialized } = useInitializeDefaultSources();
 
-  // Verificar se deve mostrar o tour na primeira visita
   useEffect(() => {
     const tourCompleted = localStorage.getItem('brasis-tour-completed');
-    if (!tourCompleted) {
-      setShowTour(true);
-    }
+    if (!tourCompleted) setShowTour(true);
   }, []);
 
-  // Hooks do Supabase sem autenticação
   const { data: supabaseData, isLoading, error, refetch } = useRadarBrasis();
   const updateMutation = useUpdateRadarBrasis();
 
-  console.log('📊 RadarMain - Estado atual:', { 
-    supabaseData: supabaseData?.length || 0, 
-    isLoading, 
-    error: error?.message,
-    isInitialized
-  });
-
-  // ⚡ OTIMIZAÇÃO 2: Real-time com filtros condicionais + debounce
+  // Real-time updates
   useEffect(() => {
-    console.log('🔄 Configurando real-time updates otimizados...');
-    
-    // Debounce para evitar múltiplos refetches simultâneos
     let debounceTimer: NodeJS.Timeout;
     const debouncedRefetch = () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        console.log('⚡ Executando refetch debounced');
-        refetch();
-      }, 300); // 300ms debounce
+      debounceTimer = setTimeout(() => refetch(), 300);
     };
-    
+
     const channel = supabase
       .channel('radar-realtime-updates')
-        .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'radar_brasis'
-        },
-        (payload) => {
-          console.log('🚀 Novo item coletado automaticamente:', payload.new);
-          
-          // ⚡ Filtro condicional: só mostrar toast se não for do próprio usuário
-          if (payload.new.user_id !== user?.id) {
-            toast({
-              title: "🆕 Novo Conteúdo Coletado",
-              description: `"${payload.new.title?.substring(0, 50)}..." foi adicionado pelo sistema automatizado.`,
-            });
-          }
-          
-          debouncedRefetch(); // Usar debounced ao invés de refetch direto
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'radar_brasis' }, (payload) => {
+        if (payload.new.user_id !== user?.id) {
+          toast.info(`Novo conteúdo coletado: "${(payload.new as any).title?.substring(0, 50)}..."`);
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'radar_brasis'
-        },
-        (payload) => {
-          console.log('📝 Item atualizado:', payload.new);
-          
-          // ⚡ Filtro condicional: ignorar updates do próprio usuário (já otimistic)
-          if (payload.new.user_id !== user?.id) {
-            debouncedRefetch();
-          } else {
-            console.log('⏭️ Ignorando update do próprio usuário (optimistic UI)');
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Status real-time subscription:', status);
-      });
+        debouncedRefetch();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'radar_brasis' }, (payload) => {
+        if (payload.new.user_id !== user?.id) debouncedRefetch();
+      })
+      .subscribe();
 
     return () => {
-      console.log('🔌 Removendo channel real-time...');
       clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [toast, refetch, user?.id]);
+  }, [refetch, user?.id]);
 
   const handleAprovar = async (itemId: string, title: string) => {
-    if (!user) {
-      toast({ title: "🔐 Login Necessário", description: "Faça login para aprovar conteúdo.", variant: "destructive" });
-      return;
-    }
+    if (!user) { toast.error("Faça login para aprovar conteúdo."); return; }
     try {
       await updateMutation.mutateAsync({ id: itemId, payload: { status: ContentStatus.REVIEWING } });
-      toast({ title: "✅ Conteúdo Aprovado", description: `"${title.substring(0, 40)}..." foi enviado para aprovação final.` });
-    } catch (error) {
-      console.error('❌ Erro ao aprovar:', error);
-      toast({ title: "Erro", description: "Falha ao aprovar conteúdo.", variant: "destructive" });
-    }
+      toast.success(`"${title.substring(0, 40)}..." enviado para aprovação`);
+    } catch { toast.error("Falha ao aprovar conteúdo."); }
   };
 
   const handleIgnorar = async (itemId: string, title: string) => {
-    if (!user) {
-      toast({ title: "🔐 Login Necessário", description: "Faça login para rejeitar conteúdo.", variant: "destructive" });
-      return;
-    }
+    if (!user) { toast.error("Faça login para rejeitar conteúdo."); return; }
     try {
       await updateMutation.mutateAsync({ id: itemId, payload: { status: ContentStatus.REJECTED } });
-      toast({ title: "❌ Conteúdo Rejeitado", description: `"${title.substring(0, 40)}..." foi marcado como rejeitado.` });
-    } catch (error) {
-      console.error('❌ Erro ao rejeitar:', error);
-      toast({ title: "Erro", description: "Falha ao rejeitar conteúdo.", variant: "destructive" });
-    }
+      toast.success(`"${title.substring(0, 40)}..." rejeitado`);
+    } catch { toast.error("Falha ao rejeitar conteúdo."); }
   };
 
-  const handleVerOriginal = (sourceUrl: string, title: string) => {
-    toast({ title: "🔗 Abrindo Original", description: `Abrindo link de "${title.substring(0, 30)}...".` });
+  const handleVerOriginal = (sourceUrl: string, _title: string) => {
     if (sourceUrl && sourceUrl !== '#') window.open(sourceUrl, '_blank');
   };
 
-  const handleConfigurar = () => {
-    toast({ title: "⚙️ Configurações", description: "Funcionalidade em desenvolvimento..." });
-  };
+  const handleConfigurar = () => toast.info("Funcionalidade em desenvolvimento...");
 
   const handleUpdateStatus = async (itemId: string, status: string, title: string) => {
-    if (!user) {
-      toast({ title: "🔐 Login Necessário", description: "Faça login para alterar status.", variant: "destructive" });
-      return;
-    }
+    if (!user) { toast.error("Faça login para alterar status."); return; }
     try {
       await updateMutation.mutateAsync({ id: itemId, payload: { status: status as ContentStatus } });
-      toast({ title: "✅ Status Atualizado", description: `"${title.substring(0, 40)}..." foi alterado para "${status}".` });
-    } catch (error) {
-      console.error('❌ Erro ao atualizar status:', error);
-      toast({ title: "Erro", description: "Falha ao atualizar status.", variant: "destructive" });
-    }
+      toast.success(`"${title.substring(0, 40)}..." alterado para "${status}"`);
+    } catch { toast.error("Falha ao atualizar status."); }
   };
 
   const handleDeleteItem = async (itemId: string, title: string) => {
-    console.log('🗑️ Excluindo item permanentemente:', itemId);
-    if (!user) {
-      toast({ title: "🔐 Login Necessário", description: "Faça login para excluir conteúdo.", variant: "destructive" });
-      return;
-    }
+    if (!user) { toast.error("Faça login para excluir conteúdo."); return; }
     try {
       const { data: item } = await supabase.from('radar_brasis').select('link').eq('id', itemId).single();
       if (!item) throw new Error('Item não encontrado');
-      const { error: tombstoneError } = await supabase.from('radar_tombstones').insert({ user_id: user.id, link: item.link, title: title });
-      if (tombstoneError) console.warn('⚠️ Erro ao criar tombstone:', tombstoneError);
+      await supabase.from('radar_tombstones').insert({ user_id: user.id, link: item.link, title });
       const { error } = await supabase.from('radar_brasis').delete().eq('id', itemId);
       if (error) throw error;
-      toast({ title: "✅ Item Excluído", description: `"${title.substring(0, 40)}..." não será mais coletado.` });
+      toast.success(`"${title.substring(0, 40)}..." excluído`);
       refetch();
-    } catch (error) {
-      console.error('❌ Erro ao excluir item:', error);
-      toast({ title: "Erro", description: "Falha ao excluir item.", variant: "destructive" });
-    }
+    } catch { toast.error("Falha ao excluir item."); }
   };
 
   const handleBulkDelete = async (status: string) => {
-    console.log('🗑️ Excluindo itens em lote:', status);
-    if (!user) {
-      toast({ title: "🔐 Login Necessário", description: "Faça login para excluir conteúdo.", variant: "destructive" });
-      return;
-    }
+    if (!user) { toast.error("Faça login para excluir conteúdo."); return; }
     try {
       const { data: items } = await supabase.from('radar_brasis').select('id, link, title').eq('status', status).eq('user_id', user.id);
-      if (!items || items.length === 0) {
-        toast({ title: "Nenhum item encontrado", description: `Não há itens com status "${status}".` });
-        return;
-      }
+      if (!items || items.length === 0) { toast.info(`Nenhum item com status "${status}".`); return; }
       const tombstones = items.map(item => ({ user_id: user.id, link: item.link, title: item.title }));
-      const { error: tombstoneError } = await supabase.from('radar_tombstones').insert(tombstones);
-      if (tombstoneError) console.warn('⚠️ Erro ao criar tombstones:', tombstoneError);
+      await supabase.from('radar_tombstones').insert(tombstones);
       const { error } = await supabase.from('radar_brasis').delete().eq('status', status).eq('user_id', user.id);
       if (error) throw error;
-      toast({ title: "✅ Itens Excluídos", description: `${items.length} itens não serão mais coletados.` });
+      toast.success(`${items.length} itens excluídos`);
       refetch();
-    } catch (error) {
-      console.error('❌ Erro ao excluir itens em lote:', error);
-      toast({ title: "Erro", description: "Falha ao excluir itens.", variant: "destructive" });
-    }
+    } catch { toast.error("Falha ao excluir itens."); }
   };
 
   const handleExecutarCuradoria = async () => {
-    console.log('🚀 Executando coleta manual...');
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) {
-      toast({ title: "❌ Erro", description: "Usuário não autenticado. Faça login primeiro.", variant: "destructive" });
-      return;
-    }
-    toast({ title: "🤖 Coleta Iniciada", description: "Coletando dados das fontes RSS configuradas..." });
+    if (!user?.id) { toast.error("Usuário não autenticado."); return; }
+    toast.info("Coletando dados das fontes RSS...");
     try {
       const data = await secureApi.invokeFunction('radar-automation', { userId: user.id, manual: true });
-      console.log('✅ Resultado da coleta:', data);
       await refetch();
-      toast({ title: "✅ Coleta Concluída", description: `${data?.processedSources || 0} fontes processadas, ${data?.savedItems || 0} novos itens coletados${data?.minThreshold ? ` (filtro: ≥${data.minThreshold})` : ''}.` });
+      toast.success(`${data?.processedSources || 0} fontes processadas, ${data?.savedItems || 0} novos itens${data?.minThreshold ? ` (filtro: ≥${data.minThreshold})` : ''}`);
     } catch (error: any) {
-      console.error('❌ Erro na coleta:', error);
-      const isSessionExpired = error?.message?.includes('Authentication required') || error?.status === 403 || error?.message?.includes('JWT');
-      toast({ title: "Erro na Coleta", description: isSessionExpired ? "Sua sessão expirou. Faça login novamente." : "Erro ao coletar dados das fontes RSS. Verifique sua conexão.", variant: "destructive" });
+      const isSession = error?.message?.includes('Authentication required') || error?.status === 403;
+      toast.error(isSession ? "Sessão expirou. Faça login novamente." : "Erro ao coletar dados. Verifique sua conexão.");
     }
   };
 
-  const handleRecalcularRelevancia = async () => {
-    console.log('🔄 Recalculando relevância via nova coleta...');
-    await handleExecutarCuradoria();
-  };
-
-  console.log('🎯 RadarMain - Renderizando interface');
+  const handleRecalcularRelevancia = async () => await handleExecutarCuradoria();
 
   return (
     <>
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           <AppHeader />
-          
+
           {!user && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-2">
@@ -254,45 +148,33 @@ const RadarMain = () => {
               </div>
             </div>
           )}
-          
+
           {!isInitialized && (
             <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-secondary" />
-                <p className="text-foreground font-medium font-sans">
-                  ⚙️ Configurando fontes RSS padrão pela primeira vez...
-                </p>
+                <p className="text-foreground font-medium font-sans">⚙️ Configurando fontes RSS padrão...</p>
               </div>
             </div>
           )}
-          
+
           <RadarLiveStats />
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3">
               <ContentList
-                supabaseData={supabaseData}
-                isLoading={isLoading}
-                error={error}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
-                currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
-                onAprovar={handleAprovar}
-                onIgnorar={handleIgnorar}
-                onVerOriginal={handleVerOriginal}
-                onUpdateStatus={handleUpdateStatus}
-                onConfigurar={handleConfigurar}
-                onExecutarCuradoria={handleExecutarCuradoria}
+                supabaseData={supabaseData} isLoading={isLoading} error={error}
+                searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+                statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+                currentPage={currentPage} setCurrentPage={setCurrentPage}
+                onAprovar={handleAprovar} onIgnorar={handleIgnorar}
+                onVerOriginal={handleVerOriginal} onUpdateStatus={handleUpdateStatus}
+                onConfigurar={handleConfigurar} onExecutarCuradoria={handleExecutarCuradoria}
                 onRecalcularRelevancia={user ? handleRecalcularRelevancia : undefined}
-                onDeleteItem={handleDeleteItem}
-                onBulkDelete={handleBulkDelete}
+                onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete}
                 updateMutation={updateMutation}
               />
             </div>
-
             <div className="lg:col-span-1">
               <div className="space-y-6">
                 <RadarAutomationStatus />
@@ -302,12 +184,8 @@ const RadarMain = () => {
           </div>
         </div>
       </div>
-      
-      {showTour && (
-        <OnboardingTour onClose={() => setShowTour(false)} />
-      )}
-      
-      <Toaster />
+
+      {showTour && <OnboardingTour onClose={() => setShowTour(false)} />}
     </>
   );
 };

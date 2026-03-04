@@ -104,6 +104,48 @@ export type Database = {
         }
         Relationships: []
       }
+      personas: {
+        Row: {
+          communication_style: string | null
+          created_at: string | null
+          examples: string | null
+          id: string
+          key_values: string | null
+          name: string
+          style: string
+          target_audience: string | null
+          tone: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          communication_style?: string | null
+          created_at?: string | null
+          examples?: string | null
+          id?: string
+          key_values?: string | null
+          name: string
+          style?: string
+          target_audience?: string | null
+          tone?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          communication_style?: string | null
+          created_at?: string | null
+          examples?: string | null
+          id?: string
+          key_values?: string | null
+          name?: string
+          style?: string
+          target_audience?: string | null
+          tone?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       project_folders: {
         Row: {
           created_at: string | null

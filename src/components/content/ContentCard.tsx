@@ -39,35 +39,35 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, 
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
+      [ContentStatus.COLLECTED]: 'bg-muted text-muted-foreground',
+      [ContentStatus.REVIEWING]: 'bg-brasis-yellow/15 text-brasis-yellow-foreground',
       [ContentStatus.FOR_NEWSLETTER]: 'bg-accent/10 text-accent',
-      [ContentStatus.FOR_SOCIAL]: 'bg-brasis-pink/15 text-brasis-pink-foreground',
-      [ContentStatus.IN_NEWSLETTER]: 'bg-secondary/10 text-secondary',
       [ContentStatus.IN_EDITING]: 'bg-primary/10 text-primary',
       [ContentStatus.REJECTED]: 'bg-destructive/10 text-destructive',
-      'Em aprovação': 'bg-brasis-yellow/15 text-brasis-yellow-foreground',
+      [ContentStatus.PUBLISHED]: 'bg-brasis-sage/15 text-brasis-sage',
     };
-    return colors[status] || colors['Em aprovação'];
+    return colors[status] || 'bg-muted text-muted-foreground';
   };
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
+      [ContentStatus.COLLECTED]: 'Coletado',
+      [ContentStatus.REVIEWING]: 'Em aprovação',
       [ContentStatus.FOR_NEWSLETTER]: 'Para Newsletter',
-      [ContentStatus.FOR_SOCIAL]: 'Para Redes Sociais',
-      [ContentStatus.IN_NEWSLETTER]: 'Na Newsletter',
       [ContentStatus.IN_EDITING]: 'Em edição',
       [ContentStatus.REJECTED]: 'Rejeitado',
-      'Em aprovação': 'Em aprovação',
+      [ContentStatus.PUBLISHED]: 'Publicado',
     };
     return labels[status] || status;
   };
 
   const statusOptions = [
-    { value: 'Em aprovação', label: 'Em aprovação' },
+    { value: ContentStatus.COLLECTED, label: 'Coletado' },
+    { value: ContentStatus.REVIEWING, label: 'Em aprovação' },
     { value: ContentStatus.FOR_NEWSLETTER, label: 'Para Newsletter' },
-    { value: ContentStatus.FOR_SOCIAL, label: 'Para Redes Sociais' },
-    { value: ContentStatus.IN_NEWSLETTER, label: 'Na Newsletter' },
     { value: ContentStatus.IN_EDITING, label: 'Em edição' },
     { value: ContentStatus.REJECTED, label: 'Rejeitado' },
+    { value: ContentStatus.PUBLISHED, label: 'Publicado' },
   ];
 
   return (
@@ -168,9 +168,9 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, 
           </ContextMenuItem>
         ))}
         <ContextMenuSeparator />
-        {(item.status === 'Para Newsletter' || item.status === 'Para Redes Sociais' || 
-          item.status === 'Para Newsletter e Redes' || item.status === 'Na Newsletter' || 
-          item.status === 'Em edição') && (
+        {(item.status === ContentStatus.FOR_NEWSLETTER || 
+          item.status === ContentStatus.IN_EDITING || 
+          item.status === ContentStatus.PUBLISHED) && (
           <ContextMenuItem onClick={() => onUpdateStatus(item.id, 'Em aprovação', item.title)} disabled={isUpdating} className="text-primary font-sans">
             <RotateCcw className="h-4 w-4 mr-2" />
             Remover da Seleção

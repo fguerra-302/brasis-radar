@@ -56,7 +56,7 @@ const ContentList = ({
                          item.source?.toLowerCase().includes(searchTerm.toLowerCase());
     let matchesStatus = true;
     if (statusFilter === 'selecionados') {
-      const selectedStatuses = ['Para Newsletter', 'Para Redes Sociais', 'Para Newsletter e Redes', 'Na Newsletter', 'Em edição'];
+      const selectedStatuses = ['Para Newsletter', 'Em edição', 'Publicado'];
       matchesStatus = selectedStatuses.includes(item.status);
     } else if (statusFilter !== 'todos') {
       matchesStatus = item.status === statusFilter;
