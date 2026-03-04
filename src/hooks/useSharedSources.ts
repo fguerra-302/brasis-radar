@@ -19,7 +19,7 @@ export const useSharedSources = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('shared_sources')
-        .select('*')
+        .select('id, name, url, type, active, config, created_at, updated_at')
         .order('name', { ascending: true });
 
       if (error) {
