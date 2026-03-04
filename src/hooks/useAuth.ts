@@ -35,28 +35,23 @@ export const useAuthState = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🔐 Inicializando autenticação...');
+    if (import.meta.env.DEV) console.log('🔐 Inicializando autenticação...');
     
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('🔐 Auth state change:', event, session?.user?.email);
+        if (import.meta.env.DEV) console.log('🔐 Auth state change:', event, session?.user?.id?.substring(0, 8));
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Handle password recovery
         if (event === 'PASSWORD_RECOVERY') {
-          console.log('🔐 Password recovery detected, redirecting...');
-          // Set a flag to show password reset form
           sessionStorage.setItem('password-recovery', 'true');
         }
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('🔐 Session check:', session?.user?.email || 'No session');
+      if (import.meta.env.DEV) console.log('🔐 Session check:', session ? 'active' : 'none');
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -66,8 +61,6 @@ export const useAuthState = () => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    console.log('🔐 Tentando login para:', email);
-    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -75,16 +68,12 @@ export const useAuthState = () => {
     
     if (error) {
       console.error('🔐 Erro no login:', error.message);
-    } else {
-      console.log('🔐 Login bem-sucedido:', data.user?.email);
     }
     
     return { error };
   };
 
   const signUp = async (email: string, password: string) => {
-    console.log('🔐 Tentando cadastro para:', email);
-    
     const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -98,10 +87,7 @@ export const useAuthState = () => {
     if (error) {
       console.error('🔐 Erro no cadastro:', error.message);
     } else {
-      console.log('🔐 Cadastro processado:', data.user?.email);
-      // Se o usuário já existe, o Supabase retorna sem error mas com user null
       if (!data.user && !error) {
-        console.log('🔐 Usuário já existe no sistema');
         return { 
           error: { 
             message: 'User already registered',
@@ -115,9 +101,7 @@ export const useAuthState = () => {
   };
 
   const signOut = async () => {
-    console.log('🔐 Fazendo logout...');
     await supabase.auth.signOut();
-    console.log('🔐 Logout realizado');
   };
 
   return {
