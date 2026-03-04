@@ -157,10 +157,13 @@ export const CuradoriaEditor = () => {
 
       {(!items || items.length === 0) && (
         <Card className="text-center py-12">
-          <CardContent>
+          <CardContent className="space-y-3">
             <Share2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum item para editar</h3>
-            <p className="text-muted-foreground">Não há conteúdos aguardando edição para redes sociais</p>
+            <p className="text-muted-foreground">Vá à <strong>Aprovação</strong> e clique em "Redes Sociais" para enviar itens para edição.</p>
+            <Button variant="outline" onClick={() => window.location.href = '/curadoria/approval'} className="mt-2">
+              ← Ir à Aprovação
+            </Button>
           </CardContent>
         </Card>
       )}

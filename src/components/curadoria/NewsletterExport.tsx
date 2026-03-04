@@ -188,9 +188,14 @@ export const NewsletterExport = () => {
                 </div>
               </div>
             )) : (
-              <div className="text-center py-8">
+              <div className="text-center py-8 space-y-3">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">{allItems?.length === 0 ? "Nenhum item aprovado" : "Nenhum item corresponde aos filtros"}</p>
+                <p className="text-muted-foreground">{allItems?.length === 0 ? "Nenhum item aprovado para newsletter. Vá à Aprovação e clique em \"Newsletter\" para enviar itens." : "Nenhum item corresponde aos filtros"}</p>
+                {allItems?.length === 0 && (
+                  <Button variant="outline" onClick={() => window.location.href = '/curadoria/approval'} className="mt-2">
+                    ← Ir à Aprovação
+                  </Button>
+                )}
               </div>
             )}
             <Button onClick={generateNewsletterText} className="w-full" disabled={!filteredItems || filteredItems.length === 0}>
