@@ -58,10 +58,16 @@ Deno.serve(async (req) => {
     const startTime = Date.now();
     
     const authHeader = req.headers.get('Authorization');
+    const cronSecret = req.headers.get('x-cron-secret');
     let userId: string | null = null;
     
     // Create service role client for cron jobs
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    // Security: require either valid auth header or valid cron secret
+    if (!authHeader?.startsWith('Bearer ') && cronSecret !== Deno.env.get('CRON_SECRET')) {
+      return createErrorResponse(corsHeaders, 'Unauthorized', 401, 'Missing auth header and invalid cron secret');
+    }
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       // Authenticated user call
