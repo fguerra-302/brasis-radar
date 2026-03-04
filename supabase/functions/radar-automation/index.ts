@@ -331,7 +331,7 @@ async function processUserRSS(supabase: any, userId: string, corsHeaders: Record
               input_bruto: item.description.substring(0, 1000),
               tags: extractedTags,
               relevancia: Math.round(finalScore),
-              status: 'Em aprovação'
+              status: 'Coletado'
             });
 
           if (insertError) {
@@ -459,7 +459,7 @@ function extractKeywords(text: string): string[] {
 
 function calculateKeywordRelevance(item: RSSItem, extractedTags: string[], userKeywords: any[]): number {
   if (!userKeywords || userKeywords.length === 0) {
-    return 1;
+    return 3; // Default score when no keywords configured - ensures items pass threshold
   }
   
   const text = `${item.title} ${item.description}`.toLowerCase();

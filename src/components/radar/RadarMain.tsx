@@ -6,6 +6,7 @@ import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
 import { secureApi } from '@/lib/api';
 import { useInitializeDefaultSources } from '@/hooks/useInitializeDefaultSources';
+import { useInitializeDefaultKeywords } from '@/hooks/useInitializeDefaultKeywords';
 import { toast } from 'sonner';
 import RadarLiveStats from './RadarLiveStats';
 import RadarRecentActions from './RadarRecentActions';
@@ -22,6 +23,7 @@ const RadarMain = () => {
   const { user } = useAuth();
 
   const { isInitialized } = useInitializeDefaultSources();
+  const { isInitialized: keywordsInitialized } = useInitializeDefaultKeywords();
 
   useEffect(() => {
     const tourCompleted = localStorage.getItem('brasis-tour-completed');
