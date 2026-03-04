@@ -22,10 +22,10 @@ export const AuthPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Redirect authenticated users to curadoria
+  // Redirect authenticated users to Radar (hub central)
   useEffect(() => {
     if (user) {
-      navigate('/curadoria', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [user, navigate]);
 
@@ -67,7 +67,7 @@ export const AuthPage = () => {
   };
 
   const handleAuth = async (mode: 'signin' | 'signup') => {
-    console.log('🔐 handleAuth chamado:', { mode, email, passwordLength: password?.length });
+    
     
     if (!email || !password) {
       toast({ title: "Campos obrigatórios", description: "Por favor, preencha email e senha.", variant: "destructive" });
@@ -107,7 +107,7 @@ export const AuthPage = () => {
         toast({ title: "Cadastro realizado!", description: "Verifique seu email para confirmar a conta." });
       } else {
         toast({ title: "Login realizado!", description: "Bem-vindo ao sistema." });
-        navigate('/curadoria', { replace: true });
+        navigate('/', { replace: true });
       }
     } catch (error: any) {
       console.error('Auth error:', error);

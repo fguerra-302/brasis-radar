@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Info } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { Link } from 'react-router-dom';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
@@ -138,16 +137,6 @@ const RadarMain = () => {
         <div className="max-w-7xl mx-auto space-y-8">
           <AppHeader />
 
-          {!user && (
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
-                <p className="text-foreground font-medium font-sans">
-                  🎭 Modo Demonstração — <Link to="/auth" className="underline hover:no-underline text-primary">faça login</Link> para curar conteúdo
-                </p>
-              </div>
-            </div>
-          )}
 
           {!isInitialized && (
             <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4 mb-4">

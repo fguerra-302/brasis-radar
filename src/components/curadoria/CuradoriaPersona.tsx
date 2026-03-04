@@ -241,6 +241,29 @@ export const CuradoriaPersona = () => {
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5" />Testar Persona</CardTitle></CardHeader>
             <CardContent className="space-y-6">
+              {/* Persona selector */}
+              {personas && personas.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Selecionar Persona Salva</Label>
+                  <Select onValueChange={(id) => {
+                    const p = personas.find((x: any) => x.id === id);
+                    if (p) handleEdit(p);
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Escolha uma persona salva..." /></SelectTrigger>
+                    <SelectContent>
+                      {personas.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name} ({toneLabels[p.tone] || p.tone})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {personaData.name && (
+                <div className="bg-muted/50 p-3 rounded-lg border text-sm">
+                  <p className="font-medium text-foreground">Persona ativa: {personaData.name}</p>
+                  <p className="text-muted-foreground">Tom: {toneLabels[personaData.tone] || personaData.tone} · Estilo: {styleLabels[personaData.style] || personaData.style}</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Prompt de Teste</Label>
                 <Textarea value={testPrompt} onChange={e => setTestPrompt(e.target.value)} placeholder="Digite um tópico para testar..." rows={4} />

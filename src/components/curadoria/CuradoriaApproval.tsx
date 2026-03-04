@@ -137,10 +137,13 @@ export const CuradoriaApproval = () => {
 
       {(!items || items.length === 0) && (
         <Card className="text-center py-12">
-          <CardContent>
+          <CardContent className="space-y-3">
             <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum item aguardando aprovação</h3>
-            <p className="text-muted-foreground">Todos os itens foram processados</p>
+            <p className="text-muted-foreground">Vá ao <strong>Radar</strong> e clique em "Aprovar" nos itens relevantes para enviá-los para cá.</p>
+            <Button variant="outline" onClick={() => window.location.href = '/'} className="mt-2">
+              ← Ir ao Radar
+            </Button>
           </CardContent>
         </Card>
       )}
