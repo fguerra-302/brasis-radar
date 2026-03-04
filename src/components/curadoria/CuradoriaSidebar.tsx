@@ -1,4 +1,4 @@
-import { CheckCircle, Edit3, BarChart3, FileText, User, Target } from "lucide-react";
+import { CheckCircle, Edit3, BarChart3, FileText, User, Target, Lightbulb } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -16,6 +16,7 @@ const curadoriaItems = [
   { title: "Aprovação", url: "/curadoria/approval", icon: CheckCircle, description: "Revisar e aprovar conteúdos" },
   { title: "Newsletter", url: "/curadoria/newsletter", icon: FileText, description: "Exportar Newsletter Brasis" },
   { title: "Editor Social", url: "/curadoria/editor", icon: Edit3, description: "Criar conteúdo para redes sociais" },
+  { title: "Editor Brasis", url: "/curadoria/brasis-editor", icon: Lightbulb, description: "Formato editorial Brasis" },
   { title: "Categorias", url: "/curadoria/categorias", icon: Target, description: "Gerenciar categorias de palavras-chave" },
   { title: "Persona & Estilo", url: "/curadoria/persona", icon: User, description: "Treinar estilo de escrita" },
   { title: "Voltar ao Radar", url: "/", icon: BarChart3, description: "Ver radar principal" },

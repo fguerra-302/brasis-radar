@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      brasis_content: {
+        Row: {
+          created_at: string | null
+          example: string | null
+          id: string
+          observation: string
+          reflection: string | null
+          tags: string[] | null
+          tip: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          example?: string | null
+          id?: string
+          observation: string
+          reflection?: string | null
+          tags?: string[] | null
+          tip?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          example?: string | null
+          id?: string
+          observation?: string
+          reflection?: string | null
+          tags?: string[] | null
+          tip?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_groups: {
         Row: {
           created_at: string | null
