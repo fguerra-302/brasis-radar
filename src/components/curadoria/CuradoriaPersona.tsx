@@ -110,10 +110,25 @@ export const CuradoriaPersona = () => {
     });
   };
 
-  const handleGenerateSample = () => {
-    const sample = `[Persona: "${personaData.name}"]\n\nTópico: ${testPrompt}\n\nTom: ${personaData.tone} | Estilo: ${personaData.style}\nPúblico: ${personaData.target_audience || 'Geral'}\n\n---\n\n[Amostra seria gerada pela IA com os parâmetros acima]`;
-    setGeneratedSample(sample);
-    toast.success("Amostra gerada");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateSample = async () => {
+    if (!testPrompt.trim() || !personaData.name) return;
+    setIsGenerating(true);
+    setGeneratedSample('');
+    try {
+      const { data, error } = await supabase.functions.invoke('persona-sample', {
+        body: { persona: personaData, prompt: testPrompt },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setGeneratedSample(data.sample);
+      toast.success("Amostra gerada com IA!");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao gerar amostra");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const toneLabels: Record<string, string> = {
@@ -230,8 +245,9 @@ export const CuradoriaPersona = () => {
                 <Label>Prompt de Teste</Label>
                 <Textarea value={testPrompt} onChange={e => setTestPrompt(e.target.value)} placeholder="Digite um tópico para testar..." rows={4} />
               </div>
-              <Button onClick={handleGenerateSample} disabled={!testPrompt.trim() || !personaData.name} className="w-full bg-brasis-terracotta hover:bg-brasis-terracotta/90">
-                <Wand2 className="h-4 w-4 mr-2" />Gerar Amostra
+              <Button onClick={handleGenerateSample} disabled={!testPrompt.trim() || !personaData.name || isGenerating} className="w-full bg-brasis-terracotta hover:bg-brasis-terracotta/90">
+                {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+                {isGenerating ? 'Gerando com IA...' : 'Gerar Amostra com IA'}
               </Button>
               {generatedSample && (
                 <div className="space-y-2">
