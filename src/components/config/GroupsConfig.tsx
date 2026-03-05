@@ -12,12 +12,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Plus, Trash2, Edit, Loader2, FolderOpen } from 'lucide-react';
 import { useContentGroups, useCreateContentGroup, useUpdateContentGroup, useDeleteContentGroup } from '@/hooks/useContentGroups';
 import { useSourceGroupAssignments, useBulkAssignSourcesToGroup } from '@/hooks/useSourceGroupAssignments';
-import { useRadarSources } from '@/hooks/useRadarSources';
+import { useSharedSources } from '@/hooks/useSharedSources';
 import type { ContentGroup } from '@/types/content';
 
 export function GroupsConfig() {
   const { data: groups = [], isLoading: loadingGroups } = useContentGroups();
-  const { data: sources = [], isLoading: loadingSources } = useRadarSources();
+  const { data: sources = [], isLoading: loadingSources } = useSharedSources();
   const { data: allAssignments = [] } = useSourceGroupAssignments();
   
   const createGroup = useCreateContentGroup();
