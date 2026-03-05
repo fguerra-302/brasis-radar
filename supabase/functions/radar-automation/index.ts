@@ -89,17 +89,15 @@ Deno.serve(async (req) => {
         auth: { detectSessionInUrl: false, persistSession: false }
       });
       
-      // Get all unique user IDs that have active sources (RSS or WEB)
+      // Get all users from user_settings (every active user has a record)
       const { data: activeUsers, error: usersError } = await supabaseAdmin
-        .from('radar_sources')
-        .select('user_id')
-        .eq('active', true)
-        .in('type', ['RSS', 'WEB']);
+        .from('user_settings')
+        .select('user_id');
       
       if (usersError || !activeUsers || activeUsers.length === 0) {
-        console.log('[radar-automation] No active users with sources');
+        console.log('[radar-automation] No active users found in user_settings');
         return new Response(
-          JSON.stringify({ message: 'Nenhum usuário com fontes ativas', processedSources: 0, savedItems: 0 }),
+          JSON.stringify({ message: 'Nenhum usuário ativo encontrado', processedSources: 0, savedItems: 0 }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
       }
@@ -182,11 +180,18 @@ Deno.serve(async (req) => {
 
 // Process all source types for a single user
 async function processUser(supabase: any, userId: string) {
+  // Create admin client to read shared_sources (no user_id / RLS bypass)
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const adminClient = serviceRoleKey 
+    ? createClient(supabaseUrl, serviceRoleKey, { auth: { detectSessionInUrl: false, persistSession: false } })
+    : supabase;
+
   // Load configurations in batch
-  const [keywordsResult, weightsResult, settingsResult] = await Promise.all([
+  const [keywordsResult, weightsResult, settingsResult, sourcesResult] = await Promise.all([
     supabase.from('radar_keywords').select('category_name, keywords, weight').eq('user_id', userId),
     supabase.from('editorial_weights').select('editoria, multiplier').eq('user_id', userId),
-    supabase.from('user_settings').select('min_relevance_threshold').eq('user_id', userId).maybeSingle()
+    supabase.from('user_settings').select('min_relevance_threshold').eq('user_id', userId).maybeSingle(),
+    adminClient.from('shared_sources').select('id, name, url, type, active, config').eq('active', true).in('type', ['RSS', 'WEB'])
   ]);
 
   const userKeywords = keywordsResult.data || [];
@@ -200,16 +205,11 @@ async function processUser(supabase: any, userId: string) {
     .eq('user_id', userId);
   const tombstoneLinks = new Set(tombstones?.map((t: { link: string }) => t.link) || []);
 
-  // Fetch ALL active sources (RSS + WEB)
-  const { data: allSources, error: sourcesError } = await supabase
-    .from('radar_sources')
-    .select('id, name, url, type, active, config, external_api_config, last_sync, created_at, updated_at, user_id')
-    .eq('active', true)
-    .in('type', ['RSS', 'WEB'])
-    .eq('user_id', userId);
+  const allSources = sourcesResult.data || [];
+  const sourcesError = sourcesResult.error;
 
-  if (sourcesError || !allSources || allSources.length === 0) {
-    console.log(`[radar-automation] No active sources for user ${userId}`);
+  if (sourcesError || allSources.length === 0) {
+    console.log(`[radar-automation] No active shared sources found`);
     return { processedSources: 0, savedItems: 0, minThreshold };
   }
 
@@ -290,7 +290,6 @@ async function processUser(supabase: any, userId: string) {
         }
 
         processedSources++;
-        await supabase.from('radar_sources').update({ last_sync: new Date().toISOString() }).eq('id', source.id);
       } catch (sourceError) {
         console.error(`[radar-automation] Source error ${source.name}:`, sourceError);
       }
@@ -399,7 +398,6 @@ async function processUser(supabase: any, userId: string) {
           }
 
           processedSources++;
-          await supabase.from('radar_sources').update({ last_sync: new Date().toISOString() }).eq('id', source.id);
         } catch (sourceError) {
           console.error(`[radar-automation] WEB source error ${source.name}:`, sourceError);
         }
