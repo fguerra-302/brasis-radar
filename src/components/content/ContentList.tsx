@@ -20,6 +20,8 @@ interface ContentListProps {
   setSearchTerm: (term: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
+  groupFilter?: string;
+  setGroupFilter?: (groupId: string) => void;
   currentPage: number;
   setCurrentPage: (page: number) => void;
   onAprovar: (id: string, title: string) => Promise<void>;
@@ -36,7 +38,8 @@ interface ContentListProps {
 
 const ContentList = ({
   supabaseData, isLoading, error, searchTerm, setSearchTerm,
-  statusFilter, setStatusFilter, currentPage, setCurrentPage,
+  statusFilter, setStatusFilter, groupFilter, setGroupFilter,
+  currentPage, setCurrentPage,
   onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onConfigurar,
   onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete
 }: ContentListProps) => {
@@ -61,7 +64,8 @@ const ContentList = ({
     } else if (statusFilter !== 'todos') {
       matchesStatus = item.status === statusFilter;
     }
-    return matchesSearch && matchesStatus;
+    const matchesGroup = !groupFilter || groupFilter === 'todos' || item.group_id === groupFilter;
+    return matchesSearch && matchesStatus && matchesGroup;
   });
 
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
@@ -86,7 +90,7 @@ const ContentList = ({
   return (
     <div className="space-y-6">
       <RadarDebugInfo error={error} supabaseItemsCount={supabaseData?.length || 0} />
-      <ContentFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onConfigurar={onConfigurar} onExecutarCuradoria={onExecutarCuradoria} onRecalcularRelevancia={onRecalcularRelevancia} />
+      <ContentFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} statusFilter={statusFilter} setStatusFilter={setStatusFilter} groupFilter={groupFilter} setGroupFilter={setGroupFilter} onConfigurar={onConfigurar} onExecutarCuradoria={onExecutarCuradoria} onRecalcularRelevancia={onRecalcularRelevancia} />
       <BulkActions filteredItems={filteredItems} statusFilter={statusFilter} onBulkDelete={onBulkDelete} isUpdating={updateMutation.isPending} />
 
       {filteredItems.length === 0 ? (

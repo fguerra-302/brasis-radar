@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bot } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
@@ -7,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { secureApi } from '@/lib/api';
 import { useInitializeDefaultSources } from '@/hooks/useInitializeDefaultSources';
 import { useInitializeDefaultKeywords } from '@/hooks/useInitializeDefaultKeywords';
+import { useInitializeDefaultGroups } from '@/hooks/useInitializeDefaultGroups';
 import { toast } from 'sonner';
 import RadarLiveStats from './RadarLiveStats';
 import RadarRecentActions from './RadarRecentActions';
@@ -18,18 +20,21 @@ import { OnboardingTour } from '@/components/tour/OnboardingTour';
 const RadarMain = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
+  const [groupFilter, setGroupFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [showTour, setShowTour] = useState(false);
   const { user } = useAuth();
 
   const { isInitialized } = useInitializeDefaultSources();
   const { isInitialized: keywordsInitialized } = useInitializeDefaultKeywords();
+  useInitializeDefaultGroups();
 
   useEffect(() => {
     const tourCompleted = localStorage.getItem('brasis-tour-completed');
     if (!tourCompleted) setShowTour(true);
   }, []);
 
+  const queryClient = useQueryClient();
   const { data: supabaseData, isLoading, error, refetch } = useRadarBrasis();
   const updateMutation = useUpdateRadarBrasis();
 
@@ -99,7 +104,7 @@ const RadarMain = () => {
       const { error } = await supabase.from('radar_brasis').delete().eq('id', itemId);
       if (error) throw error;
       toast.success(`"${title.substring(0, 40)}..." excluído`);
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
     } catch { toast.error("Falha ao excluir item."); }
   };
 
@@ -113,7 +118,7 @@ const RadarMain = () => {
       const { error } = await supabase.from('radar_brasis').delete().eq('status', status).eq('user_id', user.id);
       if (error) throw error;
       toast.success(`${items.length} itens excluídos`);
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
     } catch { toast.error("Falha ao excluir itens."); }
   };
 
@@ -157,6 +162,7 @@ const RadarMain = () => {
                 supabaseData={supabaseData} isLoading={isLoading} error={error}
                 searchTerm={searchTerm} setSearchTerm={setSearchTerm}
                 statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+                groupFilter={groupFilter} setGroupFilter={setGroupFilter}
                 currentPage={currentPage} setCurrentPage={setCurrentPage}
                 onAprovar={handleAprovar} onIgnorar={handleIgnorar}
                 onVerOriginal={handleVerOriginal} onUpdateStatus={handleUpdateStatus}

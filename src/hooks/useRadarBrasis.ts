@@ -19,8 +19,7 @@ export const useRadarBrasis = () => {
         .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at, user_id')
         .eq('user_id', session.user.id)
         .order('relevancia', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('created_at', { ascending: false });
 
       if (error) {
         if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
