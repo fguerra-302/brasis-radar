@@ -1,27 +1,21 @@
 
 
-## Diagnóstico: Fontes Legadas são redundantes
+## Análise de dependências
 
-Você tem razão. Com o catálogo unificado (`shared_sources` com 51 fontes), a aba "Fontes Legadas" (`radar_sources` por usuário) é **redundante e confusa**. Pior: o `radar-automation` ainda coleta de `radar_sources`, ignorando completamente o catálogo compartilhado.
+| Hook / Componente | Ainda em uso? | Onde? |
+|---|---|---|
+| `useSourceCredentials.ts` | Não | Só referenciado por `SourceCredentialsBadge.tsx`, que não é importado em lugar nenhum |
+| `SourceCredentialsBadge.tsx` | Não | Nenhuma importação encontrada |
+| `useRadarSources.ts` | **Sim** | `SourcesStatus.tsx` (rota `/config/status`), `GroupsConfig.tsx`, `useExternalApi.ts`, `BulkSourceUpload.tsx` |
+| `BulkSourceUpload.tsx` | Não | Nenhuma importação encontrada |
 
 ## Plano
 
-### 1. Modificar `radar-automation/index.ts` para usar `shared_sources`
+### Pode remover com segurança (sem referências):
+1. `src/hooks/useSourceCredentials.ts`
+2. `src/components/sources/SourceCredentialsBadge.tsx`
+3. `src/components/sources/BulkSourceUpload.tsx` (também órfão)
 
-- **Busca de fontes**: Trocar `radar_sources` por `shared_sources` (via `supabaseAdmin`, pois não tem `user_id`)
-- **Busca de usuários no cron**: Em vez de buscar usuários de `radar_sources`, buscar de `user_settings` (todo usuário ativo terá um registro)
-- **Remover `last_sync` update**: `shared_sources` não tem `last_sync` por usuário, então remover essa atualização (ou adicionar a coluna se necessário)
-
-### 2. Remover aba "Fontes Legadas" da UI
-
-- **`src/components/config/SourcesConfig.tsx`**: Remover a aba "Fontes Legadas" e o `SourceManager`, passando de 4 abas para 3 (Catálogo, Meus Projetos, Newsletters)
-
-### 3. Arquivos modificados
-
-| Arquivo | Mudança |
-|---------|---------|
-| `supabase/functions/radar-automation/index.ts` | Coletar de `shared_sources` em vez de `radar_sources`; buscar usuários de `user_settings` |
-| `src/components/config/SourcesConfig.tsx` | Remover aba "Fontes Legadas" |
-
-Nenhuma migração SQL necessária — `shared_sources` já existe com as fontes populadas.
+### NÃO pode remover ainda:
+- `src/hooks/useRadarSources.ts` — ainda é importado por 3 componentes ativos (`SourcesStatus`, `GroupsConfig`, `useExternalApi`). Removê-lo quebraria o build. Seria necessário primeiro migrar esses componentes para usar `shared_sources` antes de deletar o hook.
 
