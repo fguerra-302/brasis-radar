@@ -1,32 +1,56 @@
 
 
-## Problem
+## Problema Identificado
 
-Buttons across the app have poor contrast against the beige background (`hsl(42 50% 89%)`). The main issues:
+O sistema de relevância está causando **radar vazio** para a maioria dos usuários. Aqui está o que acontece:
 
-1. **`outline` variant**: Uses `border-primary bg-background text-primary` -- orange text on beige background is hard to read
-2. **`ghost` variant**: Uses `hover:bg-accent` -- the hover state works but the default state has no visual weight
-3. **`default` / `brasis` variant**: Uses `bg-gradient-brasis` (orange-to-blue gradient) with white text -- this actually has good contrast, but the gradient makes some buttons look washed out
-4. **Inline overrides**: Many buttons use custom classes like `bg-secondary hover:bg-secondary/90 text-secondary-foreground` which works, but `outline` buttons with `text-primary` (orange) on beige are the worst offenders
+1. O usuário configura palavras-chave, mas as fontes RSS trazem conteúdos que **não combinam** com nenhuma delas
+2. Quando nenhuma palavra-chave combina, o sistema dá nota **1** ao conteúdo
+3. O filtro padrão está configurado para aceitar apenas nota **3 ou mais**
+4. Resultado: **tudo é descartado silenciosamente** e o radar fica vazio sem explicação
 
-## Plan
+O usuário não tem como saber que o problema é o filtro de relevância -- ele só vê "Nenhum conteúdo encontrado".
 
-### Fix button variants in `src/components/ui/button.tsx`
+---
 
-- **`outline`**: Change from `text-primary` to `text-foreground` (dark blue) and add a stronger border. This ensures text is always readable against beige or white backgrounds.
-  - New: `border-2 border-primary/60 bg-background text-foreground hover:bg-primary hover:text-white`
-  
-- **`default`**: Replace gradient with solid orange for clarity.
-  - New: `bg-primary text-white shadow-brasis hover:bg-primary/90 hover:-translate-y-0.5`
+## O Que Vamos Fazer
 
-- **`brasis`**: Keep gradient but ensure it's distinct from default.
-  - Keep as-is (gradient with white text works)
+### 1. Corrigir a nota mínima no motor de coleta
+**Arquivo:** `supabase/functions/radar-automation/index.ts`
 
-- **`secondary`**: Already has white foreground on blue -- fine, no change needed.
+Quando palavras-chave existem mas nenhuma combina com o conteúdo, mudar a nota de **1** para **2**. Isso faz com que conteúdos sem match não sejam descartados tão agressivamente.
 
-- **`ghost`**: Add `text-foreground` explicitly so it's not inherited as the same beige-ish tone.
-  - New: `text-foreground hover:bg-accent hover:text-accent-foreground`
+### 2. Mudar o filtro padrão de 3 para 1
+**Arquivo:** Nova migração SQL
 
-### No other files need changes
-The button component is centralized -- fixing the variants here fixes all 35+ files using these buttons. Inline overrides (like `text-destructive border-destructive/30`) already have good contrast and should be left alone.
+Novos usuários passam a ver **todo o conteúdo** por padrão. Depois eles podem aumentar o filtro quando entenderem o sistema. Usuários existentes mantêm suas configurações atuais.
+
+### 3. Simplificar a tela de configuração de relevância
+**Arquivo:** `src/components/config/RelevanceThresholdConfig.tsx`
+
+Trocar o slider abstrato (1-5) por **botões com nomes claros**:
+- **"Aceitar tudo"** (nível 1) -- recomendado para iniciantes
+- **"Filtrar spam"** (nível 2) -- filtragem leve
+- **"Curadoria moderada"** (nível 3) -- equilibrado
+- **"Curadoria rigorosa"** (nível 4-5) -- só para quem já configurou bem as palavras-chave
+
+Adicionar um **aviso amarelo** quando o nível for 3+ dizendo que conteúdos podem estar sendo descartados.
+
+### 4. Melhorar a tela vazia do radar com diagnóstico
+**Arquivo:** `src/components/radar/RadarEmpty.tsx`
+
+Quando o radar está vazio, mostrar uma **dica específica**: "Seus conteúdos podem estar sendo filtrados pela relevância mínima. Tente reduzir nas configurações." com um botão direto para ajustar.
+
+---
+
+## Resumo dos Arquivos
+
+| Arquivo | O que muda |
+|---------|-----------|
+| `radar-automation/index.ts` | Nota mínima de 1 → 2 quando não há match |
+| Nova migração SQL | Default de `min_relevance_threshold` de 3 → 1 |
+| `RelevanceThresholdConfig.tsx` | Slider → botões com nomes claros + aviso |
+| `RadarEmpty.tsx` | Mensagem de diagnóstico + link para config |
+
+Nenhuma mudança quebra o que já existe. Usuários atuais mantêm suas configurações.
 
