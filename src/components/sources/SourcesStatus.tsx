@@ -4,37 +4,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Activity, RefreshCw, Globe, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
-import { useRadarSources } from '@/hooks/useRadarSources';
+import { useSharedSources } from '@/hooks/useSharedSources';
 import { secureApi } from '@/lib/api';
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export function SourcesStatus() {
   const { toast } = useToast();
-  const { data: sources = [], isLoading } = useRadarSources();
+  const { data: sources = [], isLoading } = useSharedSources();
   const queryClient = useQueryClient();
 
   const collectDataMutation = useMutation({
     mutationFn: async () => {
-      console.log('🚀 Iniciando coleta de dados RSS...');
       const result = await secureApi.invokeFunction('radar-automation');
-      console.log('📊 Resultado da coleta:', result);
       return result;
     },
     onSuccess: (data) => {
-      console.log('✅ Coleta concluída:', data);
       toast({
         title: "✅ Coleta Concluída",
         description: `${data.processedSources || 0} fontes processadas, ${data.savedItems || 0} novos itens coletados.`,
       });
-      queryClient.invalidateQueries({ queryKey: ['radar-sources'] });
+      queryClient.invalidateQueries({ queryKey: ['shared-sources'] });
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
     },
     onError: (error: any) => {
-      console.error('❌ Erro na coleta:', error);
       toast({
         title: "❌ Erro na Coleta",
-        description: error?.message || 'Falha ao coletar dados das fontes RSS.',
+        description: error?.message || 'Falha ao coletar dados das fontes.',
         variant: "destructive",
       });
     },
@@ -42,24 +38,6 @@ export function SourcesStatus() {
 
   const activeSources = sources.filter(s => s.active);
   const inactiveSources = sources.filter(s => !s.active);
-
-  const getStatusBadge = (source: any) => {
-    if (!source.last_sync) {
-      return <Badge variant="secondary" className="text-xs">Nunca sincronizado</Badge>;
-    }
-    
-    const lastSync = new Date(source.last_sync);
-    const now = new Date();
-    const hoursDiff = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60);
-    
-    if (hoursDiff < 1) {
-      return <Badge variant="default" className="text-xs bg-green-600">Recente</Badge>;
-    } else if (hoursDiff < 24) {
-      return <Badge variant="secondary" className="text-xs">Hoje</Badge>;
-    } else {
-      return <Badge variant="outline" className="text-xs">Antigo</Badge>;
-    }
-  };
 
   if (isLoading) {
     return (
@@ -76,7 +54,7 @@ export function SourcesStatus() {
         <div>
           <h1 className="text-2xl font-semibold">Status das Fontes</h1>
           <p className="text-muted-foreground mt-1">
-            Monitore e gerencie suas fontes de dados
+            Monitore e gerencie suas fontes de dados (catálogo compartilhado)
           </p>
         </div>
         <Button 
@@ -165,7 +143,7 @@ export function SourcesStatus() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Fontes Configuradas
+              Fontes do Catálogo
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -185,7 +163,6 @@ export function SourcesStatus() {
                         <Badge variant="outline" className="text-xs">
                           {source.type}
                         </Badge>
-                        {getStatusBadge(source)}
                       </div>
                     </div>
                   </div>
@@ -199,27 +176,6 @@ export function SourcesStatus() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Debug Info */}
-      {process.env.NODE_ENV === 'development' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Debug Info</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="text-xs bg-muted p-4 rounded overflow-auto">
-              {JSON.stringify({ 
-                total: sources.length,
-                active: activeSources.length,
-                types: sources.reduce((acc, s) => {
-                  acc[s.type] = (acc[s.type] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>)
-              }, null, 2)}
-            </pre>
           </CardContent>
         </Card>
       )}

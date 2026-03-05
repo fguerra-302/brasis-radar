@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalApiService, ExternalApiResult } from '@/services/externalApiService';
 import { useToast } from '@/hooks/use-toast';
-import { useRadarSources } from './useRadarSources';
+import { useSharedSources } from './useSharedSources';
 
 /**
  * Hook para gerenciar operações com a API externa
@@ -9,7 +9,7 @@ import { useRadarSources } from './useRadarSources';
 export const useExternalApi = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: sources } = useRadarSources();
+  const { data: sources } = useSharedSources();
 
   // Query para verificar status da API externa
   const apiHealthQuery = useQuery({

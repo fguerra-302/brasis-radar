@@ -443,7 +443,7 @@ export type Database = {
             foreignKeyName: "source_group_assignments_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
-            referencedRelation: "radar_sources"
+            referencedRelation: "shared_sources"
             referencedColumns: ["id"]
           },
         ]

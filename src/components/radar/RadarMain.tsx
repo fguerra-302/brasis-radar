@@ -6,7 +6,7 @@ import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
 import { secureApi } from '@/lib/api';
-import { useInitializeDefaultSources } from '@/hooks/useInitializeDefaultSources';
+
 import { useInitializeDefaultKeywords } from '@/hooks/useInitializeDefaultKeywords';
 import { useInitializeDefaultGroups } from '@/hooks/useInitializeDefaultGroups';
 import { toast } from 'sonner';
@@ -25,7 +25,6 @@ const RadarMain = () => {
   const [showTour, setShowTour] = useState(false);
   const { user } = useAuth();
 
-  const { isInitialized } = useInitializeDefaultSources();
   const { isInitialized: keywordsInitialized } = useInitializeDefaultKeywords();
   useInitializeDefaultGroups();
 
@@ -145,14 +144,6 @@ const RadarMain = () => {
           <AppHeader />
 
 
-          {!isInitialized && (
-            <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-2">
-                <Bot className="h-5 w-5 text-secondary" />
-                <p className="text-foreground font-medium font-sans">⚙️ Configurando fontes RSS padrão...</p>
-              </div>
-            </div>
-          )}
 
           <RadarLiveStats />
 
