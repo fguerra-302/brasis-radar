@@ -1,60 +1,56 @@
 
 
-## Diagnosis
+## Analysis & Strategic Review
 
-After reviewing the codebase, I found two distinct problems:
+### Understanding from the Brasis Credentials PDF
 
-### Problem 1: Web Scraping (sites sem RSS) is disconnected from automation
-- The `WebScrapingManager` component stores sources **only in local React state** (not persisted to the database)
-- The `radar-automation` edge function **only processes `type: 'RSS'`** sources, ignoring WEB sources entirely
-- The `web-scraper` edge function exists and works, but is only triggered manually per-source
+Brasis operates **3 distinct content products** (newsletters/communities), each with its own audience, editorial focus, and sources:
 
-### Problem 2: Newsletter search is fundamentally broken
-- The `newsletter-search` edge function asks OpenAI to **fabricate fake newsletter data** (the system prompt literally says "crie newsletters plausíveis baseadas no termo de busca")
-- It then validates results against the user's active NEWSLETTER sources by name/domain match
-- Since AI-generated links/sources never match real configured sources, **all items are skipped** as "Fonte não permitida"
-- Result: 0 newsletters collected every time
+1. **Radar Brasis** -- Culture, behavior, Brazilian trends for brands. The "core" curation product.
+2. **Clube da Gloria** -- Women 35+, wellness, entertainment, Brazilian female perspective. 92K followers, 400K views/month.
+3. **VIEWS** -- Creator economy newsletter. Curating the influencer market for creators, brands, agencies. 1500 subscribers in 6 editions.
+
+Additionally: **Gigantes de Nazare** (extreme sports entertainment platform, 2.1M followers).
+
+### Bug: Delete count not updating
+
+**Root cause**: `useRadarBrasis` has `.limit(100)` on the query (line 23). The stats in `useRadarBrasisStats` are computed from this limited dataset. When items are deleted via `handleBulkDelete`, `refetch()` is called but the stats recalculate from whatever 100 items come back -- the total appears unchanged because new items fill the slots of deleted ones, or the cache isn't properly invalidated.
+
+Additionally, `handleBulkDelete` calls `refetch()` but doesn't `invalidateQueries`, so the React Query cache may serve stale data.
+
+**Fix**: Remove the `.limit(100)` (or increase significantly), and use `queryClient.invalidateQueries` instead of just `refetch()` after bulk delete.
+
+### Missing: Pre-configured groups for Brasis products
+
+Currently, groups are fully manual. The system should ship with the 3 core Brasis product groups pre-created.
 
 ---
 
 ## Plan
 
-### Fix 1: Integrate Web Scraping into the automation pipeline
+### 1. Fix bulk delete not updating stats
 
-**1a. Persist WEB sources to `radar_sources` table**
-- Modify `WebScrapingManager` to save/load sources from `radar_sources` with `type: 'WEB'` instead of local state
-- Add editoria to the source config JSON field
+- In `RadarMain.tsx` `handleBulkDelete`: replace `refetch()` with `queryClient.invalidateQueries({ queryKey: ['radar-brasis'] })` to force fresh data
+- Same fix for `handleDeleteItem`
+- In `useRadarBrasis`: remove `.limit(100)` -- it silently hides data and makes stats inaccurate
 
-**1b. Extend `radar-automation` to process WEB sources**
-- After processing RSS sources, query for `type: 'WEB'` active sources
-- For each WEB source, call the `web-scraper` logic inline (extract HTML, analyze relevance, save items)
-- This makes web scraping automatic alongside RSS collection
+### 2. Auto-create the 3 Brasis product groups
 
-### Fix 2: Rebuild newsletter search to actually work
+- Create a new hook `useInitializeDefaultGroups.ts` that checks if the user has any content groups, and if not, seeds:
+  - **Radar Brasis** -- "Cultura, comportamento e tendencias brasileiras para marcas"
+  - **Clube da Gloria** -- "Consumo feminino 35+, bem-estar, entretenimento e vivencia brasileira"
+  - **VIEWS** -- "Creator economy, influenciadores, marcas e plataformas"
+- Call this hook in `RadarMain.tsx` alongside the existing `useInitializeDefaultSources` and `useInitializeDefaultKeywords`
 
-**2a. Replace fake OpenAI generation with real web search via Firecrawl**
-- The project already has a `FIRECRAWL_API_KEY` configured
-- Rewrite `newsletter-search` to use Firecrawl's search API to find real newsletter content
-- Search query: user's search terms + "newsletter brasil"
-- This returns real URLs, real titles, real content
+### 3. Add group filter to the Radar view
 
-**2b. Remove the broken source-matching filter**
-- Currently blocks everything because AI-generated sources never match
-- Instead, save all Firecrawl results directly (they are real web content)
-- Keep tombstone and duplicate checks
+- Add a group selector dropdown in `ContentFilters.tsx` so users can filter the radar by product/newsletter group
+- Wire `group_id` through the query chain: `useRadarBrasis` already has `group_id` in the DB schema but doesn't query or filter by it
+- When assigning items (approving), allow selecting which group the item belongs to
 
-**2c. Improve result processing**
-- Use Firecrawl search results (real URLs, titles, descriptions)
-- Use the AI gateway (already available) for relevance scoring instead of content generation
-- Save with status "Coletado" to enter the normal curation flow
-
-### Technical details
-
-**Files to modify:**
-- `src/components/sources/WebScrapingManager.tsx` -- persist to `radar_sources` with `type: 'WEB'`
-- `supabase/functions/radar-automation/index.ts` -- add WEB source processing after RSS
-- `supabase/functions/newsletter-search/index.ts` -- rewrite to use Firecrawl search API
-- `src/components/sources/NewsletterSearchManager.tsx` -- minor: remove misleading "uses OpenAI" text
-
-**No database changes needed** -- `radar_sources` already supports arbitrary `type` values and `config` JSON.
+### Files to modify
+- `src/hooks/useRadarBrasis.ts` -- remove limit(100), use invalidateQueries
+- `src/components/radar/RadarMain.tsx` -- fix delete handlers, add group initialization
+- `src/hooks/useInitializeDefaultGroups.ts` -- new file, auto-seed 3 groups
+- `src/components/content/ContentFilters.tsx` -- add group filter dropdown
 
