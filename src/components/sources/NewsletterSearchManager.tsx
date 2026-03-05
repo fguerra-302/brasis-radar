@@ -34,10 +34,10 @@ export const NewsletterSearchManager = () => {
     onError: (error: any) => {
       console.error('Erro na busca:', error);
       
-      if (error.message?.includes('OPENAI_API_KEY')) {
+      if (error.message?.includes('Firecrawl') || error.message?.includes('FIRECRAWL')) {
         toast({
           title: "⚙️ Configuração Necessária",
-          description: "API Key do OpenAI não configurada. Configure nas secrets do Supabase.",
+          description: "Firecrawl não configurado. Configure a API Key nas secrets do Supabase.",
           variant: "destructive",
         });
       } else {
@@ -120,15 +120,15 @@ export const NewsletterSearchManager = () => {
         {!loading && user && (
           <>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2">
             <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
             <div className="text-sm text-blue-800">
               <p className="font-medium mb-1">Como funciona a busca de newsletters:</p>
               <ul className="list-disc ml-4 space-y-1">
-                <li>Usa IA para encontrar newsletters brasileiras recentes</li>
-                <li>Busca conteúdo publicado nas últimas 2 semanas</li>
-                <li>Filtra por relevância e qualidade do conteúdo</li>
-                <li>Adiciona automaticamente à curadoria</li>
+                <li>Busca conteúdo real na web via Firecrawl</li>
+                <li>Encontra newsletters brasileiras relevantes</li>
+                <li>Filtra por relevância e elimina duplicatas</li>
+                <li>Adiciona automaticamente à curadoria com status "Coletado"</li>
               </ul>
             </div>
           </div>
@@ -183,7 +183,7 @@ export const NewsletterSearchManager = () => {
             <div className="text-sm text-green-800">
               <p className="font-medium mb-1">✅ Configuração OK:</p>
               <p>
-                Esta funcionalidade usa a API do OpenAI que já está configurada no projeto.
+                Esta funcionalidade usa o Firecrawl para busca real de conteúdo na web.
               </p>
             </div>
           </div>

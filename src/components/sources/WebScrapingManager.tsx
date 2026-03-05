@@ -9,23 +9,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Globe, Loader2, Plus, Trash2, Play } from "lucide-react";
 import { secureApi } from "@/lib/api";
 import { validateUrl, sanitizeString } from "@/lib/inputValidation";
-
-interface WebScrapingSource {
-  id?: string;
-  name: string;
-  url: string;
-  editoria: string;
-  active: boolean;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const WebScrapingManager = () => {
   const { toast } = useToast();
-  const [sources, setSources] = useState<WebScrapingSource[]>([]);
-  const [newSource, setNewSource] = useState<WebScrapingSource>({
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [newSource, setNewSource] = useState({
     name: '',
     url: '',
     editoria: 'Geral',
-    active: true
   });
   const [isLoading, setIsLoading] = useState(false);
   const [testingUrl, setTestingUrl] = useState<string | null>(null);
@@ -34,109 +29,94 @@ export const WebScrapingManager = () => {
     'Cultura', 'Social', 'Negócios', 'Sustentabilidade', 'Regional', 'Geral'
   ];
 
-  const addSource = () => {
-    // Validate URL
+  // Load WEB sources from database
+  const { data: sources = [], isLoading: loadingSources } = useQuery({
+    queryKey: ['web-scraping-sources', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('radar_sources')
+        .select('*')
+        .eq('type', 'WEB')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const addSource = async () => {
+    if (!user) return;
+
     const urlValidation = validateUrl(newSource.url);
     if (!urlValidation.isValid) {
-      toast({
-        title: "URL inválida",
-        description: urlValidation.error,
-        variant: "destructive",
-      });
+      toast({ title: "URL inválida", description: urlValidation.error, variant: "destructive" });
       return;
     }
 
-    // Sanitize inputs
     const sanitizedName = sanitizeString(newSource.name, 100);
     if (!sanitizedName) {
-      toast({
-        title: "Nome inválido",
-        description: "Digite um nome válido para o site.",
-        variant: "destructive",
-      });
+      toast({ title: "Nome inválido", description: "Digite um nome válido para o site.", variant: "destructive" });
       return;
     }
 
-    if (sanitizedName && newSource.url) {
-      setSources([...sources, { 
-        ...newSource, 
-        name: sanitizedName,
-        url: newSource.url.trim(),
-        id: Date.now().toString() 
-      }]);
-      setNewSource({ name: '', url: '', editoria: 'Geral', active: true });
-      
-      toast({
-        title: "✅ Site adicionado",
-        description: `${sanitizedName} foi adicionado para web scraping.`,
-      });
-    }
-  };
-
-  const removeSource = (id: string) => {
-    setSources(sources.filter(source => source.id !== id));
-    toast({
-      title: "Site removido",
-      description: "Site foi removido da lista de scraping.",
+    const { error } = await supabase.from('radar_sources').insert({
+      name: sanitizedName,
+      url: newSource.url.trim(),
+      type: 'WEB',
+      active: true,
+      user_id: user.id,
+      config: { editoria: newSource.editoria },
     });
+
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    setNewSource({ name: '', url: '', editoria: 'Geral' });
+    queryClient.invalidateQueries({ queryKey: ['web-scraping-sources'] });
+    toast({ title: "✅ Site adicionado", description: `${sanitizedName} será coletado automaticamente.` });
   };
 
-  const testWebScraping = async (source: WebScrapingSource) => {
+  const removeSource = async (id: string) => {
+    const { error } = await supabase.from('radar_sources').delete().eq('id', id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['web-scraping-sources'] });
+    toast({ title: "Site removido" });
+  };
+
+  const toggleSource = async (id: string, active: boolean) => {
+    await supabase.from('radar_sources').update({ active: !active }).eq('id', id);
+    queryClient.invalidateQueries({ queryKey: ['web-scraping-sources'] });
+  };
+
+  const testWebScraping = async (source: any) => {
     setTestingUrl(source.url);
-    
     try {
+      const editoria = (source.config as any)?.editoria || 'Geral';
       const data = await secureApi.invokeFunction('web-scraper', {
         url: source.url,
         sourceName: source.name,
-        editoria: source.editoria
+        editoria,
       });
-
       if (data.success) {
         toast({
           title: "✅ Teste realizado",
-          description: `${data.items_processed} itens processados, ${data.items_saved} salvos no radar.`,
+          description: `${data.items_processed} itens processados, ${data.items_saved} salvos.`,
         });
       } else {
         throw new Error(data.error);
       }
     } catch (error: any) {
-      toast({
-        title: "Erro no teste",
-        description: error.message || "Falha ao fazer scraping do site.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro no teste", description: error.message || "Falha ao fazer scraping.", variant: "destructive" });
     } finally {
       setTestingUrl(null);
     }
-  };
-
-  const runAllScraping = async () => {
-    setIsLoading(true);
-    let totalProcessed = 0;
-    let totalSaved = 0;
-    
-    for (const source of sources.filter(s => s.active)) {
-      try {
-        const data = await secureApi.invokeFunction('web-scraper', {
-          url: source.url,
-          sourceName: source.name,
-          editoria: source.editoria
-        });
-
-        if (data.success) {
-          totalProcessed += data.items_processed;
-          totalSaved += data.items_saved;
-        }
-      } catch (error) {
-        console.error(`Erro ao fazer scraping de ${source.name}:`, error);
-      }
-    }
-    
-    setIsLoading(false);
-    toast({
-      title: "✅ Coleta concluída",
-      description: `${totalProcessed} itens processados, ${totalSaved} novos salvos.`,
-    });
   };
 
   return (
@@ -159,7 +139,6 @@ export const WebScrapingManager = () => {
                 onChange={(e) => setNewSource(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
-            
             <div>
               <Label htmlFor="site-url">URL do Site</Label>
               <Input
@@ -170,11 +149,10 @@ export const WebScrapingManager = () => {
                 onChange={(e) => setNewSource(prev => ({ ...prev, url: e.target.value }))}
               />
             </div>
-            
             <div>
               <Label htmlFor="site-editoria">Editoria</Label>
-              <Select 
-                value={newSource.editoria} 
+              <Select
+                value={newSource.editoria}
                 onValueChange={(value) => setNewSource(prev => ({ ...prev, editoria: value }))}
               >
                 <SelectTrigger>
@@ -182,15 +160,12 @@ export const WebScrapingManager = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {editorias.map(editoria => (
-                    <SelectItem key={editoria} value={editoria}>
-                      {editoria}
-                    </SelectItem>
+                    <SelectItem key={editoria} value={editoria}>{editoria}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
           <Button onClick={addSource} disabled={!newSource.name || !newSource.url}>
             <Plus className="h-4 w-4 mr-2" />
             Adicionar Site
@@ -198,61 +173,41 @@ export const WebScrapingManager = () => {
         </CardContent>
       </Card>
 
+      {loadingSources && <p className="text-sm text-muted-foreground">Carregando fontes...</p>}
+
       {sources.length > 0 && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle>Sites Configurados ({sources.length})</CardTitle>
-            <Button 
-              onClick={runAllScraping} 
-              disabled={isLoading || sources.filter(s => s.active).length === 0}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4 mr-2" />
-              )}
-              Coletar Todos
-            </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {sources.map((source) => (
-                <div key={source.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h4 className="font-medium">{source.name}</h4>
-                      <Badge variant="outline">{source.editoria}</Badge>
-                      {!source.active && <Badge variant="secondary">Inativo</Badge>}
+              {sources.map((source) => {
+                const editoria = (source.config as any)?.editoria || 'Geral';
+                return (
+                  <div key={source.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-medium">{source.name}</h4>
+                        <Badge variant="outline">{editoria}</Badge>
+                        {!source.active && <Badge variant="secondary">Inativo</Badge>}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{source.url}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">{source.url}</p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => toggleSource(source.id, !!source.active)}>
+                        {source.active ? 'Desativar' : 'Ativar'}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => testWebScraping(source)} disabled={testingUrl === source.url}>
+                        {testingUrl === source.url ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => removeSource(source.id)} className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => testWebScraping(source)}
-                      disabled={testingUrl === source.url}
-                    >
-                      {testingUrl === source.url ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Play className="h-4 w-4" />
-                      )}
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeSource(source.id!)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -265,11 +220,11 @@ export const WebScrapingManager = () => {
             <div className="text-sm">
               <h3 className="font-semibold text-amber-900 mb-1">Como Funciona o Web Scraping</h3>
               <ul className="text-amber-800 space-y-1">
+                <li>• Sites são coletados automaticamente junto com os feeds RSS</li>
                 <li>• Extrai conteúdo de sites que não têm RSS feed</li>
                 <li>• Analisa relevância automaticamente usando IA</li>
-                <li>• Divide conteúdo longo em seções menores</li>
-                <li>• Filtra apenas conteúdo relevante para o DNA Brasis</li>
-                <li>• Salva diretamente no radar para curadoria</li>
+                <li>• Filtra apenas conteúdo relevante para suas editorias</li>
+                <li>• Use o botão ▶ para testar a coleta manualmente</li>
               </ul>
             </div>
           </div>
