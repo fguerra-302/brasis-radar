@@ -1,26 +1,33 @@
 
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Settings, Zap, RefreshCw } from 'lucide-react';
+import { Search, Settings, Zap, RefreshCw, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useContentGroups } from '@/hooks/useContentGroups';
 
 interface RadarFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
+  groupFilter?: string;
+  setGroupFilter?: (groupId: string) => void;
   onConfigurar: () => void;
   onExecutarCuradoria: () => void;
   onRecalcularRelevancia?: () => void;
 }
 
 const RadarFilters = ({ 
-  searchTerm, setSearchTerm, statusFilter, setStatusFilter, 
+  searchTerm, setSearchTerm, statusFilter, setStatusFilter,
+  groupFilter, setGroupFilter,
   onConfigurar, onExecutarCuradoria, onRecalcularRelevancia
 }: RadarFiltersProps) => {
   const navigate = useNavigate();
+  const { data: groups } = useContentGroups();
+
   return (
     <div className="bg-card rounded-xl shadow-sm p-6 border border-border">
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -44,6 +51,20 @@ const RadarFilters = ({
               <SelectItem value="Ignorado">Rejeitado</SelectItem>
             </SelectContent>
           </Select>
+          {setGroupFilter && groups && groups.length > 0 && (
+            <Select value={groupFilter || 'todos'} onValueChange={setGroupFilter}>
+              <SelectTrigger className="w-full md:w-52 font-sans">
+                <FolderOpen className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Filtrar por grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os grupos</SelectItem>
+                {groups.map(g => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="flex gap-2">
