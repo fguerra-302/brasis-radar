@@ -518,6 +518,8 @@ function calculateKeywordRelevance(item: RSSItem, extractedTags: string[], userK
     }
     if (categoryMatched) totalScore += categoryWeight;
   }
+  // Se tem keywords mas nenhuma combinou, dar nota 2 (não 1) para não descartar tão agressivamente
+  if (totalScore === 0) return 2;
   return Math.max(1, Math.min(5, totalScore));
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE public.user_settings ALTER COLUMN min_relevance_threshold SET DEFAULT 1;
