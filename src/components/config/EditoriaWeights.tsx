@@ -179,7 +179,6 @@ export const EditoriaWeights = () => {
           setHasChanges(true);
         }}
         filteredCount={filteredCount}
-        performanceStats={performanceStats}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

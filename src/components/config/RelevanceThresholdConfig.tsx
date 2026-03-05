@@ -1,97 +1,93 @@
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Info, TrendingUp, Target } from "lucide-react";
+import { Info, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-
-interface PerformanceStats {
-  totalToday: number;
-  accepted: number;
-  filtered: number;
-  acceptanceRate: number;
-  suggestedThreshold: number;
-}
+import { cn } from "@/lib/utils";
 
 interface RelevanceThresholdConfigProps {
   threshold: number;
   onChange: (value: number) => void;
   filteredCount?: number;
-  performanceStats?: PerformanceStats;
 }
+
+const presets = [
+  {
+    value: 1,
+    label: "Aceitar tudo",
+    description: "Todos os conteúdos coletados aparecem no radar. Recomendado para iniciantes.",
+    recommended: true,
+  },
+  {
+    value: 2,
+    label: "Filtrar spam",
+    description: "Remove apenas conteúdos claramente irrelevantes.",
+    recommended: false,
+  },
+  {
+    value: 3,
+    label: "Curadoria moderada",
+    description: "Mostra apenas conteúdos com alguma relevância para suas palavras-chave.",
+    recommended: false,
+  },
+  {
+    value: 4,
+    label: "Curadoria rigorosa",
+    description: "Aceita apenas conteúdos altamente relevantes. Requer palavras-chave bem configuradas.",
+    recommended: false,
+  },
+];
 
 export const RelevanceThresholdConfig = ({ 
   threshold, 
   onChange, 
   filteredCount = 0,
-  performanceStats
 }: RelevanceThresholdConfigProps) => {
-  const getThresholdDescription = (value: number) => {
-    switch (value) {
-      case 1: return "Muito baixa - aceita quase todos os conteúdos";
-      case 2: return "Baixa - aceita maioria dos conteúdos";
-      case 3: return "Média - filtra conteúdos com pouca relevância";
-      case 4: return "Alta - aceita apenas conteúdos relevantes";
-      case 5: return "Muito alta - aceita apenas conteúdos extremamente relevantes";
-      default: return "";
-    }
-  };
-
-  const getThresholdColor = (value: number) => {
-    if (value <= 2) return "text-red-600";
-    if (value === 3) return "text-yellow-600";
-    return "text-green-600";
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Label className="text-base font-medium">
-          Relevância Mínima: {threshold}
+          Nível de Filtragem
         </Label>
         <Info className="h-4 w-4 text-muted-foreground" />
       </div>
       
-      <div className="space-y-3">
-        <Slider
-          value={[threshold]}
-          onValueChange={(value) => onChange(value[0])}
-          max={5}
-          min={1}
-          step={1}
-          className="w-full"
-        />
-        
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Baixa (1)</span>
-          <span>Média (3)</span>
-          <span>Alta (5)</span>
-        </div>
-        
-        <p className={`text-sm font-medium ${getThresholdColor(threshold)}`}>
-          {getThresholdDescription(threshold)}
-        </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {presets.map((preset) => (
+          <button
+            key={preset.value}
+            onClick={() => onChange(preset.value)}
+            className={cn(
+              "relative rounded-lg border-2 p-4 text-left transition-all",
+              "hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40",
+              threshold === preset.value
+                ? "border-primary bg-primary/10 shadow-sm"
+                : "border-border bg-background hover:border-primary/40"
+            )}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-semibold text-sm text-foreground">
+                {preset.label}
+              </span>
+              {preset.recommended && (
+                <span className="text-[10px] font-bold uppercase bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                  Recomendado
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {preset.description}
+            </p>
+          </button>
+        ))}
       </div>
 
-      {/* Performance Stats */}
-      {performanceStats && performanceStats.totalToday > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              {performanceStats.acceptanceRate}% aceitos hoje
-            </Badge>
-            {performanceStats.suggestedThreshold !== threshold && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Target className="h-3 w-3" />
-                Sugestão: {performanceStats.suggestedThreshold}
-              </Badge>
-            )}
-          </div>
-          
-          <div className="text-xs text-muted-foreground">
-            Hoje: {performanceStats.accepted} aceitos, {performanceStats.filtered} filtrados
-          </div>
-        </div>
+      {threshold >= 3 && (
+        <Alert className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200 text-sm">
+            Com nível <strong>{threshold}</strong>, conteúdos que não combinam com suas palavras-chave serão descartados silenciosamente.
+            Se seu radar estiver vazio, tente <button onClick={() => onChange(1)} className="underline font-semibold hover:text-primary">reduzir para "Aceitar tudo"</button>.
+          </AlertDescription>
+        </Alert>
       )}
 
       {filteredCount > 0 && (
@@ -99,12 +95,7 @@ export const RelevanceThresholdConfig = ({
           <Info className="h-4 w-4" />
           <AlertDescription>
             <span className="font-medium">{filteredCount} itens</span> foram filtrados 
-            hoje por não atingirem a relevância mínima de {threshold}.
-            {performanceStats?.suggestedThreshold && performanceStats.suggestedThreshold !== threshold && (
-              <span className="block mt-1 text-xs">
-                💡 Sugestão: ajuste para {performanceStats.suggestedThreshold} baseado no padrão de hoje
-              </span>
-            )}
+            hoje por não atingirem o nível mínimo de relevância.
           </AlertDescription>
         </Alert>
       )}
