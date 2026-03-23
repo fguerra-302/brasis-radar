@@ -383,6 +383,7 @@ serve(async (req) => {
             relevancia,
             status: 'Coletado',
             input_bruto: item.content,
+            group_id: groupId,
           })
           .select()
           .single();
