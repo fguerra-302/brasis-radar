@@ -261,12 +261,11 @@ serve(async (req) => {
       return createErrorResponse(corsHeaders, 'URL inválida', 400, 'URL validation failed', urlValidation.reason);
     }
 
-    // Check if source exists and is active
+    // Check if source exists and is active in the shared catalog
     const { data: sourceCheck } = await supabase
-      .from('radar_sources')
-      .select('active')
+      .from('shared_sources')
+      .select('id, active')
       .eq('url', url)
-      .eq('user_id', user.id)
       .maybeSingle();
 
     if (!sourceCheck || !sourceCheck.active) {
@@ -274,10 +273,20 @@ serve(async (req) => {
       console.log(`[web-scraper] Source ${reason}: ${sourceName}`);
       return createErrorResponse(
         corsHeaders,
-        `Fonte ${reason}. ${!sourceCheck ? 'Cadastre' : 'Ative'} a fonte em Configurações > Fontes.`,
+        `Fonte ${reason}. ${!sourceCheck ? 'Cadastre' : 'Ative'} a fonte no Catálogo de Fontes.`,
         403
       );
     }
+
+    // Lookup group_id from source_group_assignments
+    const { data: groupAssignment } = await supabase
+      .from('source_group_assignments')
+      .select('group_id')
+      .eq('source_id', sourceCheck.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const groupId = groupAssignment?.group_id || null;
 
     console.log(`[web-scraper] Starting scrape: ${url}`);
 
