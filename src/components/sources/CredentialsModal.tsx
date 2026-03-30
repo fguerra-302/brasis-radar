@@ -110,10 +110,10 @@ const CredentialsModal: React.FC<CredentialsModalProps> = ({
         Object.entries(credentials).filter(([_, value]) => value && value.trim())
       );
 
-      const { error } = await supabase.rpc('update_source_credentials', {
-        source_id: source.id,
-        new_credentials: cleanCredentials
-      });
+      const { error } = await supabase
+        .from('shared_sources')
+        .update({ credentials: cleanCredentials })
+        .eq('id', source.id);
 
       if (error) {
         throw error;
