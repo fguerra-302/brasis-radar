@@ -29,16 +29,15 @@ export const WebScrapingManager = () => {
     'Cultura', 'Social', 'Negócios', 'Sustentabilidade', 'Regional', 'Geral'
   ];
 
-  // Load WEB sources from database
+  // Load WEB sources from shared catalog
   const { data: sources = [], isLoading: loadingSources } = useQuery({
-    queryKey: ['web-scraping-sources', user?.id],
+    queryKey: ['web-scraping-sources'],
     queryFn: async () => {
-      if (!user) return [];
       const { data, error } = await supabase
-        .from('radar_sources')
+        .from('shared_sources')
         .select('*')
         .eq('type', 'WEB')
-        .eq('user_id', user.id)
+        .eq('active', true)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -61,12 +60,11 @@ export const WebScrapingManager = () => {
       return;
     }
 
-    const { error } = await supabase.from('radar_sources').insert({
+    const { error } = await supabase.from('shared_sources').insert({
       name: sanitizedName,
       url: newSource.url.trim(),
       type: 'WEB',
       active: true,
-      user_id: user.id,
       config: { editoria: newSource.editoria },
     });
 
@@ -81,7 +79,7 @@ export const WebScrapingManager = () => {
   };
 
   const removeSource = async (id: string) => {
-    const { error } = await supabase.from('radar_sources').delete().eq('id', id);
+    const { error } = await supabase.from('shared_sources').delete().eq('id', id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
@@ -91,7 +89,7 @@ export const WebScrapingManager = () => {
   };
 
   const toggleSource = async (id: string, active: boolean) => {
-    await supabase.from('radar_sources').update({ active: !active }).eq('id', id);
+    await supabase.from('shared_sources').update({ active: !active }).eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['web-scraping-sources'] });
   };
 
