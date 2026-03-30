@@ -1,70 +1,49 @@
 
 
-## Auditoria End-to-End: Problemas Encontrados
+## Limpeza de Codigo Morto e Funcoes Legadas
 
-### 1. CRITICO: `source_group_assignments.source_id` aponta para `radar_sources`, nao `shared_sources`
+### Situacao Atual
 
-A foreign key `source_group_assignments_source_id_fkey` referencia `radar_sources.id`. Como a coleta agora usa `shared_sources`, os IDs sao incompativeis. Resultado: **GroupsConfig mostra fontes de `radar_sources` (legadas) para associar a grupos, mas a coleta usa `shared_sources`**. A associacao fonte-grupo esta completamente desconectada do pipeline real.
+A auditoria revelou que varios arquivos e funcoes do banco ja estao **completamente orfaos** — nao sao importados nem referenciados por nenhum codigo ativo.
 
-### 2. CRITICO: `GroupsConfig` usa `useRadarSources` (tabela legada)
+### O que sera removido
 
-O componente lista fontes de `radar_sources` para o usuario associar a grupos. Deveria listar fontes de `shared_sources`.
+**Arquivos do projeto (todos orfaos, sem importacoes):**
 
-### 3. CRITICO: `SourcesStatus` usa `useRadarSources` (tabela legada)
+| Arquivo | Por que remover |
+|---------|----------------|
+| `src/pages/Security.tsx` | Sem rota no App.tsx, nunca acessada |
+| `src/components/config/SecurityConfig.tsx` | So era usado por Security.tsx |
+| `src/components/security/SecurityStatus.tsx` | So era usado por SecurityConfig.tsx |
+| `src/lib/securityValidation.ts` | Nao importado em nenhum lugar do app |
 
-A pagina de status mostra fontes da tabela legada `radar_sources`, nao do catalogo unificado `shared_sources` que o `radar-automation` realmente usa.
+**WebScrapingManager** - voce disse para manter, mas ele ja esta orfao (nao é importado por nenhum componente). Ele tambem grava na tabela legada `radar_sources`. Opcoes:
+- Se quer manter a funcionalidade, preciso reconecta-lo na aba de Fontes e migrar para `shared_sources`
+- Se nao percebeu que ja estava desconectado, posso remover tambem
 
-### 4. MEDIO: `useInitializeDefaultSources` insere em `radar_sources`
+**Funcoes do banco PostgreSQL (migracao SQL):**
 
-O hook de onboarding cria fontes na tabela legada. Com a coleta unificada via `shared_sources`, essa inicializacao e inutil — as fontes ja existem no catalogo compartilhado.
+| Funcao | Motivo |
+|--------|--------|
+| `emergency_disable_all_rls()` | Referencia `radar_sources` legado |
+| `emergency_disable_rls_brasis()` | Desliga RLS — risco desnecessario |
+| `emergency_disable_rls_keywords()` | Mesma situacao |
+| `emergency_disable_rls_sources()` | Referencia `radar_sources` legado |
+| `source_has_credentials()` | Consulta `radar_sources` — morta |
+| `update_source_credentials()` | Atualiza `radar_sources` — morta |
 
-### 5. MEDIO: `radar-automation` nunca define `group_id` no conteudo coletado
+A funcao `log_security_event()` sera **mantida** pois é usada pelas edge functions para auditoria.
 
-O conteudo coletado entra sem `group_id`, entao o filtro por grupo no Radar nunca funciona automaticamente. A atribuicao a grupos depende de acao manual do usuario apos coleta.
+### Arquivos que NAO serao tocados
 
-### 6. BAIXO: `useExternalApi` busca fontes de `radar_sources`
+- `src/lib/inputValidation.ts` — usado ativamente por varios componentes
+- `src/hooks/useExternalApi.ts` — voce quer manter, ja migrado para `useSharedSources`
+- `src/services/externalApiService.ts` — usado pelo hook acima
+- `src/components/config/ExternalApiConfig.tsx` — tela de config da API externa
 
-Hook de sincronizacao de APIs externas referencia tabela legada.
+### Execucao
 
-### 7. BAIXO: Projetos (pastas) sao apenas organizacionais
-
-As pastas de projeto (`project_folders` + `project_source_links`) servem apenas para o usuario organizar fontes visualmente. **Nao influenciam a coleta nem o filtro de conteudo**. Isso esta ok como feature de organizacao, mas o usuario pode esperar que "adicionar fonte a um projeto" filtre o conteudo coletado — e isso nao acontece.
-
----
-
-## Plano: Migrar tudo para `shared_sources` e limpar legados
-
-### Passo 1: Migrar FK de `source_group_assignments`
-- SQL migration: alterar foreign key de `source_id` para referenciar `shared_sources.id` em vez de `radar_sources.id`
-
-### Passo 2: Migrar `GroupsConfig` para usar `shared_sources`
-- Trocar `useRadarSources` por `useSharedSources` no componente
-- As fontes listadas para associar a grupos serao do catalogo unificado
-
-### Passo 3: Migrar `SourcesStatus` para usar `shared_sources`
-- Trocar `useRadarSources` por `useSharedSources`
-- Remover logica de `last_sync` (nao existe em `shared_sources`) — mostrar contagem e status ativo/inativo
-- Manter botao "Coletar Dados Agora"
-
-### Passo 4: Migrar `useExternalApi` para usar `shared_sources`
-- Trocar `useRadarSources` por `useSharedSources`
-
-### Passo 5: Remover `useInitializeDefaultSources`
-- Apagar o hook e remover a chamada de `RadarMain.tsx`
-- As fontes ja existem em `shared_sources`, nao precisa inicializar por usuario
-
-### Passo 6: Remover `useRadarSources.ts`
-- Apos migrar todos os consumidores, deletar o hook orfao
-
-### Arquivos modificados
-
-| Arquivo | Mudanca |
-|---------|---------|
-| SQL migration | Alterar FK `source_group_assignments.source_id` → `shared_sources.id` |
-| `src/components/config/GroupsConfig.tsx` | `useRadarSources` → `useSharedSources` |
-| `src/components/sources/SourcesStatus.tsx` | `useRadarSources` → `useSharedSources`, remover `last_sync` |
-| `src/hooks/useExternalApi.ts` | `useRadarSources` → `useSharedSources` |
-| `src/components/radar/RadarMain.tsx` | Remover `useInitializeDefaultSources` |
-| `src/hooks/useInitializeDefaultSources.ts` | Deletar |
-| `src/hooks/useRadarSources.ts` | Deletar |
+1. **Deletar 4 arquivos** do projeto (Security + securityValidation)
+2. **1 migracao SQL** para dropar as 6 funcoes legadas do banco
+3. Nenhuma mudanca em rotas ou componentes ativos — tudo ja estava desconectado
 
