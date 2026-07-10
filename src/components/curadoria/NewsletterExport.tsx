@@ -257,6 +257,14 @@ export const NewsletterExport = () => {
                 <Undo2 className="h-4 w-4 mr-2" />Desfazer refinamento
               </Button>
             )}
+            <Button
+              onClick={markAsPublished}
+              disabled={!filteredItems || filteredItems.length === 0}
+              variant="outline"
+              className="w-full border-brasis-sage text-brasis-sage hover:bg-brasis-sage/10"
+            >
+              ✅ Marcar itens como Publicado ({filteredItems?.length || 0})
+            </Button>
           </CardContent>
         </Card>
       </div>
