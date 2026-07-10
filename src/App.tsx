@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Config from "./pages/Config";
 import Curadoria from "./pages/Curadoria";
 import NotFound from "./pages/NotFound";
+import Auditoria from "./pages/Auditoria";
 import { AuthProvider } from "@/components/AuthProvider";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { AuthPage } from "@/components/auth/AuthPage";
