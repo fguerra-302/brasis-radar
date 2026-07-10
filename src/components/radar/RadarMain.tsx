@@ -90,7 +90,7 @@ const RadarMain = () => {
     if (sourceUrl && sourceUrl !== '#') window.open(sourceUrl, '_blank');
   };
 
-  const handleConfigurar = () => toast.info("Funcionalidade em desenvolvimento...");
+  
 
   const handleUpdateStatus = async (itemId: string, status: string, title: string) => {
     if (!user) { toast.error("Faça login para alterar status."); return; }
@@ -181,7 +181,7 @@ const RadarMain = () => {
                 currentPage={currentPage} setCurrentPage={setCurrentPage}
                 onAprovar={handleAprovar} onIgnorar={handleIgnorar}
                 onVerOriginal={handleVerOriginal} onUpdateStatus={handleUpdateStatus}
-                onConfigurar={handleConfigurar} onExecutarCuradoria={handleExecutarCuradoria}
+                onExecutarCuradoria={handleExecutarCuradoria}
                 onRecalcularRelevancia={undefined}
                 onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete} onBulkDeleteIds={handleBulkDeleteIds}
                 updateMutation={updateMutation}

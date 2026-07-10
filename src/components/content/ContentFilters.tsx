@@ -15,15 +15,14 @@ interface RadarFiltersProps {
   setStatusFilter: (status: string) => void;
   groupFilter?: string;
   setGroupFilter?: (groupId: string) => void;
-  onConfigurar: () => void;
   onExecutarCuradoria: () => void;
   onRecalcularRelevancia?: () => void;
 }
 
-const RadarFilters = ({ 
+const RadarFilters = ({
   searchTerm, setSearchTerm, statusFilter, setStatusFilter,
   groupFilter, setGroupFilter,
-  onConfigurar, onExecutarCuradoria, onRecalcularRelevancia
+  onExecutarCuradoria, onRecalcularRelevancia
 }: RadarFiltersProps) => {
   const navigate = useNavigate();
   const { data: groups } = useContentGroups();
