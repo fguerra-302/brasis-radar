@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,11 +48,13 @@ const Auditoria = () => {
   const [page, setPage] = useState(0);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['audit-logs', actionFilter, sourceFilter, editoriaFilter, itemIdFilter, dateFrom, dateTo, page],
+    queryKey: ['audit-logs', search, actionFilter, sourceFilter, editoriaFilter, itemIdFilter, dateFrom, dateTo, page],
     queryFn: async () => {
+      const needInner = sourceFilter !== 'todos' || editoriaFilter !== 'todos';
+      const rel = needInner ? 'radar_brasis!inner(title, source, editoria)' : 'radar_brasis(title, source, editoria)';
       let q = (supabase as any)
         .from('radar_audit_logs')
-        .select('*, radar_brasis(title, source, editoria)', { count: 'exact' })
+        .select(`*, ${rel}`, { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (actionFilter !== 'todos') q = q.eq('action', actionFilter);
@@ -63,6 +65,9 @@ const Auditoria = () => {
         end.setHours(23, 59, 59, 999);
         q = q.lte('created_at', end.toISOString());
       }
+      if (sourceFilter !== 'todos') q = q.eq('radar_brasis.source', sourceFilter);
+      if (editoriaFilter !== 'todos') q = q.eq('radar_brasis.editoria', editoriaFilter);
+      if (search.trim()) q = q.or(`reason.ilike.%${search}%,previous_status.ilike.%${search}%,new_status.ilike.%${search}%`);
 
       q = q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
@@ -72,33 +77,29 @@ const Auditoria = () => {
     },
   });
 
+  // Fetch distinct sources/editorias once from radar_brasis for the whole dataset
+  const { data: filterOptions } = useQuery({
+    queryKey: ['audit-filter-options'],
+    queryFn: async () => {
+      const { data } = await supabase.from('radar_brasis').select('source, editoria').limit(1000);
+      const s = new Set<string>();
+      const e = new Set<string>();
+      data?.forEach((r: any) => {
+        if (r.source) s.add(r.source);
+        if (r.editoria) e.add(r.editoria);
+      });
+      return { sources: Array.from(s).sort(), editorias: Array.from(e).sort() };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const logs = data?.rows || [];
   const total = data?.count || 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const sources = filterOptions?.sources || [];
+  const editorias = filterOptions?.editorias || [];
+  const filtered = logs;
 
-  // Options for source/editoria (derived from currently loaded page)
-  const { sources, editorias } = useMemo(() => {
-    const s = new Set<string>();
-    const e = new Set<string>();
-    logs.forEach((l) => {
-      if (l.radar_brasis?.source) s.add(l.radar_brasis.source);
-      if (l.radar_brasis?.editoria) e.add(l.radar_brasis.editoria);
-    });
-    return { sources: Array.from(s).sort(), editorias: Array.from(e).sort() };
-  }, [logs]);
-
-  const filtered = logs.filter((l) => {
-    if (sourceFilter !== 'todos' && l.radar_brasis?.source !== sourceFilter) return false;
-    if (editoriaFilter !== 'todos' && l.radar_brasis?.editoria !== editoriaFilter) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      (l.radar_brasis?.title || '').toLowerCase().includes(q) ||
-      (l.reason || '').toLowerCase().includes(q) ||
-      (l.previous_status || '').toLowerCase().includes(q) ||
-      (l.new_status || '').toLowerCase().includes(q)
-    );
-  });
 
   const clearFilters = () => {
     setSearch(''); setActionFilter('todos'); setSourceFilter('todos');
@@ -167,7 +168,7 @@ const Auditoria = () => {
                 onChange={(e) => resetAndSet(setSourceFilter)(e.target.value)}
                 className="border rounded-md px-3 py-2 text-sm bg-background"
               >
-                <option value="todos">Todas as fontes (pág. atual)</option>
+                <option value="todos">Todas as fontes</option>
                 {sources.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
               <select
@@ -175,7 +176,7 @@ const Auditoria = () => {
                 onChange={(e) => resetAndSet(setEditoriaFilter)(e.target.value)}
                 className="border rounded-md px-3 py-2 text-sm bg-background"
               >
-                <option value="todos">Todas as editorias (pág. atual)</option>
+                <option value="todos">Todas as editorias</option>
                 {editorias.map((e) => <option key={e} value={e}>{e}</option>)}
               </select>
               <div className="flex gap-2">

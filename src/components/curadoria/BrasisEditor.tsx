@@ -11,6 +11,7 @@ import { Lightbulb, Eye, Compass, Target, Plus, X, BookOpen, Download, Loader2 }
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { ContentStatus } from "@/types/content";
 import { BrasisContentPreview } from "./BrasisContentPreview";
 import { BrasisLibrary } from "./BrasisLibrary";
 
@@ -76,16 +77,15 @@ export const BrasisEditor = () => {
     }));
     setImportOpen(false);
 
-    // Mark the source item as "Em edição" so it doesn't reappear in the import list
-    // and the curator sees it was already pulled into the editor.
+    // Marca o item de origem como "Em edição" para não reaparecer na lista de import
     try {
-      await supabase
+      const { error } = await supabase
         .from('radar_brasis')
-        .update({ status: 'Em edição', updated_at: new Date().toISOString() })
+        .update({ status: ContentStatus.IN_EDITING, updated_at: new Date().toISOString() })
         .eq('id', item.id);
-    } catch (e) {
-      // Non-blocking — the editor content is already loaded
-      console.warn('Falha ao marcar item como Em edição:', e);
+      if (error) throw error;
+    } catch (e: any) {
+      toast.warning('Item importado, mas não foi possível atualizar o status de origem: ' + (e?.message || 'erro desconhecido'));
     }
 
     toast.success(`"${item.title?.substring(0, 40)}..." importado para o editor`);

@@ -1,33 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Clock, 
-  Play, 
-  Pause, 
-  Settings, 
-  Database, 
+import {
+  Clock,
+  Play,
+  Settings,
+  Database,
   Trash2,
   RefreshCw,
-  Activity
+  Activity,
+  Info
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { secureApi } from '@/lib/api';
+
+const CLEANUP_DAYS = 30;
 
 export const AutomationConfig = () => {
-  const [automationEnabled, setAutomationEnabled] = useState(true);
-  const [collectionInterval, setCollectionInterval] = useState(30);
-  const [cleanupEnabled, setCleanupEnabled] = useState(true);
-  const [cleanupDays, setCleanupDays] = useState(30);
   const { toast } = useToast();
 
-  // Buscar estatísticas da automação
   const { data: stats } = useQuery({
     queryKey: ['automation-stats'],
     queryFn: async () => {
@@ -35,9 +30,9 @@ export const AutomationConfig = () => {
       today.setHours(0, 0, 0, 0);
 
       const [totalItems, todayItems, statusCounts] = await Promise.all([
-        supabase.from('radar_brasis').select('id', { count: 'exact' }),
+        supabase.from('radar_brasis').select('id', { count: 'exact', head: true }),
         supabase.from('radar_brasis')
-          .select('id', { count: 'exact' })
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', today.toISOString()),
         supabase.from('radar_brasis')
           .select('status')
@@ -56,28 +51,31 @@ export const AutomationConfig = () => {
         statusCounts
       };
     },
-    refetchInterval: 30000 // Atualizar a cada 30 segundos
+    refetchInterval: 30000
   });
 
   const handleRunManualCollection = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      toast({ title: "Usuário não autenticado", variant: "destructive" });
+      return;
+    }
+
     toast({
-      title: "🚀 Coleta Manual Iniciada",
-      description: "Executando coleta de todas as fontes configuradas...",
+      title: "🚀 Coleta Iniciada",
+      description: "Executando coleta de todas as fontes ativas (RSS + Web)...",
     });
 
     try {
-      // Try to use ExternalApiService as fallback for manual collection
-      const { ExternalApiService } = await import('@/services/externalApiService');
-      await ExternalApiService.syncAllSources();
-
+      const data = await secureApi.invokeFunction('radar-automation', { userId: user.id, manual: true });
       toast({
         title: "✅ Coleta Concluída",
-        description: "Fontes sincronizadas via API externa.",
+        description: `${data?.processedSources || 0} fontes processadas · ${data?.savedItems || 0} novos itens${data?.minThreshold ? ` (filtro ≥${data.minThreshold})` : ''}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "❌ Erro na Coleta",
-        description: "Falha ao executar coleta manual. Verifique se a API externa está configurada.",
+        description: error?.message || "Falha ao executar coleta manual.",
         variant: "destructive",
       });
     }
@@ -86,7 +84,7 @@ export const AutomationConfig = () => {
   const handleClearOldItems = async () => {
     try {
       const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - cleanupDays);
+      cutoffDate.setDate(cutoffDate.getDate() - CLEANUP_DAYS);
 
       const { error } = await supabase
         .from('radar_brasis')
@@ -98,14 +96,10 @@ export const AutomationConfig = () => {
 
       toast({
         title: "🗑️ Limpeza Concluída",
-        description: "Itens antigos ignorados foram removidos.",
+        description: `Itens rejeitados com mais de ${CLEANUP_DAYS} dias foram removidos.`,
       });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao limpar itens antigos.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Erro", description: "Falha ao limpar itens antigos.", variant: "destructive" });
     }
   };
 
@@ -114,11 +108,10 @@ export const AutomationConfig = () => {
       <div>
         <h2 className="text-2xl font-bold text-slate-800 mb-2">Automação da Coleta</h2>
         <p className="text-slate-600">
-          Configure e monitore a coleta automatizada de conteúdos
+          Monitore a coleta automatizada e execute manualmente quando necessário
         </p>
       </div>
 
-      {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -169,90 +162,32 @@ export const AutomationConfig = () => {
         </Card>
       </div>
 
-      {/* Configurações de Automação */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Configurações da Coleta
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label>Coleta Automatizada</Label>
-                <p className="text-sm text-slate-600">Executar coleta a cada intervalo definido</p>
-              </div>
-              <Switch
-                checked={automationEnabled}
-                onCheckedChange={setAutomationEnabled}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="interval">Intervalo da Coleta (minutos)</Label>
-              <Input
-                id="interval"
-                type="number"
-                value={collectionInterval}
-                onChange={(e) => setCollectionInterval(Number(e.target.value))}
-                min="5"
-                max="1440"
-              />
-              <p className="text-xs text-slate-500">
-                Recomendado: 30 minutos para fontes RSS
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Coleta Automatizada
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+            <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-slate-700">
+              <p className="font-medium">Coleta agendada ativa</p>
+              <p className="text-slate-600 mt-1">
+                A coleta é executada automaticamente pelo cron do Supabase a cada 30 minutos.
+                O cap por fonte é <strong>15 itens</strong> e a relevância mínima segue as configurações do usuário.
+                Use o botão abaixo para forçar uma coleta imediata.
               </p>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="default">Ativa</Badge>
+            <span className="text-xs text-muted-foreground">Cron interno · não requer configuração manual</span>
+          </div>
+        </CardContent>
+      </Card>
 
-            <Badge variant={automationEnabled ? "default" : "secondary"}>
-              {automationEnabled ? "Ativa" : "Pausada"}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trash2 className="h-5 w-5" />
-              Limpeza Automática
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label>Limpeza Semanal</Label>
-                <p className="text-sm text-slate-600">Remove itens ignorados antigos</p>
-              </div>
-              <Switch
-                checked={cleanupEnabled}
-                onCheckedChange={setCleanupEnabled}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cleanup-days">Manter por (dias)</Label>
-              <Input
-                id="cleanup-days"
-                type="number"
-                value={cleanupDays}
-                onChange={(e) => setCleanupDays(Number(e.target.value))}
-                min="1"
-                max="365"
-              />
-              <p className="text-xs text-slate-500">
-                Itens ignorados mais antigos que este período serão removidos
-              </p>
-            </div>
-
-            <Badge variant={cleanupEnabled ? "default" : "secondary"}>
-              {cleanupEnabled ? "Habilitada" : "Desabilitada"}
-            </Badge>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Ações Manuais */}
       <Card>
         <CardHeader>
           <CardTitle>Ações Manuais</CardTitle>
@@ -263,7 +198,7 @@ export const AutomationConfig = () => {
               <Play className="h-4 w-4" />
               Executar Coleta Agora
             </Button>
-            
+
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-2">
@@ -277,12 +212,11 @@ export const AutomationConfig = () => {
                 </DialogHeader>
                 <div className="space-y-4">
                   <p>
-                    Esta ação irá remover permanentemente todos os itens com status "Ignorado" 
-                    que são mais antigos que {cleanupDays} dias.
+                    Esta ação irá remover permanentemente todos os itens com status "Ignorado"
+                    que são mais antigos que {CLEANUP_DAYS} dias.
                   </p>
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline">Cancelar</Button>
-                    <Button 
+                    <Button
                       onClick={handleClearOldItems}
                       className="bg-red-600 hover:bg-red-700"
                     >

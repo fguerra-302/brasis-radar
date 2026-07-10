@@ -28,7 +28,7 @@ interface ContentListProps {
   onIgnorar: (id: string, title: string) => Promise<void>;
   onVerOriginal: (sourceUrl: string, title: string) => void;
   onUpdateStatus: (id: string, status: string, title: string) => Promise<void>;
-  onConfigurar: () => void;
+  onConfigurar?: () => void;
   onExecutarCuradoria: () => Promise<void>;
   onRecalcularRelevancia?: () => Promise<void>;
   updateMutation: any;
@@ -41,7 +41,7 @@ const ContentList = ({
   supabaseData, isLoading, error, searchTerm, setSearchTerm,
   statusFilter, setStatusFilter, groupFilter, setGroupFilter,
   currentPage, setCurrentPage,
-  onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onConfigurar,
+  onAprovar, onIgnorar, onVerOriginal, onUpdateStatus,
   onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete, onBulkDeleteIds
 }: ContentListProps) => {
   if (isLoading) {
@@ -91,7 +91,7 @@ const ContentList = ({
   return (
     <div className="space-y-6">
       <RadarDebugInfo error={error} supabaseItemsCount={supabaseData?.length || 0} />
-      <ContentFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} statusFilter={statusFilter} setStatusFilter={setStatusFilter} groupFilter={groupFilter} setGroupFilter={setGroupFilter} onConfigurar={onConfigurar} onExecutarCuradoria={onExecutarCuradoria} onRecalcularRelevancia={onRecalcularRelevancia} />
+      <ContentFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} statusFilter={statusFilter} setStatusFilter={setStatusFilter} groupFilter={groupFilter} setGroupFilter={setGroupFilter} onExecutarCuradoria={onExecutarCuradoria} onRecalcularRelevancia={onRecalcularRelevancia} />
       <BulkActions filteredItems={filteredItems} statusFilter={statusFilter} onBulkDelete={onBulkDelete} onBulkDeleteIds={onBulkDeleteIds} isUpdating={updateMutation.isPending} />
 
       {filteredItems.length === 0 ? (

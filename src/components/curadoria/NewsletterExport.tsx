@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { secureApi } from '@/lib/api';
 import { useBranding } from '@/hooks/useBranding';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useQueryClient } from '@tanstack/react-query';
+import { ContentStatus } from '@/types/content';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const NewsletterExport = () => {
@@ -23,11 +25,12 @@ export const NewsletterExport = () => {
   const [lastRefinementTime, setLastRefinementTime] = useState<number>(0);
   const { brandingConfig } = useBranding();
   const { data: userSettings } = useUserSettings();
+  const queryClient = useQueryClient();
 
   const { data: allItems, isLoading } = useQuery({
     queryKey: ['newsletter-approved-items'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('radar_brasis').select('*').eq('status', 'Para Newsletter').order('relevancia', { ascending: false });
+      const { data, error } = await supabase.from('radar_brasis').select('*').eq('status', ContentStatus.FOR_NEWSLETTER).order('relevancia', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -119,6 +122,24 @@ export const NewsletterExport = () => {
       await navigator.clipboard.writeText(generatedContent);
       toast.success("Newsletter copiada!");
     } catch { toast.error("Falha ao copiar."); }
+  };
+
+  const markAsPublished = async () => {
+    if (!filteredItems || filteredItems.length === 0) return;
+    if (!confirm(`Marcar ${filteredItems.length} itens como "Publicado"? Eles sairão da fila de newsletter.`)) return;
+    try {
+      const ids = filteredItems.map(i => i.id);
+      const { error } = await supabase
+        .from('radar_brasis')
+        .update({ status: ContentStatus.PUBLISHED, updated_at: new Date().toISOString() })
+        .in('id', ids);
+      if (error) throw error;
+      toast.success(`${ids.length} itens marcados como Publicado.`);
+      queryClient.invalidateQueries({ queryKey: ['newsletter-approved-items'] });
+      queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
+    } catch (e: any) {
+      toast.error("Falha ao publicar itens: " + (e?.message || 'erro'));
+    }
   };
 
   if (isLoading) return <div className="flex items-center justify-center p-8 text-muted-foreground">Carregando conteúdos...</div>;
@@ -236,6 +257,14 @@ export const NewsletterExport = () => {
                 <Undo2 className="h-4 w-4 mr-2" />Desfazer refinamento
               </Button>
             )}
+            <Button
+              onClick={markAsPublished}
+              disabled={!filteredItems || filteredItems.length === 0}
+              variant="outline"
+              className="w-full border-brasis-sage text-brasis-sage hover:bg-brasis-sage/10"
+            >
+              ✅ Marcar itens como Publicado ({filteredItems?.length || 0})
+            </Button>
           </CardContent>
         </Card>
       </div>

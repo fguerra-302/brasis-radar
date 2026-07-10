@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CuratedContent, ContentStatus, ContentFilters } from '@/types/content';
+import { CuratedContent, ContentStatus } from '@/types/content';
 
 export type RadarBrasisItem = CuratedContent;
 
@@ -97,39 +97,6 @@ export const useUpdateRadarBrasis = () => {
   });
 };
 
-export const useRadarBrasisWithFilters = (filters?: ContentFilters) => {
-  return useQuery({
-    queryKey: ['radar-brasis', filters],
-    queryFn: async (): Promise<CuratedContent[]> => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-      if (!session?.user) return [];
-
-      let query = supabase
-        .from('radar_brasis')
-        .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at, user_id')
-        .eq('user_id', session.user.id)
-        .order('relevancia', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (filters?.status) query = query.eq('status', filters.status);
-      if (filters?.editoria) query = query.eq('editoria', filters.editoria);
-      if (filters?.searchTerm) query = query.or(`title.ilike.%${filters.searchTerm}%,source.ilike.%${filters.searchTerm}%`);
-
-      const { data, error } = await query;
-      if (error) { toast.error('Erro ao carregar conteúdo filtrado'); throw error; }
-      return data ? mapToContent(data) : [];
-    },
-    enabled: true,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    retry: (failureCount, error: any) => {
-      if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) return false;
-      return failureCount < 2;
-    },
-    refetchOnWindowFocus: true,
-  });
-};
 
 export const useRadarBrasisStats = () => {
   const { data: items, isLoading } = useRadarBrasis();
