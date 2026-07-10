@@ -67,7 +67,7 @@ export const BrasisEditor = () => {
     setContent(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tagToRemove) }));
   };
 
-  const handleImportFromRadar = (item: any) => {
+  const handleImportFromRadar = async (item: any) => {
     setContent(prev => ({
       ...prev,
       title: item.title || prev.title,
@@ -75,6 +75,19 @@ export const BrasisEditor = () => {
       tags: item.tags?.length > 0 ? [...new Set([...prev.tags, ...item.tags])] : prev.tags,
     }));
     setImportOpen(false);
+
+    // Mark the source item as "Em edição" so it doesn't reappear in the import list
+    // and the curator sees it was already pulled into the editor.
+    try {
+      await supabase
+        .from('radar_brasis')
+        .update({ status: 'Em edição', updated_at: new Date().toISOString() })
+        .eq('id', item.id);
+    } catch (e) {
+      // Non-blocking — the editor content is already loaded
+      console.warn('Falha ao marcar item como Em edição:', e);
+    }
+
     toast.success(`"${item.title?.substring(0, 40)}..." importado para o editor`);
   };
 

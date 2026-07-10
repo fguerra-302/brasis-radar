@@ -135,7 +135,7 @@ const RadarMain = () => {
     }
   };
 
-  const handleRecalcularRelevancia = async () => await handleExecutarCuradoria();
+  // Removed duplicate "Recalcular Relevância" — it was an alias for handleExecutarCuradoria
 
   return (
     <>
@@ -158,7 +158,7 @@ const RadarMain = () => {
                 onAprovar={handleAprovar} onIgnorar={handleIgnorar}
                 onVerOriginal={handleVerOriginal} onUpdateStatus={handleUpdateStatus}
                 onConfigurar={handleConfigurar} onExecutarCuradoria={handleExecutarCuradoria}
-                onRecalcularRelevancia={user ? handleRecalcularRelevancia : undefined}
+                onRecalcularRelevancia={undefined}
                 onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete}
                 updateMutation={updateMutation}
               />
