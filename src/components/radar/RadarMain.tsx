@@ -152,6 +152,26 @@ const RadarMain = () => {
     } catch { toast.error("Falha ao excluir itens."); }
   };
 
+  const bulkStatusUpdate = async (ids: string[], newStatus: ContentStatus, actionLabel: string) => {
+    if (!user) { toast.error("Faça login."); return; }
+    if (ids.length === 0) return;
+    try {
+      const { error } = await supabase
+        .from('radar_brasis')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .in('id', ids)
+        .eq('user_id', user.id);
+      if (error) throw error;
+      await logBulk('bulk_delete_filtered' as any, ids.length, { action: actionLabel, newStatus }).catch(() => {});
+      toast.success(`${ids.length} itens: ${actionLabel}`);
+      queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
+    } catch { toast.error("Falha na ação em massa."); }
+  };
+
+  const handleBulkApprove = (ids: string[]) => bulkStatusUpdate(ids, ContentStatus.REVIEWING, 'enviados para aprovação');
+  const handleBulkReject = (ids: string[]) => bulkStatusUpdate(ids, ContentStatus.REJECTED, 'rejeitados');
+  const handleBulkSendToEditor = (ids: string[]) => bulkStatusUpdate(ids, ContentStatus.IN_EDITING, 'enviados para edição');
+
   const handleExecutarCuradoria = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) { toast.error("Usuário não autenticado."); return; }
@@ -191,6 +211,9 @@ const RadarMain = () => {
                 onExecutarCuradoria={handleExecutarCuradoria}
                 onRecalcularRelevancia={undefined}
                 onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete} onBulkDeleteIds={handleBulkDeleteIds}
+                onBulkApproveIds={handleBulkApprove}
+                onBulkRejectIds={handleBulkReject}
+                onBulkSendToEditorIds={handleBulkSendToEditor}
                 updateMutation={updateMutation}
               />
             </div>

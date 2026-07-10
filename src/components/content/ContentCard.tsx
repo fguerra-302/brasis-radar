@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Trash2, RotateCcw } from 'lucide-react';
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
@@ -22,9 +23,11 @@ interface RadarCardProps {
   onUpdateStatus: (id: string, status: string, title: string) => Promise<void>;
   onDeleteItem: (id: string, title: string) => Promise<void>;
   isUpdating: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string, checked: boolean) => void;
 }
 
-const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onDeleteItem, isUpdating }: RadarCardProps) => {
+const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onDeleteItem, isUpdating, selected, onToggleSelect }: RadarCardProps) => {
   const getEditoriaColor = (editoria: string) => {
     const colors: Record<string, string> = {
       'Cultura': 'bg-brasis-pink/15 text-brasis-pink-foreground border border-brasis-pink/30',
@@ -73,12 +76,22 @@ const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, 
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <Card className="bg-card shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
+        <Card className={`bg-card shadow-sm hover:shadow-md transition-all duration-200 border-l-4 ${selected ? 'border-l-primary ring-2 ring-primary/40' : 'border-l-primary'}`}>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-3">
-              <CardTitle className="text-lg font-sans font-semibold text-foreground leading-tight">
-                {item.title}
-              </CardTitle>
+              <div className="flex items-start gap-3 flex-1">
+                {onToggleSelect && (
+                  <Checkbox
+                    checked={!!selected}
+                    onCheckedChange={(v) => onToggleSelect(item.id, v === true)}
+                    className="mt-1"
+                    aria-label={`Selecionar "${item.title}"`}
+                  />
+                )}
+                <CardTitle className="text-lg font-sans font-semibold text-foreground leading-tight">
+                  {item.title}
+                </CardTitle>
+              </div>
               <div className="flex items-center gap-1">
                 {item.score && [...Array(item.score)].map((_, i) => (
                   <div key={i} className="w-2 h-2 bg-brasis-yellow rounded-full"></div>

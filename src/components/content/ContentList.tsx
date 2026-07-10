@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
@@ -35,15 +35,21 @@ interface ContentListProps {
   onDeleteItem: (id: string, title: string) => Promise<void>;
   onBulkDelete: (status: string) => Promise<void>;
   onBulkDeleteIds?: (ids: string[]) => Promise<void>;
+  onBulkApproveIds?: (ids: string[]) => Promise<void>;
+  onBulkRejectIds?: (ids: string[]) => Promise<void>;
+  onBulkSendToEditorIds?: (ids: string[]) => Promise<void>;
 }
+
 
 const ContentList = ({
   supabaseData, isLoading, error, searchTerm, setSearchTerm,
   statusFilter, setStatusFilter, groupFilter, setGroupFilter,
   currentPage, setCurrentPage,
   onAprovar, onIgnorar, onVerOriginal, onUpdateStatus,
-  onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete, onBulkDeleteIds
+  onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete, onBulkDeleteIds,
+  onBulkApproveIds, onBulkRejectIds, onBulkSendToEditorIds,
 }: ContentListProps) => {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-3 py-20">
@@ -88,11 +94,38 @@ const ContentList = ({
     return rangeWithDots;
   };
 
+  const filteredIdSet = useMemo(() => new Set(filteredItems.map(i => i.id)), [filteredItems]);
+  const effectiveSelected = useMemo(() => selectedIds.filter(id => filteredIdSet.has(id)), [selectedIds, filteredIdSet]);
+
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds(prev => checked ? Array.from(new Set([...prev, id])) : prev.filter(x => x !== id));
+  };
+  const toggleSelectAll = (checked: boolean) => {
+    setSelectedIds(checked ? filteredItems.map(i => i.id) : []);
+  };
+  const clearSelection = () => setSelectedIds([]);
+
+  const wrapBulk = (fn?: (ids: string[]) => Promise<void>) => fn
+    ? async (ids: string[]) => { await fn(ids); clearSelection(); }
+    : undefined;
+
   return (
     <div className="space-y-6">
       <RadarDebugInfo error={error} supabaseItemsCount={supabaseData?.length || 0} />
       <ContentFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} statusFilter={statusFilter} setStatusFilter={setStatusFilter} groupFilter={groupFilter} setGroupFilter={setGroupFilter} onExecutarCuradoria={onExecutarCuradoria} onRecalcularRelevancia={onRecalcularRelevancia} />
-      <BulkActions filteredItems={filteredItems} statusFilter={statusFilter} onBulkDelete={onBulkDelete} onBulkDeleteIds={onBulkDeleteIds} isUpdating={updateMutation.isPending} />
+      <BulkActions
+        filteredItems={filteredItems}
+        statusFilter={statusFilter}
+        onBulkDelete={onBulkDelete}
+        onBulkDeleteIds={wrapBulk(onBulkDeleteIds)}
+        isUpdating={updateMutation.isPending}
+        selectedIds={effectiveSelected}
+        onToggleSelectAll={toggleSelectAll}
+        onClearSelection={clearSelection}
+        onBulkApproveIds={wrapBulk(onBulkApproveIds)}
+        onBulkRejectIds={wrapBulk(onBulkRejectIds)}
+        onBulkSendToEditorIds={wrapBulk(onBulkSendToEditorIds)}
+      />
 
       {filteredItems.length === 0 ? (
         <RadarEmpty onExecutarCuradoria={onExecutarCuradoria} />
@@ -100,7 +133,18 @@ const ContentList = ({
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {paginatedItems.map((item) => (
-              <ContentCard key={item.id} item={item} onAprovar={onAprovar} onIgnorar={onIgnorar} onVerOriginal={onVerOriginal} onUpdateStatus={onUpdateStatus} onDeleteItem={onDeleteItem} isUpdating={updateMutation.isPending} />
+              <ContentCard
+                key={item.id}
+                item={item}
+                onAprovar={onAprovar}
+                onIgnorar={onIgnorar}
+                onVerOriginal={onVerOriginal}
+                onUpdateStatus={onUpdateStatus}
+                onDeleteItem={onDeleteItem}
+                isUpdating={updateMutation.isPending}
+                selected={effectiveSelected.includes(item.id)}
+                onToggleSelect={toggleSelect}
+              />
             ))}
           </div>
 
