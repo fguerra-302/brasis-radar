@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
@@ -35,7 +35,11 @@ interface ContentListProps {
   onDeleteItem: (id: string, title: string) => Promise<void>;
   onBulkDelete: (status: string) => Promise<void>;
   onBulkDeleteIds?: (ids: string[]) => Promise<void>;
+  onBulkApproveIds?: (ids: string[]) => Promise<void>;
+  onBulkRejectIds?: (ids: string[]) => Promise<void>;
+  onBulkSendToEditorIds?: (ids: string[]) => Promise<void>;
 }
+
 
 const ContentList = ({
   supabaseData, isLoading, error, searchTerm, setSearchTerm,
