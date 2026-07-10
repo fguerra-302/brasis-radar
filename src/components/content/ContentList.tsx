@@ -94,9 +94,6 @@ const ContentList = ({
     return rangeWithDots;
   };
 
-  return (
-    <div className="space-y-6">
-      <RadarDebugInfo error={error} supabaseItemsCount={supabaseData?.length || 0} />
   const filteredIdSet = useMemo(() => new Set(filteredItems.map(i => i.id)), [filteredItems]);
   const effectiveSelected = useMemo(() => selectedIds.filter(id => filteredIdSet.has(id)), [selectedIds, filteredIdSet]);
 
