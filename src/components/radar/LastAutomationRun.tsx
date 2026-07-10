@@ -36,7 +36,7 @@ export const LastAutomationRun = () => {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: string; created_at: string; metadata: Meta; reason: string | null } | null;
+      return data as unknown as { id: string; created_at: string; metadata: Meta; reason: string | null } | null;
     },
     refetchInterval: 60000,
   });
