@@ -34,6 +34,7 @@ interface ContentListProps {
   updateMutation: any;
   onDeleteItem: (id: string, title: string) => Promise<void>;
   onBulkDelete: (status: string) => Promise<void>;
+  onBulkDeleteIds?: (ids: string[]) => Promise<void>;
 }
 
 const ContentList = ({
