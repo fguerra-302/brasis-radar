@@ -120,7 +120,25 @@ Deno.serve(async (req) => {
       
       const totalTime = Date.now() - startTime;
       console.log(`[radar-automation] Cron completed in ${totalTime}ms: ${totalProcessed} sources, ${totalSaved} items for ${uniqueUserIds.length} users`);
-      
+
+      // Audit log: aggregate cron run (system-level, user_id null)
+      try {
+        await supabaseAdmin.from('radar_audit_logs').insert({
+          item_id: null,
+          user_id: null,
+          action: 'automated_collection',
+          metadata: {
+            mode: 'cron',
+            usersProcessed: uniqueUserIds.length,
+            processedSources: totalProcessed,
+            savedItems: totalSaved,
+            durationMs: totalTime,
+          },
+        });
+      } catch (e) {
+        console.warn('[radar-automation] audit log insert failed:', e);
+      }
+
       return new Response(
         JSON.stringify({
           message: 'Coleta (cron) concluída',
