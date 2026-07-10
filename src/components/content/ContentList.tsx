@@ -92,7 +92,7 @@ const ContentList = ({
     <div className="space-y-6">
       <RadarDebugInfo error={error} supabaseItemsCount={supabaseData?.length || 0} />
       <ContentFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} statusFilter={statusFilter} setStatusFilter={setStatusFilter} groupFilter={groupFilter} setGroupFilter={setGroupFilter} onConfigurar={onConfigurar} onExecutarCuradoria={onExecutarCuradoria} onRecalcularRelevancia={onRecalcularRelevancia} />
-      <BulkActions filteredItems={filteredItems} statusFilter={statusFilter} onBulkDelete={onBulkDelete} isUpdating={updateMutation.isPending} />
+      <BulkActions filteredItems={filteredItems} statusFilter={statusFilter} onBulkDelete={onBulkDelete} onBulkDeleteIds={onBulkDeleteIds} isUpdating={updateMutation.isPending} />
 
       {filteredItems.length === 0 ? (
         <RadarEmpty onExecutarCuradoria={onExecutarCuradoria} />
