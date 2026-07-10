@@ -22,6 +22,12 @@ const ACTION_LABEL: Record<string, string> = {
   status_change: 'Status alterado',
   delete: 'Excluído',
   import_to_editor: 'Importado ao Editor',
+  bulk_delete_collected: 'Bulk: Limpar Coletados',
+  bulk_delete_filtered: 'Bulk: Excluir Filtrados',
+  bulk_delete_rejected: 'Bulk: Limpar Rejeitados',
+  bulk_delete_approval: 'Bulk: Resetar Em Aprovação',
+  marked_published: 'Newsletter Publicada',
+  automated_collection: 'Coleta Automática',
 };
 
 const ACTION_COLOR: Record<string, string> = {
@@ -32,6 +38,12 @@ const ACTION_COLOR: Record<string, string> = {
   status_change: 'bg-muted text-muted-foreground',
   delete: 'bg-destructive/10 text-destructive',
   import_to_editor: 'bg-primary/10 text-primary',
+  bulk_delete_collected: 'bg-destructive/10 text-destructive',
+  bulk_delete_filtered: 'bg-destructive/10 text-destructive',
+  bulk_delete_rejected: 'bg-destructive/10 text-destructive',
+  bulk_delete_approval: 'bg-destructive/10 text-destructive',
+  marked_published: 'bg-primary/10 text-primary',
+  automated_collection: 'bg-muted text-muted-foreground',
 };
 
 const PAGE_SIZE = 25;
@@ -237,25 +249,34 @@ const Auditoria = () => {
                     </div>
                     <p className="font-medium text-foreground text-sm flex items-center gap-2">
                       <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                      {log.radar_brasis?.title || log.metadata?.title || `Item ${log.item_id.substring(0, 8)}…`}
+                      {log.radar_brasis?.title
+                        || log.metadata?.title
+                        || (log.item_id ? `Item ${log.item_id.substring(0, 8)}…` : (
+                          log.action === 'automated_collection' ? 'Sistema · execução do cron' : 'Operação em massa'
+                        ))}
                     </p>
+                    {log.metadata?.count != null && (
+                      <p className="text-xs text-muted-foreground mt-1">Itens afetados: <strong>{log.metadata.count}</strong></p>
+                    )}
                     {log.reason && (
                       <p className="text-sm text-muted-foreground mt-1 italic">
                         Motivo: {log.reason}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
-                      <span>Usuário: <code className="font-mono">{log.user_id.substring(0, 8)}…</code></span>
+                      <span>Usuário: <code className="font-mono">{log.user_id ? log.user_id.substring(0, 8) + '…' : 'sistema'}</code></span>
                       <span>·</span>
                       <span>{new Date(log.created_at).toLocaleString('pt-BR')}</span>
-                      <span>·</span>
-                      <button
-                        className="underline hover:text-foreground"
-                        onClick={() => { setItemIdFilter(log.item_id); setPage(0); }}
-                        title="Filtrar por este item"
-                      >
-                        item: {log.item_id.substring(0, 8)}…
-                      </button>
+                      {log.item_id && <>
+                        <span>·</span>
+                        <button
+                          className="underline hover:text-foreground"
+                          onClick={() => { setItemIdFilter(log.item_id); setPage(0); }}
+                          title="Filtrar por este item"
+                        >
+                          item: {log.item_id.substring(0, 8)}…
+                        </button>
+                      </>}
                     </p>
                   </div>
                 </div>

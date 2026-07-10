@@ -217,34 +217,34 @@ export type Database = {
           action: string
           created_at: string
           id: string
-          item_id: string
+          item_id: string | null
           metadata: Json | null
           new_status: string | null
           previous_status: string | null
           reason: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           action: string
           created_at?: string
           id?: string
-          item_id: string
+          item_id?: string | null
           metadata?: Json | null
           new_status?: string | null
           previous_status?: string | null
           reason?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           action?: string
           created_at?: string
           id?: string
-          item_id?: string
+          item_id?: string | null
           metadata?: Json | null
           new_status?: string | null
           previous_status?: string | null
           reason?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {

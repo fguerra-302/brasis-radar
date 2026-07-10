@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Lightbulb, Eye, Compass, Target, Plus, X, BookOpen, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditLog";
 import { useQuery } from "@tanstack/react-query";
 import { ContentStatus } from "@/types/content";
 import { BrasisContentPreview } from "./BrasisContentPreview";
@@ -84,6 +85,13 @@ export const BrasisEditor = () => {
         .update({ status: ContentStatus.IN_EDITING, updated_at: new Date().toISOString() })
         .eq('id', item.id);
       if (error) throw error;
+      await logAudit({
+        itemId: item.id,
+        action: 'import_to_editor',
+        previousStatus: item.status ?? null,
+        newStatus: ContentStatus.IN_EDITING,
+        metadata: { title: item.title },
+      });
     } catch (e: any) {
       toast.warning('Item importado, mas não foi possível atualizar o status de origem: ' + (e?.message || 'erro desconhecido'));
     }

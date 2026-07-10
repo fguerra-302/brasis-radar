@@ -8,6 +8,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Copy, FileText, Calendar, ExternalLink, Filter, Sparkles, Loader2, Undo2 } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logBulk } from '@/lib/auditLog';
 import { secureApi } from '@/lib/api';
 import { useBranding } from '@/hooks/useBranding';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -134,6 +135,7 @@ export const NewsletterExport = () => {
         .update({ status: ContentStatus.PUBLISHED, updated_at: new Date().toISOString() })
         .in('id', ids);
       if (error) throw error;
+      await logBulk('marked_published', ids.length);
       toast.success(`${ids.length} itens marcados como Publicado.`);
       queryClient.invalidateQueries({ queryKey: ['newsletter-approved-items'] });
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
