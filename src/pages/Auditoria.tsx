@@ -249,25 +249,34 @@ const Auditoria = () => {
                     </div>
                     <p className="font-medium text-foreground text-sm flex items-center gap-2">
                       <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                      {log.radar_brasis?.title || log.metadata?.title || `Item ${log.item_id.substring(0, 8)}…`}
+                      {log.radar_brasis?.title
+                        || log.metadata?.title
+                        || (log.item_id ? `Item ${log.item_id.substring(0, 8)}…` : (
+                          log.action === 'automated_collection' ? 'Sistema · execução do cron' : 'Operação em massa'
+                        ))}
                     </p>
+                    {log.metadata?.count != null && (
+                      <p className="text-xs text-muted-foreground mt-1">Itens afetados: <strong>{log.metadata.count}</strong></p>
+                    )}
                     {log.reason && (
                       <p className="text-sm text-muted-foreground mt-1 italic">
                         Motivo: {log.reason}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
-                      <span>Usuário: <code className="font-mono">{log.user_id.substring(0, 8)}…</code></span>
+                      <span>Usuário: <code className="font-mono">{log.user_id ? log.user_id.substring(0, 8) + '…' : 'sistema'}</code></span>
                       <span>·</span>
                       <span>{new Date(log.created_at).toLocaleString('pt-BR')}</span>
-                      <span>·</span>
-                      <button
-                        className="underline hover:text-foreground"
-                        onClick={() => { setItemIdFilter(log.item_id); setPage(0); }}
-                        title="Filtrar por este item"
-                      >
-                        item: {log.item_id.substring(0, 8)}…
-                      </button>
+                      {log.item_id && <>
+                        <span>·</span>
+                        <button
+                          className="underline hover:text-foreground"
+                          onClick={() => { setItemIdFilter(log.item_id); setPage(0); }}
+                          title="Filtrar por este item"
+                        >
+                          item: {log.item_id.substring(0, 8)}…
+                        </button>
+                      </>}
                     </p>
                   </div>
                 </div>
