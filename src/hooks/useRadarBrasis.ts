@@ -60,7 +60,8 @@ const mapToContent = (data: any[]): CuratedContent[] => {
     input_bruto: item.input_bruto,
     created_at: item.created_at,
     updated_at: item.updated_at,
-    user_id: item.user_id
+    user_id: item.user_id,
+    group_id: item.group_id
   }));
 };
 
