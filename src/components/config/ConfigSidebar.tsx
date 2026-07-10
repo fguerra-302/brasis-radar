@@ -1,4 +1,4 @@
-import { Settings, Database, Tag, TrendingUp, Globe, Sliders, Activity, Palette, Sparkles, FolderOpen } from "lucide-react";
+import { Database, Tag, TrendingUp, Sliders, Activity, Palette, Sparkles, FolderOpen, ClipboardList } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -18,10 +18,10 @@ const configItems = [
   { title: "Fontes de Dados", url: "/config/sources", icon: Database },
   { title: "Palavras-chave", url: "/config/keywords", icon: Tag },
   { title: "Pesos por Editoria", url: "/config/weights", icon: TrendingUp },
-  { title: "API Externa", url: "/config/external-api", icon: Globe },
   { title: "Automação", url: "/config/automation", icon: Sliders },
   { title: "Personalização", url: "/config/branding", icon: Palette },
   { title: "IA Newsletter", url: "/config/ai-newsletter", icon: Sparkles },
+  { title: "Auditoria", url: "/auditoria", icon: ClipboardList },
 ];
 
 export function ConfigSidebar() {
