@@ -167,8 +167,26 @@ Deno.serve(async (req) => {
       .gte('created_at', new Date().toISOString().split('T')[0] + 'T00:00:00Z');
     
     const todayTotalItems = todayItems?.length || 0;
-    
+
     console.log(`[radar-automation] Completed in ${totalTime}ms: ${result.processedSources} sources, ${result.savedItems} items`);
+
+    // Audit log: manual run for this user
+    try {
+      await supabase.from('radar_audit_logs').insert({
+        item_id: null,
+        user_id: userId,
+        action: 'automated_collection',
+        metadata: {
+          mode: 'manual',
+          processedSources: result.processedSources,
+          savedItems: result.savedItems,
+          minThreshold: result.minThreshold,
+          durationMs: totalTime,
+        },
+      });
+    } catch (e) {
+      console.warn('[radar-automation] audit log insert failed:', e);
+    }
 
     return new Response(
       JSON.stringify({
