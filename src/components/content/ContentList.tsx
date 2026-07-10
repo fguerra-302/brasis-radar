@@ -46,8 +46,10 @@ const ContentList = ({
   statusFilter, setStatusFilter, groupFilter, setGroupFilter,
   currentPage, setCurrentPage,
   onAprovar, onIgnorar, onVerOriginal, onUpdateStatus,
-  onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete, onBulkDeleteIds
+  onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete, onBulkDeleteIds,
+  onBulkApproveIds, onBulkRejectIds, onBulkSendToEditorIds,
 }: ContentListProps) => {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-3 py-20">
