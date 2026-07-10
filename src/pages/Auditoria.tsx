@@ -22,6 +22,12 @@ const ACTION_LABEL: Record<string, string> = {
   status_change: 'Status alterado',
   delete: 'Excluído',
   import_to_editor: 'Importado ao Editor',
+  bulk_delete_collected: 'Bulk: Limpar Coletados',
+  bulk_delete_filtered: 'Bulk: Excluir Filtrados',
+  bulk_delete_rejected: 'Bulk: Limpar Rejeitados',
+  bulk_delete_approval: 'Bulk: Resetar Em Aprovação',
+  marked_published: 'Newsletter Publicada',
+  automated_collection: 'Coleta Automática',
 };
 
 const ACTION_COLOR: Record<string, string> = {
@@ -32,6 +38,12 @@ const ACTION_COLOR: Record<string, string> = {
   status_change: 'bg-muted text-muted-foreground',
   delete: 'bg-destructive/10 text-destructive',
   import_to_editor: 'bg-primary/10 text-primary',
+  bulk_delete_collected: 'bg-destructive/10 text-destructive',
+  bulk_delete_filtered: 'bg-destructive/10 text-destructive',
+  bulk_delete_rejected: 'bg-destructive/10 text-destructive',
+  bulk_delete_approval: 'bg-destructive/10 text-destructive',
+  marked_published: 'bg-primary/10 text-primary',
+  automated_collection: 'bg-muted text-muted-foreground',
 };
 
 const PAGE_SIZE = 25;
