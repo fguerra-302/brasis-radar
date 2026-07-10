@@ -34,6 +34,7 @@ interface ContentListProps {
   updateMutation: any;
   onDeleteItem: (id: string, title: string) => Promise<void>;
   onBulkDelete: (status: string) => Promise<void>;
+  onBulkDeleteIds?: (ids: string[]) => Promise<void>;
 }
 
 const ContentList = ({
@@ -41,7 +42,7 @@ const ContentList = ({
   statusFilter, setStatusFilter, groupFilter, setGroupFilter,
   currentPage, setCurrentPage,
   onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onConfigurar,
-  onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete
+  onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete, onBulkDeleteIds
 }: ContentListProps) => {
   if (isLoading) {
     return (
@@ -91,7 +92,7 @@ const ContentList = ({
     <div className="space-y-6">
       <RadarDebugInfo error={error} supabaseItemsCount={supabaseData?.length || 0} />
       <ContentFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} statusFilter={statusFilter} setStatusFilter={setStatusFilter} groupFilter={groupFilter} setGroupFilter={setGroupFilter} onConfigurar={onConfigurar} onExecutarCuradoria={onExecutarCuradoria} onRecalcularRelevancia={onRecalcularRelevancia} />
-      <BulkActions filteredItems={filteredItems} statusFilter={statusFilter} onBulkDelete={onBulkDelete} isUpdating={updateMutation.isPending} />
+      <BulkActions filteredItems={filteredItems} statusFilter={statusFilter} onBulkDelete={onBulkDelete} onBulkDeleteIds={onBulkDeleteIds} isUpdating={updateMutation.isPending} />
 
       {filteredItems.length === 0 ? (
         <RadarEmpty onExecutarCuradoria={onExecutarCuradoria} />

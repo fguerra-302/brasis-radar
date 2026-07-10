@@ -256,7 +256,11 @@ async function processUser(supabase: any, userId: string) {
         const items = parseRSSFeed(rssText, source.name);
         console.log(`[radar-automation] Found ${items.length} items in ${source.name}`);
 
-        for (const item of items) {
+        // Cap per source to keep radar focused on the freshest content
+        const MAX_ITEMS_PER_SOURCE = 15;
+        const cappedItems = items.slice(0, MAX_ITEMS_PER_SOURCE);
+
+        for (const item of cappedItems) {
           try {
             if (item.link && tombstoneLinks.has(item.link)) continue;
 

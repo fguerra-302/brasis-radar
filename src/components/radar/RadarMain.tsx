@@ -130,6 +130,21 @@ const RadarMain = () => {
     } catch { toast.error("Falha ao excluir itens."); }
   };
 
+  const handleBulkDeleteIds = async (ids: string[]) => {
+    if (!user) { toast.error("Faça login para excluir conteúdo."); return; }
+    if (ids.length === 0) return;
+    try {
+      const { data: items } = await supabase.from('radar_brasis').select('id, link, title').in('id', ids).eq('user_id', user.id);
+      if (!items || items.length === 0) { toast.info('Nenhum item encontrado.'); return; }
+      const tombstones = items.map(item => ({ user_id: user.id, link: item.link, title: item.title }));
+      await supabase.from('radar_tombstones').insert(tombstones);
+      const { error } = await supabase.from('radar_brasis').delete().in('id', ids).eq('user_id', user.id);
+      if (error) throw error;
+      toast.success(`${items.length} itens excluídos`);
+      queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
+    } catch { toast.error("Falha ao excluir itens."); }
+  };
+
   const handleExecutarCuradoria = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) { toast.error("Usuário não autenticado."); return; }
@@ -168,7 +183,7 @@ const RadarMain = () => {
                 onVerOriginal={handleVerOriginal} onUpdateStatus={handleUpdateStatus}
                 onConfigurar={handleConfigurar} onExecutarCuradoria={handleExecutarCuradoria}
                 onRecalcularRelevancia={undefined}
-                onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete}
+                onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete} onBulkDeleteIds={handleBulkDeleteIds}
                 updateMutation={updateMutation}
               />
             </div>

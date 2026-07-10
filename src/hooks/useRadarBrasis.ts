@@ -16,7 +16,7 @@ export const useRadarBrasis = () => {
 
       const { data, error } = await supabase
         .from('radar_brasis')
-        .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at, user_id')
+        .select('id, title, link, source, pub_date, editoria, tags, relevancia, status, resumo_curado, input_bruto, created_at, updated_at, user_id, group_id')
         .eq('user_id', session.user.id)
         .order('relevancia', { ascending: false })
         .order('created_at', { ascending: false });
@@ -60,7 +60,8 @@ const mapToContent = (data: any[]): CuratedContent[] => {
     input_bruto: item.input_bruto,
     created_at: item.created_at,
     updated_at: item.updated_at,
-    user_id: item.user_id
+    user_id: item.user_id,
+    group_id: item.group_id
   }));
 };
 
