@@ -125,6 +125,12 @@ const RadarMain = () => {
       await supabase.from('radar_tombstones').insert(tombstones);
       const { error } = await supabase.from('radar_brasis').delete().eq('status', status).eq('user_id', user.id);
       if (error) throw error;
+      const actionMap: Record<string, any> = {
+        'Coletado': 'bulk_delete_collected',
+        'Ignorado': 'bulk_delete_rejected',
+        'Em aprovação': 'bulk_delete_approval',
+      };
+      await logBulk(actionMap[status] || 'bulk_delete_collected', items.length, { status });
       toast.success(`${items.length} itens excluídos`);
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
     } catch { toast.error("Falha ao excluir itens."); }
@@ -140,6 +146,7 @@ const RadarMain = () => {
       await supabase.from('radar_tombstones').insert(tombstones);
       const { error } = await supabase.from('radar_brasis').delete().in('id', ids).eq('user_id', user.id);
       if (error) throw error;
+      await logBulk('bulk_delete_filtered', items.length, { ids: items.length });
       toast.success(`${items.length} itens excluídos`);
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
     } catch { toast.error("Falha ao excluir itens."); }
