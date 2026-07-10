@@ -211,6 +211,9 @@ const RadarMain = () => {
                 onExecutarCuradoria={handleExecutarCuradoria}
                 onRecalcularRelevancia={undefined}
                 onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete} onBulkDeleteIds={handleBulkDeleteIds}
+                onBulkApproveIds={handleBulkApprove}
+                onBulkRejectIds={handleBulkReject}
+                onBulkSendToEditorIds={handleBulkSendToEditor}
                 updateMutation={updateMutation}
               />
             </div>
