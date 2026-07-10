@@ -135,6 +135,7 @@ export const NewsletterExport = () => {
         .update({ status: ContentStatus.PUBLISHED, updated_at: new Date().toISOString() })
         .in('id', ids);
       if (error) throw error;
+      await logBulk('marked_published', ids.length);
       toast.success(`${ids.length} itens marcados como Publicado.`);
       queryClient.invalidateQueries({ queryKey: ['newsletter-approved-items'] });
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
