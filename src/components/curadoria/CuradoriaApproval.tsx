@@ -7,6 +7,7 @@ import { CheckCircle, XCircle, Calendar, Tag, TrendingUp, PenSquare, ExternalLin
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ContentStatus } from '@/types/content';
+import { logAudit } from '@/lib/auditLog';
 
 export const CuradoriaApproval = () => {
   const queryClient = useQueryClient();
