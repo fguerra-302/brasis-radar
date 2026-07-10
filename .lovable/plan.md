@@ -1,62 +1,56 @@
-## Varredura Ativa End-to-End + Correções
+# Expansão do log de auditoria
 
-Objetivo: rodar cada fluxo do app com Playwright headless contra o preview local, capturar screenshots + logs + rede, listar TUDO que está quebrado (sem inventar), e corrigir na sequência.
+Adicionar registros em `radar_audit_logs` para todos os eventos operacionais além dos 3 já cobertos (aprovar / rejeitar / enviar à edição).
 
-### Fase 1 — Diagnóstico (Playwright, sem edição de código)
+## Eventos a instrumentar
 
-Autentico com a sessão Supabase injetada e percorro:
+1. **Bulk delete "Limpar Coletados"** (`BulkActions` / `ContentList`)
+   - action: `bulk_delete_collected`
+   - metadata: contagem de itens deletados, filtro aplicado
+   - 1 log por operação (não por item) para não inundar a tabela
 
-1. **Root `/` — Radar principal**
-   - Botão "Coletar dados" → verificar toast, novos itens, `radar-automation` logs
-   - Filtros: status, grupo (o bug de `group_id` recente), busca
-   - Card: Aprovar, Ignorar (com motivo), Ver original, Alterar status manual
-   - Bulk: "Limpar Coletados", "Excluir Filtrados"
-   - `RadarLiveStats`, `RadarAutomationStatus`, `RadarRecentActions` renderizam com dados reais?
+2. **Bulk delete "Excluir Filtrados"** (`BulkActions`)
+   - action: `bulk_delete_filtered`
+   - metadata: contagem, filtros ativos
 
-2. **`/curadoria` — Review / Approval / Newsletter / Editor / Persona / Library**
-   - Review: itens "A curar" aparecem, aprovar move pra "Em aprovação"
-   - Approval: "Enviar à Edição" e "Enviar Newsletter" mudam status certo
-   - NewsletterExport: geração/finalização
-   - BrasisEditor: importar item muda status pra "Em edição" (fix recente)
-   - Persona: teste de voz via `persona-sample`
-   - Library: lista conteúdos brasis
+3. **Import no BrasisEditor** (`BrasisEditor`)
+   - action: `imported_to_editor`
+   - status_before/after: `coletado` → `em edição`
+   - item_id do radar
 
-3. **`/auditoria`** — paginação, filtros (ação, item ID, datas), badges
+4. **Publicação de newsletter** (`NewsletterExport` → botão "Marcar itens como Publicado")
+   - action: `marked_published`
+   - metadata: contagem de itens marcados
+   - 1 log agregado
 
-4. **`/config` — Sources / Web Scraping / Projetos / Newsletters / Keywords / Weights / Groups / Automation / Branding / APIs / External API / AI**
-   - CRUD em cada aba, teste do WebScrapingManager (fix recente)
-   - Salvar persistência
+5. **Coleta automática do cron** (`radar-automation` Edge Function)
+   - action: `automated_collection`
+   - user_id: `null` (sistema) ou id de service
+   - metadata: fontes processadas, itens novos, itens filtrados por tombstone, duração
+   - 1 log por execução do cron
 
-5. **`/setup`** e onboarding tour
+## Ajustes técnicos
 
-Para cada fluxo: screenshot antes/depois, console errors, network 4xx/5xx, edge function logs.
+- **Schema**: `radar_audit_logs.user_id` provavelmente é `NOT NULL`. Migração leve para permitir `NULL` (eventos de sistema) OU usar um UUID sentinela `00000000-0000-0000-0000-000000000000` documentado. Verifico o schema atual antes de decidir.
+- **`item_id` opcional**: para logs agregados (bulk/cron), `item_id` fica `NULL` — verificar se coluna já permite.
+- **Edge Function log**: `radar-automation` roda com service_role, então usa `supabase.from('radar_audit_logs').insert(...)` direto, sem depender do helper `logAudit` (que é client-side).
 
-### Fase 2 — Relatório crítico
+## Página /auditoria
 
-Entrego lista objetiva:
-- **Broken** (não funciona): fluxo, evidência (screenshot/log), causa provável, arquivo suspeito
-- **Dead-end** (leva a lugar nenhum): rota/botão órfão
-- **UX gap** (funciona mas confunde): descrição
-- **OK**: o que passou
+- Adicionar as novas actions ao dropdown de filtro "Ação"
+- Renderização: quando `item_id` é null, mostrar badge "Operação em massa" ou "Sistema" no lugar do link do item
 
-Sem enfeite. Se nada quebrou num fluxo, digo isso.
+## Arquivos afetados
 
-### Fase 3 — Correções
+- `supabase/migrations/*` — ajuste de nullability em `user_id` e `item_id` se necessário
+- `src/lib/auditLog.ts` — adicionar helpers `logBulkAction`, `logImport`, `logPublish`
+- `src/components/content/BulkActions.tsx` — chamar log nos 2 bulks
+- `src/components/curadoria/BrasisEditor.tsx` — log no import
+- `src/components/newsletter/NewsletterExport.tsx` — log no "Marcar como Publicado"
+- `supabase/functions/radar-automation/index.ts` — insert direto após cada execução
+- `src/pages/Auditoria.tsx` — novas actions no filtro + renderização de logs agregados
 
-Só depois do relatório, aplico fixes priorizados por impacto:
-- P0: quebra fluxo principal (coleta, aprovação, newsletter)
-- P1: quebra fluxo secundário (config, auditoria)
-- P2: dead-ends / UX
+## Fora de escopo
 
-Cada fix: edit mínimo no arquivo apontado, re-teste no Playwright, valida antes de marcar como resolvido.
-
-### Escopo explícito
-- **NÃO** mexo em segurança agora (você pediu)
-- **NÃO** refatoro código que está funcionando
-- **NÃO** invento features novas
-- Se um fluxo depende de dados que não existem no banco de teste, sinalizo em vez de "consertar"
-
-### Entregáveis
-1. Relatório em `/mnt/documents/BRASIS_E2E_AUDIT.md` com evidências
-2. Commits de correção arquivo a arquivo
-3. Resumo final: quantos bugs reais, quantos corrigidos, quantos ficam como backlog justificado
+- Backfill retroativo (dado histórico não foi capturado, impossível)
+- Retenção/rotação de logs (deixar para quando volume justificar)
