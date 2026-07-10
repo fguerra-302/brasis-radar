@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, FileText } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { ArrowLeft, Search, FileText, CalendarIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/layout/AppHeader';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const ACTION_LABEL: Record<string, string> = {
   approve: 'Aprovado',
@@ -29,26 +34,62 @@ const ACTION_COLOR: Record<string, string> = {
   import_to_editor: 'bg-primary/10 text-primary',
 };
 
+const PAGE_SIZE = 25;
+
 const Auditoria = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('todos');
+  const [sourceFilter, setSourceFilter] = useState<string>('todos');
+  const [editoriaFilter, setEditoriaFilter] = useState<string>('todos');
+  const [itemIdFilter, setItemIdFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [page, setPage] = useState(0);
 
-  const { data: logs, isLoading } = useQuery({
-    queryKey: ['audit-logs'],
+  const { data, isLoading } = useQuery({
+    queryKey: ['audit-logs', actionFilter, sourceFilter, editoriaFilter, itemIdFilter, dateFrom, dateTo, page],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      let q = (supabase as any)
         .from('radar_audit_logs')
-        .select('*, radar_brasis(title, source)')
-        .order('created_at', { ascending: false })
-        .limit(500);
+        .select('*, radar_brasis(title, source, editoria)', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      if (actionFilter !== 'todos') q = q.eq('action', actionFilter);
+      if (itemIdFilter.trim()) q = q.eq('item_id', itemIdFilter.trim());
+      if (dateFrom) q = q.gte('created_at', dateFrom.toISOString());
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        q = q.lte('created_at', end.toISOString());
+      }
+
+      q = q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data as any[];
+      return { rows: (data || []) as any[], count: count || 0 };
     },
   });
 
-  const filtered = (logs || []).filter((l) => {
-    if (actionFilter !== 'todos' && l.action !== actionFilter) return false;
+  const logs = data?.rows || [];
+  const total = data?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Options for source/editoria (derived from currently loaded page)
+  const { sources, editorias } = useMemo(() => {
+    const s = new Set<string>();
+    const e = new Set<string>();
+    logs.forEach((l) => {
+      if (l.radar_brasis?.source) s.add(l.radar_brasis.source);
+      if (l.radar_brasis?.editoria) e.add(l.radar_brasis.editoria);
+    });
+    return { sources: Array.from(s).sort(), editorias: Array.from(e).sort() };
+  }, [logs]);
+
+  const filtered = logs.filter((l) => {
+    if (sourceFilter !== 'todos' && l.radar_brasis?.source !== sourceFilter) return false;
+    if (editoriaFilter !== 'todos' && l.radar_brasis?.editoria !== editoriaFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -58,6 +99,18 @@ const Auditoria = () => {
       (l.new_status || '').toLowerCase().includes(q)
     );
   });
+
+  const clearFilters = () => {
+    setSearch(''); setActionFilter('todos'); setSourceFilter('todos');
+    setEditoriaFilter('todos'); setItemIdFilter(''); setDateFrom(undefined); setDateTo(undefined);
+    setPage(0);
+  };
+
+  const hasActiveFilters = search || actionFilter !== 'todos' || sourceFilter !== 'todos' ||
+    editoriaFilter !== 'todos' || itemIdFilter || dateFrom || dateTo;
+
+  // Reset page when filters change
+  const resetAndSet = <T,>(setter: (v: T) => void) => (v: T) => { setter(v); setPage(0); };
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,32 +126,83 @@ const Auditoria = () => {
               <p className="text-sm text-muted-foreground">Rastreio de ações de curadoria — quem, quando, antes → depois</p>
             </div>
           </div>
-          <Badge variant="secondary">{filtered.length} registros</Badge>
+          <Badge variant="secondary">{total} registros no total</Badge>
         </div>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <Search className="h-4 w-4" /> Filtros
             </CardTitle>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="h-4 w-4 mr-1" /> Limpar filtros
+              </Button>
+            )}
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Input
-              placeholder="Buscar por título, motivo, status…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-md"
-            />
-            <select
-              value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
-              className="border rounded-md px-3 py-2 text-sm bg-background"
-            >
-              <option value="todos">Todas as ações</option>
-              {Object.entries(ACTION_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Input
+                placeholder="Buscar por título, motivo, status…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              />
+              <Input
+                placeholder="ID exato do item (UUID)"
+                value={itemIdFilter}
+                onChange={(e) => { setItemIdFilter(e.target.value); setPage(0); }}
+              />
+              <select
+                value={actionFilter}
+                onChange={(e) => resetAndSet(setActionFilter)(e.target.value)}
+                className="border rounded-md px-3 py-2 text-sm bg-background"
+              >
+                <option value="todos">Todas as ações</option>
+                {Object.entries(ACTION_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+              <select
+                value={sourceFilter}
+                onChange={(e) => resetAndSet(setSourceFilter)(e.target.value)}
+                className="border rounded-md px-3 py-2 text-sm bg-background"
+              >
+                <option value="todos">Todas as fontes (pág. atual)</option>
+                {sources.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select
+                value={editoriaFilter}
+                onChange={(e) => resetAndSet(setEditoriaFilter)(e.target.value)}
+                className="border rounded-md px-3 py-2 text-sm bg-background"
+              >
+                <option value="todos">Todas as editorias (pág. atual)</option>
+                {editorias.map((e) => <option key={e} value={e}>{e}</option>)}
+              </select>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("flex-1 justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {dateFrom ? format(dateFrom, "dd/MM/yy", { locale: ptBR }) : "De"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setPage(0); }} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("flex-1 justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {dateTo ? format(dateTo, "dd/MM/yy", { locale: ptBR }) : "Até"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setPage(0); }} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -123,6 +227,12 @@ const Auditoria = () => {
                       {!log.previous_status && log.new_status && (
                         <span className="text-xs text-muted-foreground">→ <strong className="text-foreground">{log.new_status}</strong></span>
                       )}
+                      {log.radar_brasis?.source && (
+                        <Badge variant="outline" className="text-xs">{log.radar_brasis.source}</Badge>
+                      )}
+                      {log.radar_brasis?.editoria && (
+                        <Badge variant="outline" className="text-xs">{log.radar_brasis.editoria}</Badge>
+                      )}
                     </div>
                     <p className="font-medium text-foreground text-sm flex items-center gap-2">
                       <FileText className="h-3.5 w-3.5 text-muted-foreground" />
@@ -133,10 +243,18 @@ const Auditoria = () => {
                         Motivo: {log.reason}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Usuário: <code className="font-mono">{log.user_id.substring(0, 8)}…</code>
-                      {' · '}
-                      {new Date(log.created_at).toLocaleString('pt-BR')}
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
+                      <span>Usuário: <code className="font-mono">{log.user_id.substring(0, 8)}…</code></span>
+                      <span>·</span>
+                      <span>{new Date(log.created_at).toLocaleString('pt-BR')}</span>
+                      <span>·</span>
+                      <button
+                        className="underline hover:text-foreground"
+                        onClick={() => { setItemIdFilter(log.item_id); setPage(0); }}
+                        title="Filtrar por este item"
+                      >
+                        item: {log.item_id.substring(0, 8)}…
+                      </button>
                     </p>
                   </div>
                 </div>
@@ -147,6 +265,22 @@ const Auditoria = () => {
             <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum registro encontrado.</CardContent></Card>
           )}
         </div>
+
+        {total > PAGE_SIZE && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-sm text-muted-foreground">
+              Página {page + 1} de {totalPages} · mostrando {logs.length} de {total}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+              </Button>
+              <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                Próxima <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
