@@ -7,10 +7,16 @@ export type AuditAction =
   | 'send_to_editor'
   | 'status_change'
   | 'delete'
-  | 'import_to_editor';
+  | 'import_to_editor'
+  | 'bulk_delete_collected'
+  | 'bulk_delete_filtered'
+  | 'bulk_delete_rejected'
+  | 'bulk_delete_approval'
+  | 'marked_published'
+  | 'automated_collection';
 
 interface LogParams {
-  itemId: string;
+  itemId?: string | null;
   action: AuditAction;
   previousStatus?: string | null;
   newStatus?: string | null;
@@ -20,6 +26,7 @@ interface LogParams {
 
 /**
  * Best-effort audit logger. Never throws — auditing must not block user actions.
+ * For aggregate actions (bulk/publish) itemId can be omitted.
  */
 export async function logAudit(params: LogParams): Promise<void> {
   try {
@@ -27,7 +34,7 @@ export async function logAudit(params: LogParams): Promise<void> {
     if (!user) return;
 
     await supabase.from('radar_audit_logs' as any).insert({
-      item_id: params.itemId,
+      item_id: params.itemId ?? null,
       user_id: user.id,
       action: params.action,
       previous_status: params.previousStatus ?? null,
@@ -38,6 +45,15 @@ export async function logAudit(params: LogParams): Promise<void> {
   } catch (e) {
     console.warn('[audit] falha ao registrar log:', e);
   }
+}
+
+/** Aggregate log for bulk operations (no single item_id). */
+export async function logBulk(
+  action: Extract<AuditAction, 'bulk_delete_collected' | 'bulk_delete_filtered' | 'bulk_delete_rejected' | 'bulk_delete_approval' | 'marked_published'>,
+  count: number,
+  metadata: Record<string, unknown> = {}
+): Promise<void> {
+  await logAudit({ action, metadata: { count, ...metadata } });
 }
 
 export async function fetchPreviousStatus(itemId: string): Promise<string | null> {
