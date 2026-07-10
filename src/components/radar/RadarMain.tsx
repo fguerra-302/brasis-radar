@@ -183,7 +183,7 @@ const RadarMain = () => {
                 onVerOriginal={handleVerOriginal} onUpdateStatus={handleUpdateStatus}
                 onConfigurar={handleConfigurar} onExecutarCuradoria={handleExecutarCuradoria}
                 onRecalcularRelevancia={undefined}
-                onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete}
+                onDeleteItem={handleDeleteItem} onBulkDelete={handleBulkDelete} onBulkDeleteIds={handleBulkDeleteIds}
                 updateMutation={updateMutation}
               />
             </div>
