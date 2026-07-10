@@ -7,6 +7,7 @@ import { CheckCircle, XCircle, Calendar, Tag, TrendingUp, PenSquare, ExternalLin
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ContentStatus } from '@/types/content';
+import { logAudit } from '@/lib/auditLog';
 
 export const CuradoriaApproval = () => {
   const queryClient = useQueryClient();
@@ -39,6 +40,7 @@ export const CuradoriaApproval = () => {
   const handleSendToNewsletter = async (item: any) => {
     try {
       await updateItemMutation.mutateAsync({ id: item.id, payload: { status: ContentStatus.FOR_NEWSLETTER, updated_at: new Date().toISOString() } });
+      await logAudit({ itemId: item.id, action: 'send_to_newsletter', previousStatus: item.status, newStatus: ContentStatus.FOR_NEWSLETTER, metadata: { title: item.title } });
       toast.success("Enviado para Newsletter");
       queryClient.invalidateQueries({ queryKey: ['newsletter-items'] });
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
@@ -48,6 +50,7 @@ export const CuradoriaApproval = () => {
   const handleSendToEditor = async (item: any) => {
     try {
       await updateItemMutation.mutateAsync({ id: item.id, payload: { status: ContentStatus.IN_EDITING, updated_at: new Date().toISOString() } });
+      await logAudit({ itemId: item.id, action: 'send_to_editor', previousStatus: item.status, newStatus: ContentStatus.IN_EDITING, metadata: { title: item.title } });
       toast.success("Enviado para Edição");
       queryClient.invalidateQueries({ queryKey: ['editor-items'] });
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
@@ -55,8 +58,10 @@ export const CuradoriaApproval = () => {
   };
 
   const handleReject = async (item: any) => {
+    const reason = window.prompt(`Motivo da rejeição de "${(item.title || '').substring(0, 60)}"?\n(opcional)`) || undefined;
     try {
       await updateItemMutation.mutateAsync({ id: item.id, payload: { status: ContentStatus.REJECTED } });
+      await logAudit({ itemId: item.id, action: 'reject', previousStatus: item.status, newStatus: ContentStatus.REJECTED, reason, metadata: { title: item.title } });
       toast.success("Item rejeitado");
     } catch { toast.error("Falha ao rejeitar item."); }
   };

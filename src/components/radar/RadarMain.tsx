@@ -6,6 +6,7 @@ import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
 import { secureApi } from '@/lib/api';
+import { logAudit, fetchPreviousStatus } from '@/lib/auditLog';
 
 import { useInitializeDefaultKeywords } from '@/hooks/useInitializeDefaultKeywords';
 import { useInitializeDefaultGroups } from '@/hooks/useInitializeDefaultGroups';
@@ -67,15 +68,20 @@ const RadarMain = () => {
   const handleAprovar = async (itemId: string, title: string) => {
     if (!user) { toast.error("Faça login para aprovar conteúdo."); return; }
     try {
+      const prev = await fetchPreviousStatus(itemId);
       await updateMutation.mutateAsync({ id: itemId, payload: { status: ContentStatus.REVIEWING } });
+      await logAudit({ itemId, action: 'approve', previousStatus: prev, newStatus: ContentStatus.REVIEWING, metadata: { title } });
       toast.success(`"${title.substring(0, 40)}..." enviado para aprovação`);
     } catch { toast.error("Falha ao aprovar conteúdo."); }
   };
 
   const handleIgnorar = async (itemId: string, title: string) => {
     if (!user) { toast.error("Faça login para rejeitar conteúdo."); return; }
+    const reason = window.prompt(`Motivo da rejeição de "${title.substring(0, 60)}"?\n(opcional — deixe em branco para pular)`) || undefined;
     try {
+      const prev = await fetchPreviousStatus(itemId);
       await updateMutation.mutateAsync({ id: itemId, payload: { status: ContentStatus.REJECTED } });
+      await logAudit({ itemId, action: 'reject', previousStatus: prev, newStatus: ContentStatus.REJECTED, reason, metadata: { title } });
       toast.success(`"${title.substring(0, 40)}..." rejeitado`);
     } catch { toast.error("Falha ao rejeitar conteúdo."); }
   };
@@ -89,7 +95,9 @@ const RadarMain = () => {
   const handleUpdateStatus = async (itemId: string, status: string, title: string) => {
     if (!user) { toast.error("Faça login para alterar status."); return; }
     try {
+      const prev = await fetchPreviousStatus(itemId);
       await updateMutation.mutateAsync({ id: itemId, payload: { status: status as ContentStatus } });
+      await logAudit({ itemId, action: 'status_change', previousStatus: prev, newStatus: status, metadata: { title } });
       toast.success(`"${title.substring(0, 40)}..." alterado para "${status}"`);
     } catch { toast.error("Falha ao atualizar status."); }
   };
@@ -97,9 +105,10 @@ const RadarMain = () => {
   const handleDeleteItem = async (itemId: string, title: string) => {
     if (!user) { toast.error("Faça login para excluir conteúdo."); return; }
     try {
-      const { data: item } = await supabase.from('radar_brasis').select('link').eq('id', itemId).single();
+      const { data: item } = await supabase.from('radar_brasis').select('link, status').eq('id', itemId).single();
       if (!item) throw new Error('Item não encontrado');
       await supabase.from('radar_tombstones').insert({ user_id: user.id, link: item.link, title });
+      await logAudit({ itemId, action: 'delete', previousStatus: item.status as string, newStatus: null, metadata: { title, link: item.link } });
       const { error } = await supabase.from('radar_brasis').delete().eq('id', itemId);
       if (error) throw error;
       toast.success(`"${title.substring(0, 40)}..." excluído`);

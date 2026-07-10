@@ -212,6 +212,50 @@ export type Database = {
           },
         ]
       }
+      radar_audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          item_id: string
+          metadata: Json | null
+          new_status: string | null
+          previous_status: string | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          item_id: string
+          metadata?: Json | null
+          new_status?: string | null
+          previous_status?: string | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          previous_status?: string | null
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_audit_logs_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "radar_brasis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       radar_brasis: {
         Row: {
           created_at: string | null

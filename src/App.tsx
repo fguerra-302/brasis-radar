@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Config from "./pages/Config";
 import Curadoria from "./pages/Curadoria";
 import NotFound from "./pages/NotFound";
+import Auditoria from "./pages/Auditoria";
 import { AuthProvider } from "@/components/AuthProvider";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { AuthPage } from "@/components/auth/AuthPage";
@@ -40,6 +41,7 @@ const App = () => {
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/config/*" element={<AuthGuard><Config /></AuthGuard>} />
               <Route path="/curadoria/*" element={<AuthGuard><Curadoria /></AuthGuard>} />
+              <Route path="/auditoria" element={<AuthGuard><Auditoria /></AuthGuard>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
