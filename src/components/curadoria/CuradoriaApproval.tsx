@@ -3,9 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Calendar, Tag, TrendingUp, Share2, ExternalLink } from "lucide-react";
+import { CheckCircle, XCircle, Calendar, Tag, TrendingUp, PenSquare, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { ContentStatus } from '@/types/content';
 
 export const CuradoriaApproval = () => {
   const queryClient = useQueryClient();
@@ -16,7 +17,7 @@ export const CuradoriaApproval = () => {
       const { data, error } = await supabase
         .from('radar_brasis')
         .select('*')
-        .eq('status', 'Em aprovação')
+        .eq('status', ContentStatus.REVIEWING)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
@@ -37,7 +38,7 @@ export const CuradoriaApproval = () => {
 
   const handleSendToNewsletter = async (item: any) => {
     try {
-      await updateItemMutation.mutateAsync({ id: item.id, payload: { status: 'Para Newsletter', updated_at: new Date().toISOString() } });
+      await updateItemMutation.mutateAsync({ id: item.id, payload: { status: ContentStatus.FOR_NEWSLETTER, updated_at: new Date().toISOString() } });
       toast.success("Enviado para Newsletter");
       queryClient.invalidateQueries({ queryKey: ['newsletter-items'] });
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
@@ -46,16 +47,16 @@ export const CuradoriaApproval = () => {
 
   const handleSendToEditor = async (item: any) => {
     try {
-      await updateItemMutation.mutateAsync({ id: item.id, payload: { status: 'Em edição', updated_at: new Date().toISOString() } });
-      toast.success("Enviado para Redes Sociais");
-      queryClient.invalidateQueries({ queryKey: ['social-media-items'] });
+      await updateItemMutation.mutateAsync({ id: item.id, payload: { status: ContentStatus.IN_EDITING, updated_at: new Date().toISOString() } });
+      toast.success("Enviado para Edição");
+      queryClient.invalidateQueries({ queryKey: ['editor-items'] });
       queryClient.invalidateQueries({ queryKey: ['radar-brasis'] });
-    } catch { toast.error("Falha ao enviar para redes sociais."); }
+    } catch { toast.error("Falha ao enviar para edição."); }
   };
 
   const handleReject = async (item: any) => {
     try {
-      await updateItemMutation.mutateAsync({ id: item.id, payload: { status: 'Ignorado' } });
+      await updateItemMutation.mutateAsync({ id: item.id, payload: { status: ContentStatus.REJECTED } });
       toast.success("Item rejeitado");
     } catch { toast.error("Falha ao rejeitar item."); }
   };
@@ -118,7 +119,7 @@ export const CuradoriaApproval = () => {
                     <TrendingUp className="h-4 w-4 mr-1" />Newsletter
                   </Button>
                   <Button onClick={() => handleSendToEditor(item)} variant="outline" className="text-sm" size="sm">
-                    <Share2 className="h-4 w-4 mr-1" />Redes Sociais
+                    <PenSquare className="h-4 w-4 mr-1" />Enviar à Edição
                   </Button>
                   {item.link && (
                     <Button variant="outline" className="text-sm" size="sm" onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}>

@@ -187,16 +187,23 @@ async function processUser(supabase: any, userId: string) {
     : supabase;
 
   // Load configurations in batch
-  const [keywordsResult, weightsResult, settingsResult, sourcesResult] = await Promise.all([
+  const [keywordsResult, weightsResult, settingsResult, sourcesResult, groupAssignmentsResult] = await Promise.all([
     supabase.from('radar_keywords').select('category_name, keywords, weight').eq('user_id', userId),
     supabase.from('editorial_weights').select('editoria, multiplier').eq('user_id', userId),
     supabase.from('user_settings').select('min_relevance_threshold').eq('user_id', userId).maybeSingle(),
-    adminClient.from('shared_sources').select('id, name, url, type, active, config').eq('active', true).in('type', ['RSS', 'WEB'])
+    adminClient.from('shared_sources').select('id, name, url, type, active, config').eq('active', true).in('type', ['RSS', 'WEB']),
+    supabase.from('source_group_assignments').select('source_id, group_id').eq('user_id', userId)
   ]);
 
   const userKeywords = keywordsResult.data || [];
   const userEditorialWeights = weightsResult.data || [];
   const minThreshold = settingsResult.data?.min_relevance_threshold || 3;
+
+  // Map source_id -> group_id so collected items can be segmented per group
+  const sourceGroupMap = new Map<string, string>();
+  for (const a of groupAssignmentsResult.data || []) {
+    if (a.source_id && a.group_id) sourceGroupMap.set(a.source_id, a.group_id);
+  }
 
   // Load tombstones
   const { data: tombstones } = await supabase
@@ -279,7 +286,8 @@ async function processUser(supabase: any, userId: string) {
               input_bruto: item.description.substring(0, 1000),
               tags: extractedTags,
               relevancia: Math.round(finalScore),
-              status: 'Coletado'
+              status: 'Coletado',
+              group_id: sourceGroupMap.get(source.id) || null
             });
 
             if (!insertError) totalSavedItems++;
@@ -387,7 +395,8 @@ async function processUser(supabase: any, userId: string) {
                 input_bruto: section.content.substring(0, 1000),
                 tags: extractedTags,
                 relevancia: Math.round(finalScore),
-                status: 'Coletado'
+                status: 'Coletado',
+                group_id: sourceGroupMap.get(source.id) || null
               });
 
               if (!insertError) totalSavedItems++;
