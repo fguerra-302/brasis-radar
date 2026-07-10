@@ -78,11 +78,10 @@ const RadarMain = () => {
 
   const handleIgnorar = async (itemId: string, title: string) => {
     if (!user) { toast.error("Faça login para rejeitar conteúdo."); return; }
-    const reason = window.prompt(`Motivo da rejeição de "${title.substring(0, 60)}"?\n(opcional — deixe em branco para pular)`) || undefined;
     try {
       const prev = await fetchPreviousStatus(itemId);
       await updateMutation.mutateAsync({ id: itemId, payload: { status: ContentStatus.REJECTED } });
-      await logAudit({ itemId, action: 'reject', previousStatus: prev, newStatus: ContentStatus.REJECTED, reason, metadata: { title } });
+      await logAudit({ itemId, action: 'reject', previousStatus: prev, newStatus: ContentStatus.REJECTED, metadata: { title } });
       toast.success(`"${title.substring(0, 40)}..." rejeitado`);
     } catch { toast.error("Falha ao rejeitar conteúdo."); }
   };

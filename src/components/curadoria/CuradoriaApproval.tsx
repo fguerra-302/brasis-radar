@@ -58,10 +58,9 @@ export const CuradoriaApproval = () => {
   };
 
   const handleReject = async (item: any) => {
-    const reason = window.prompt(`Motivo da rejeição de "${(item.title || '').substring(0, 60)}"?\n(opcional)`) || undefined;
     try {
       await updateItemMutation.mutateAsync({ id: item.id, payload: { status: ContentStatus.REJECTED } });
-      await logAudit({ itemId: item.id, action: 'reject', previousStatus: item.status, newStatus: ContentStatus.REJECTED, reason, metadata: { title: item.title } });
+      await logAudit({ itemId: item.id, action: 'reject', previousStatus: item.status, newStatus: ContentStatus.REJECTED, metadata: { title: item.title } });
       toast.success("Item rejeitado");
     } catch { toast.error("Falha ao rejeitar item."); }
   };
