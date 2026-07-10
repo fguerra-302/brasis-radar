@@ -27,7 +27,7 @@ interface RadarCardProps {
   onToggleSelect?: (id: string, checked: boolean) => void;
 }
 
-const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onDeleteItem, isUpdating }: RadarCardProps) => {
+const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onDeleteItem, isUpdating, selected, onToggleSelect }: RadarCardProps) => {
   const getEditoriaColor = (editoria: string) => {
     const colors: Record<string, string> = {
       'Cultura': 'bg-brasis-pink/15 text-brasis-pink-foreground border border-brasis-pink/30',
