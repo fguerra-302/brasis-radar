@@ -42,7 +42,7 @@ const ContentList = ({
   statusFilter, setStatusFilter, groupFilter, setGroupFilter,
   currentPage, setCurrentPage,
   onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onConfigurar,
-  onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete
+  onExecutarCuradoria, onRecalcularRelevancia, updateMutation, onDeleteItem, onBulkDelete, onBulkDeleteIds
 }: ContentListProps) => {
   if (isLoading) {
     return (
