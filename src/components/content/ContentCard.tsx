@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Trash2, RotateCcw } from 'lucide-react';
 import { RadarBrasisItem } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
@@ -22,6 +23,8 @@ interface RadarCardProps {
   onUpdateStatus: (id: string, status: string, title: string) => Promise<void>;
   onDeleteItem: (id: string, title: string) => Promise<void>;
   isUpdating: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string, checked: boolean) => void;
 }
 
 const RadarCard = ({ item, onAprovar, onIgnorar, onVerOriginal, onUpdateStatus, onDeleteItem, isUpdating }: RadarCardProps) => {
