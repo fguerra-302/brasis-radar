@@ -6,7 +6,7 @@ import { useRadarBrasis, useUpdateRadarBrasis } from '@/hooks/useRadarBrasis';
 import { ContentStatus } from '@/types/content';
 import { supabase } from '@/integrations/supabase/client';
 import { secureApi } from '@/lib/api';
-import { logAudit, fetchPreviousStatus } from '@/lib/auditLog';
+import { logAudit, logBulk, fetchPreviousStatus } from '@/lib/auditLog';
 
 import { useInitializeDefaultKeywords } from '@/hooks/useInitializeDefaultKeywords';
 import { useInitializeDefaultGroups } from '@/hooks/useInitializeDefaultGroups';
