@@ -16,6 +16,7 @@ import RadarRecentActions from './RadarRecentActions';
 import ContentList from '../content/ContentList';
 import AppHeader from '../layout/AppHeader';
 import { RadarAutomationStatus } from './RadarAutomationStatus';
+import { LastAutomationRun } from './LastAutomationRun';
 import { OnboardingTour } from '@/components/tour/OnboardingTour';
 
 const RadarMain = () => {
@@ -197,6 +198,7 @@ const RadarMain = () => {
             <div className="lg:col-span-1">
               <div className="space-y-6">
                 <RadarAutomationStatus />
+                <LastAutomationRun />
                 <RadarRecentActions />
               </div>
             </div>
