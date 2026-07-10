@@ -41,6 +41,7 @@ const App = () => {
               <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
               <Route path="/config/*" element={<AuthGuard><Config /></AuthGuard>} />
               <Route path="/curadoria/*" element={<AuthGuard><Curadoria /></AuthGuard>} />
+              <Route path="/auditoria" element={<AuthGuard><Auditoria /></AuthGuard>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
