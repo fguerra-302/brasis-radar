@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Lightbulb, Eye, Compass, Target, Plus, X, BookOpen, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditLog";
 import { useQuery } from "@tanstack/react-query";
 import { ContentStatus } from "@/types/content";
 import { BrasisContentPreview } from "./BrasisContentPreview";
