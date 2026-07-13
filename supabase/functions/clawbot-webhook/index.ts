@@ -80,8 +80,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('[Clawbot Webhook] Error:', error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('[Clawbot Webhook] Error:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
