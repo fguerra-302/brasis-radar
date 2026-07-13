@@ -75,6 +75,10 @@ Deno.serve(async (req) => {
       if (!authError && user) {
         userId = user.id;
         console.log(`[radar-automation] Authenticated user: ${userId}`);
+      } else {
+        // Token was provided but invalid — reject immediately instead of falling
+        // through to cron mode with the service role key.
+        return createErrorResponse(corsHeaders, 'Unauthorized', 401, 'Invalid bearer token');
       }
     }
     

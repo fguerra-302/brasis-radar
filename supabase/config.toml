@@ -13,7 +13,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.persona-sample]
-verify_jwt = false
+verify_jwt = true
 
 [functions.clawbot-webhook]
 verify_jwt = false
