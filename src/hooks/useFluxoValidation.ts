@@ -1,55 +1,36 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './useAuth';
 
 export const useFluxoValidation = () => {
-  const { toast } = useToast();
+  const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['fluxo-validation'],
+    queryKey: ['fluxo-validation', user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
-      console.log('🔍 Validando fluxo de curadoria...');
-      
-      // Verificar status disponíveis
-      const { data: statusCount, error } = await supabase
+      const { data, error } = await supabase
         .from('radar_brasis')
         .select('status')
-        .then(result => {
-          if (result.error) throw result.error;
-          
-          const counts = result.data.reduce((acc: any, item: any) => {
-            acc[item.status] = (acc[item.status] || 0) + 1;
-            return acc;
-          }, {});
-          
-          return { data: counts, error: null };
-        });
+        .eq('user_id', user!.id);
 
       if (error) throw error;
 
-      const validation = {
-        totalItems: Object.values(statusCount).reduce((a: any, b: any) => a + b, 0),
-        statusDistribution: statusCount,
-        warnings: [] as string[]
-      };
+      const statusCount: Record<string, number> = (data || []).reduce((acc: Record<string, number>, item: any) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+      }, {});
 
-      // Validações
-      if (validation.totalItems === 0) {
-        validation.warnings.push('⚠️ Nenhum item encontrado - execute uma coleta primeiro');
-      }
+      const totalItems = Object.values(statusCount).reduce((a, b) => a + b, 0);
+      const warnings: string[] = [];
+      if (totalItems === 0) warnings.push('⚠️ Nenhum item encontrado - execute uma coleta primeiro');
+      if (!statusCount['Em aprovação']) warnings.push('⚠️ Não há itens para processar na curadoria');
+      if (statusCount['Publicado'] > 0) warnings.push(`⚠️ ${statusCount['Publicado']} itens com status antigo "Publicado"`);
 
-      if (!statusCount['Em aprovação']) {
-        validation.warnings.push('⚠️ Não há itens para processar na curadoria');
-      }
-
-      if (statusCount['Publicado'] > 0) {
-        validation.warnings.push(`⚠️ ${statusCount['Publicado']} itens ainda com status antigo "Publicado"`);
-      }
-
-      console.log('✅ Validação do fluxo:', validation);
-      return validation;
+      return { totalItems, statusDistribution: statusCount, warnings };
     },
-    refetchInterval: 30000, // Revalida a cada 30s
-    refetchOnWindowFocus: true,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 };
