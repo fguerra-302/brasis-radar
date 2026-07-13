@@ -50,15 +50,6 @@ const ContentList = ({
   onBulkApproveIds, onBulkRejectIds, onBulkSendToEditorIds,
 }: ContentListProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center gap-3 py-20">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <h1 className="text-3xl font-display text-foreground">Carregando Radar Brasis...</h1>
-      </div>
-    );
-  }
-
   const items = supabaseData || [];
 
   const filteredItems = items.filter(item => {
@@ -96,6 +87,15 @@ const ContentList = ({
 
   const filteredIdSet = useMemo(() => new Set(filteredItems.map(i => i.id)), [filteredItems]);
   const effectiveSelected = useMemo(() => selectedIds.filter(id => filteredIdSet.has(id)), [selectedIds, filteredIdSet]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center gap-3 py-20">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <h1 className="text-3xl font-display text-foreground">Carregando Radar Brasis...</h1>
+      </div>
+    );
+  }
 
   const toggleSelect = (id: string, checked: boolean) => {
     setSelectedIds(prev => checked ? Array.from(new Set([...prev, id])) : prev.filter(x => x !== id));
