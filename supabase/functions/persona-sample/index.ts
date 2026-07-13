@@ -112,7 +112,7 @@ Produza um texto curto (2-4 parágrafos) sobre o tópico solicitado, seguindo ri
     });
   } catch (e) {
     console.error("persona-sample error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
+    return new Response(JSON.stringify({ error: "Erro ao gerar amostra. Tente novamente." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
