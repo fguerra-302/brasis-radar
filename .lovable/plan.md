@@ -1,43 +1,32 @@
-## Problema
+## Diagnóstico
 
-No Radar (`/`) você não encontra bulk actions. O código existe (`BulkActions.tsx`), mas hoje ele:
+O motivo do erro dela é **deploy publicado desatualizado**.
 
-1. Renderiza como uma **faixa cinza sutil** entre os filtros e os cards — fácil de passar batido.
-2. Só mostra cada botão **quando há itens daquele status** no filtro atual (ex.: "Limpar Coletados" some se não houver nenhum "Coletado" na visão).
-3. Não tem rótulo claro tipo "Ações em massa" — parece só uma barra de estatísticas.
-4. Não permite **selecionar itens individuais** para agir só neles.
+- URL que ela usa: `brasis-radar.lovable.app` → serve o bundle do commit `3d8a9c28…`.
+- Todas as correções recentes (bug de ordem de hooks no `ContentList`, ações em massa, `LastAutomationRun`, fluxo de status, etc.) estão **só no preview**, não no publicado.
+- O bug de hooks anterior no `ContentList` tinha um `if (isLoading) return …` no meio dos `useMemo` — em contas novas (sem dados) a transição de estado dispara "Rendered fewer hooks than expected", React desmonta a árvore e sobra só o `min-h-screen bg-background` → **tela beige em branco** (exatamente o print dela). No preview isso já foi corrigido; no publicado ainda não.
+- Login dela em 17:04 foi bem-sucedido (confirmado nos logs), então não é auth. RLS e permissões estão OK — a conta consegue ler `radar_brasis` (retorna vazio) sem erro.
 
-## O que vou fazer
+## O que fazer
 
-### 1. Barra dedicada "Ações em massa" sempre visível
-Substituir a faixa atual por um bloco com título **"Ações em massa"** acima da grade de cards, com:
-- Contagem total + badges por status (mantém o que já tem).
-- **Um botão primário laranja "Ações em massa ▾"** (menu dropdown) sempre presente, listando todas as opções mesmo quando desabilitadas, com o número entre parênteses:
-  - Limpar Coletados (N)
-  - Limpar Rejeitados (N)
-  - Resetar Em Aprovação (N)
-  - Excluir todos os filtrados (N)
-- Opções com N=0 ficam **desabilitadas com tooltip explicando o motivo** ("Nenhum item Coletado nesta visão"), em vez de sumir.
+### Passo 1 — Republicar (obrigatório, resolve o caso dela)
 
-### 2. Seleção por item (checkbox)
-- Adicionar um checkbox no canto superior esquerdo de cada `ContentCard`.
-- Checkbox "Selecionar todos os filtrados" na barra.
-- Quando houver itens selecionados, o botão vira **"Ações em N selecionados ▾"** com opções: Aprovar, Rejeitar, Enviar para edição, Excluir.
-- Todas as ações em lote continuam gerando `logBulk` no `radar_audit_logs`.
+Você precisa clicar em **Publish** no topo do editor. Sem isso, o bundle que ela baixa continua quebrado. Não é algo que eu execute — é ação sua no botão de publicar.
 
-### 3. Confirmação e feedback
-- Manter os `AlertDialog` de confirmação para ações destrutivas (excluir, limpar).
-- Toast com contagem final ("N itens excluídos"), invalidação do React Query já existente.
+### Passo 2 — Blindar contra crash em contas zeradas (preventivo)
 
-## Arquivos afetados
+Antes de republicar, quero garantir que nenhum outro componente quebre para um usuário com 0 itens:
 
-- `src/components/content/BulkActions.tsx` — reescrever como bloco "Ações em massa" com dropdown único + checkbox "selecionar todos".
-- `src/components/content/ContentCard.tsx` — adicionar prop `selected` + `onToggleSelect` e checkbox no header.
-- `src/components/content/ContentList.tsx` — gerenciar estado `selectedIds`, passar para cards e BulkActions, expor callbacks de ação em selecionados.
-- `src/components/radar/RadarMain.tsx` — implementar handlers `handleBulkApprove`, `handleBulkReject`, `handleBulkSendToEdit` (usa `updateMutation` em loop + `logBulk`).
+1. **`useFluxoValidation`** — hoje faz `SELECT status FROM radar_brasis` sem filtrar por `user_id`. Com RLS retorna vazio (ok), mas o hook roda a cada 30s em background. Vou adicionar guarda: só rodar quando houver `user` autenticado, e tratar array vazio explicitamente.
+2. **`RadarLiveStats`** — já lida com `stats` zerado corretamente, só confirmar.
+3. **`ContentList`** — confirmar que os `useMemo` estão antes de qualquer `return` condicional (já corrigido no último turno, revisar).
+4. **`OnboardingTour`** — abre automaticamente para quem não tem `brasis-tour-completed` no localStorage. Confirmar que renderiza sem depender de dados do radar.
 
-## Fora de escopo
+### Passo 3 — Verificação
 
-- Não muda a página `/curadoria` (só o Radar principal).
-- Não altera regras de status, RLS, coleta ou tombstones — só a camada visual + seleção.
-- Sem novas migrations.
+Rodar `tsgo` para checar tipos e um Playwright rápido no preview simulando um usuário sem dados (via limpeza de localStorage + navegação direta) só pra ter screenshot de "estado zero" funcionando antes de você publicar.
+
+## Fora do escopo
+
+- Não vou dar role de admin para ela agora (você não pediu). Ela consegue usar tudo, só não escreve em `shared_sources`.
+- Não vou mexer em RLS/segurança.
